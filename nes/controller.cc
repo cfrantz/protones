@@ -31,27 +31,6 @@ void Controller::Write(uint8_t val) {
     }
 }
 
-void Controller::DebugStuff() {
-    auto on = ImColor(0xFFFFFFFF);
-    auto off = ImColor(0xFF808080);
-    ImGui::BeginGroup();
-    ImGui::Text("Controller %d", cnum_);
-    ImGui::TextColored((buttons_ & BUTTON_UP) ? on : off, " U");
-    ImGui::TextColored((buttons_ & BUTTON_LEFT) ? on : off, "L");
-    ImGui::SameLine();
-    ImGui::TextColored((buttons_ & BUTTON_RIGHT) ? on : off, "R");
-    ImGui::SameLine();
-    ImGui::TextColored((buttons_ & BUTTON_SELECT) ? on : off, "Sel");
-    ImGui::SameLine();
-    ImGui::TextColored((buttons_ & BUTTON_START) ? on : off, "Sta");
-    ImGui::SameLine();
-    ImGui::TextColored((buttons_ & BUTTON_B) ? on : off, " B");
-    ImGui::SameLine();
-    ImGui::TextColored((buttons_ & BUTTON_A) ? on : off, "A");
-    ImGui::TextColored((buttons_ & BUTTON_DOWN) ? on : off, " D");
-    ImGui::EndGroup();
-}
-
 void Controller::set_buttons(SDL_Event* event) {
     if (event->type == SDL_CONTROLLERBUTTONDOWN) {
         switch(event->cbutton.button) {

@@ -42,20 +42,6 @@ uint8_t DMC::Output() {
     return value_;
 }
 
-void DMC::DebugStuff() {
-    ImGui::BeginGroup();
-    ImGui::PlotLines("", dbgbuf_, DBGBUFSZ, dbgp_, "DMC", 0.0f, 127.0f, ImVec2(0,80));
-    ImGui::SameLine();
-    ImGui::BeginGroup();
-    ImGui::Text("Enabled %s", enabled_ ? "true" : "false");
-    ImGui::Text("control: %02x", reg_.control);
-    ImGui::Text("value:   %02x", reg_.value);
-    ImGui::Text("address: %02x", reg_.address);
-    ImGui::Text("length:  %02x", reg_.length);
-    ImGui::EndGroup();
-    ImGui::EndGroup();
-}
-
 void DMC::StepReader() {
     if (current_length_ > 0 && bit_count_ == 0) {
         nes_->Stall(4);

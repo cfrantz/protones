@@ -27,8 +27,6 @@ class Mem : public EmulatedDevice {
 
     uint8_t PPURead(uint16_t addr);
     void PPUWrite(uint16_t addr, uint8_t val);
-    void DebugStuff();
-
 
     inline uint8_t PaletteRead(uint16_t addr) {
         if (addr >= 16 && (addr % 4) == 0)
@@ -47,9 +45,6 @@ class Mem : public EmulatedDevice {
 
   private:
     uint16_t MirrorAddress(int mode, uint16_t addr);
-    void HexDump(int addr, int len);
-    bool ReadMemDump();
-    void MemDump();
 
     NES* nes_;
     uint8_t ram_[2048];

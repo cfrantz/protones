@@ -18,7 +18,6 @@ class Noise {
     void set_period(uint8_t val);
     void set_length(uint8_t val);
     inline uint16_t length() const { return length_value_; }
-    void DebugStuff();
     void SaveState(proto::APUNoise *state);
     void LoadState(proto::APUNoise *state);
   private:
@@ -49,6 +48,7 @@ class Noise {
     const static int DBGBUFSZ = 1024;
     float dbgbuf_[DBGBUFSZ];
     int dbgp_;
+    friend class APUDebug;
 };
 
 }  // namespace protones

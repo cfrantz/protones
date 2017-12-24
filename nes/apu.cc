@@ -125,29 +125,6 @@ float APU::Output() {
     return volume_* (pulse_table[p0+p1] + other_table[t*3 + n*2 + d]);
 }
 
-void APU::DebugStuff() {
-    static bool display_audio;
-
-    ImGui::SliderFloat("Volume", &volume_, 0.0f, 1.0f);
-    if (ImGui::BeginMenuBar()) {
-        if (ImGui::BeginMenu("Audio")) {
-            ImGui::MenuItem("Waveforms", nullptr, &display_audio);
-            ImGui::EndMenu();
-        }
-        ImGui::EndMenuBar();
-    }
-
-    if (display_audio) {
-        ImGui::Begin("Audio", &display_audio);
-        pulse_[0].DebugStuff();
-        pulse_[1].DebugStuff();
-        triangle_.DebugStuff();
-        noise_.DebugStuff();
-        dmc_.DebugStuff();
-        ImGui::End();
-    }
-}
-
 void APU::Emulate() {
     double c1 = double(cycle_);
     double c2 = double(++cycle_);

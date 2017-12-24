@@ -9,6 +9,10 @@
 #include "app.h"
 #include "imgui.h"
 #include "absl/strings/match.h"
+#include "imwidget/apu_debug.h"
+#include "imwidget/controller_debug.h"
+#include "imwidget/mem_debug.h"
+#include "imwidget/ppu_debug.h"
 #include "imwidget/error_dialog.h"
 #include "nes/apu.h"
 #include "nes/cartridge.h"
@@ -34,6 +38,17 @@ void ProtoNES::Init() {
     nes_ = absl::make_unique<NES>();
     scale_ = 4.0f;
     aspect_ = 1.2f;
+
+    apu_debug_ = new APUDebug(nes_->apu());
+    AddDrawCallback(apu_debug_);
+    controller_debug_ = new ControllerDebug(nes_.get());
+    AddDrawCallback(controller_debug_);
+    mem_debug_ = new MemDebug(nes_->mem());
+    AddDrawCallback(mem_debug_);
+    ppu_tile_debug_ = new PPUTileDebug(nes_.get());
+    AddDrawCallback(ppu_tile_debug_);
+    ppu_vram_debug_ = new PPUVramDebug(nes_.get(), ppu_tile_debug_);
+    AddDrawCallback(ppu_vram_debug_);
 
     glEnable(GL_TEXTURE_2D);
     glGenTextures(1, &nesimg_);
@@ -74,10 +89,12 @@ void ProtoNES::AudioCallback(void* stream, int len) {
 
 bool ProtoNES::PreDraw() {
     ImGuiIO& io = ImGui::GetIO();
-    glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
+    float width = io.DisplaySize.x * io.DisplayFramebufferScale.x;
+    float height = io.DisplaySize.y * io.DisplayFramebufferScale.y;
+    glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(0.0f, io.DisplaySize.x, io.DisplaySize.y, 0.0f, -1.0f, +1.0f);
+    glOrtho(0.0f, width, height, 0.0f, -1.0f, +1.0f);
     glClearColor(clear_color_.x, clear_color_.y, clear_color_.z, clear_color_.w);
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -88,7 +105,7 @@ bool ProtoNES::PreDraw() {
                   GL_RGBA, GL_UNSIGNED_BYTE, nes_->ppu()->picture());
 
     glBegin(GL_QUADS);
-    float x0 = 0.0, y0 = 20.0;
+    float x0 = 0.0, y0 = 20.0 * io.DisplayFramebufferScale.y;
     glTexCoord2f(0, 0); glVertex2f(x0, y0);
     glTexCoord2f(1, 0); glVertex2f(x0 + 256 * scale_ * aspect_, y0);
     glTexCoord2f(1, 1); glVertex2f(x0 + 256 * scale_ * aspect_, y0 + 240 * scale_);
@@ -151,6 +168,11 @@ save_as:
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
+            ImGui::MenuItem("Audio", nullptr, &apu_debug_->visible());
+            ImGui::MenuItem("Controllers", nullptr, &controller_debug_->visible());
+            ImGui::MenuItem("Memory", nullptr, &mem_debug_->visible());
+            ImGui::MenuItem("PPU Tile Data", nullptr, &ppu_tile_debug_->visible());
+            ImGui::MenuItem("PPU VRAM", nullptr, &ppu_vram_debug_->visible());
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Help")) {

@@ -43,10 +43,6 @@ void Mapper1::SaveState(proto::Mapper* mstate) {
     state->add_chr_offset(chr_offset_[1]);
 }
 
-void Mapper1::DebugStuff() {
-    ImGui::Text("CHR Banks = %02x %02x", chr_bank0_, chr_bank1_);
-}
-
 uint8_t Mapper1::Read(uint16_t addr) {
     if (addr < 0x2000) {
         int bank = addr / 0x1000;

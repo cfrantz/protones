@@ -32,7 +32,6 @@ class APU : public EmulatedDevice {
     void SignalIRQ();
     float Output();
     void Emulate();
-    void DebugStuff();
 
     void LoadState(proto::APU* state);
     void SaveState(proto::APU* state);
@@ -57,6 +56,7 @@ class APU : public EmulatedDevice {
 
     float data_[BUFFERLEN];
     std::atomic<int> len_;
+    friend class APUDebug;
 };
 
 }  // namespace protones
