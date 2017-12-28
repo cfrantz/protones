@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdint>
+#define __STDC_FORMAT_MACROS 1
 #include <inttypes.h>
 #include <gflags/gflags.h>
 #include "nes/cpu6502.h"

@@ -151,6 +151,9 @@ save_as:
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
+            ImGui::DragFloat("Zoom", &scale_, 0.01f, 0.0f, 10.0f, "%.02f");
+            ImGui::DragFloat("Aspect Ratio", &aspect_, 0.001f, 0.0f, 2.0f, "%.03f");
+            ImGui::ColorEdit3("Clear Color", (float*)&clear_color_);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Help")) {
@@ -158,14 +161,21 @@ save_as:
                 Help("root");
             }
             if (ImGui::MenuItem("About")) {
+                SDL_version compiled, linked;
+                SDL_VERSION(&compiled);
+                SDL_GetVersion(&linked);
                 ErrorDialog::Spawn("About ProtoNES",
                     "ProtoNES Emulator\n\n",
 #ifdef BUILD_GIT_VERSION
-                    "Version: ", BUILD_GIT_VERSION, "-", BUILD_SCM_STATUS
+                    "Version: ", BUILD_GIT_VERSION, "-", BUILD_SCM_STATUS, "\n"
 #else
-                    "Version: Unknown"
+                    "Version: Unknown\n"
 #warning "Built without version stamp"
 #endif
+                    "\nBuilt with SDL version ", compiled.major, ".",
+                        compiled.minor, ".", compiled.patch, "\n"
+                    "\nLinked with SDL version ", linked.major, ".",
+                        linked.minor, ".", linked.patch, "\n"
                     );
 
             }

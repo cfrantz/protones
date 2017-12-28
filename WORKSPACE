@@ -89,7 +89,7 @@ bind(
 git_repository(
     name = "mxebzl",
     remote = "https://github.com/cfrantz/mxebzl.git",
-    tag = "20170703_RC02",
+    commit = "ee7aa7dbca09f68847317d189a3e672f6910bd6b",
 )
 
 load("@mxebzl//tools:repository.bzl", "mxe_compilers")
@@ -98,5 +98,6 @@ mxe_compilers(
         "compiler",
         "SDL2",
         "SDL2-extras",
+        "pthreads",
     ],
 )
