@@ -98,19 +98,6 @@ uint8_t Pulse::Output() {
     return val;
 }
 
-void Pulse::DebugStuff() {
-    ImGui::BeginGroup();
-    ImGui::PlotLines("", dbgbuf_, DBGBUFSZ, dbgp_, "Pulse", 0.0f, 15.0f, ImVec2(0,80));
-    ImGui::SameLine();
-    ImGui::BeginGroup();
-    ImGui::Text("Enabled %s", enabled_ ? "true" : "false");
-    ImGui::Text("control: %02x", reg_.control);
-    ImGui::Text("sweep:   %02x", reg_.sweep);
-    ImGui::Text("timer:   %02x%02x", reg_.thi, reg_.tlo);
-    ImGui::EndGroup();
-    ImGui::EndGroup();
-}
-
 void Pulse::Sweep() {
     uint16_t delta = timer_period_ >> sweep_shift_;
     if (sweep_negate_) {

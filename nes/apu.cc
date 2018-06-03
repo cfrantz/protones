@@ -125,29 +125,6 @@ float APU::Output() {
     return volume_* (pulse_table[p0+p1] + other_table[t*3 + n*2 + d]);
 }
 
-void APU::DebugStuff() {
-    static bool display_audio;
-
-    ImGui::SliderFloat("Volume", &volume_, 0.0f, 1.0f);
-    if (ImGui::BeginMenuBar()) {
-        if (ImGui::BeginMenu("Audio")) {
-            ImGui::MenuItem("Waveforms", nullptr, &display_audio);
-            ImGui::EndMenu();
-        }
-        ImGui::EndMenuBar();
-    }
-
-    if (display_audio) {
-        ImGui::Begin("Audio", &display_audio);
-        pulse_[0].DebugStuff();
-        pulse_[1].DebugStuff();
-        triangle_.DebugStuff();
-        noise_.DebugStuff();
-        dmc_.DebugStuff();
-        ImGui::End();
-    }
-}
-
 void APU::Emulate() {
     double c1 = double(cycle_);
     double c2 = double(++cycle_);
@@ -164,6 +141,7 @@ void APU::Emulate() {
     int s1 = int(c1 / NES::sample_rate);
     int s2 = int(c2 / NES::sample_rate);
     if (s1 != s2) {
+#if 0
         SDL_LockMutex(mutex_);
         while(len_ == BUFFERLEN) {
             SDL_CondWait(cond_, mutex_);
@@ -174,11 +152,19 @@ void APU::Emulate() {
             fprintf(stderr, "Audio overrun\n");
         }
         SDL_UnlockMutex(mutex_);
+#else
+        while((producer_ + 1) % BUFFERLEN == consumer_ % BUFFERLEN) {
+            os::SchedulerYield();
+        }
+        data_[producer_ % BUFFERLEN] = Output();
+        ++producer_;
+#endif
     }
 }
 
 void APU::PlayBuffer(void* stream, int bufsz) {
     int n = bufsz / sizeof(float);
+#if 0
     if (len_ >= n) {
         SDL_LockMutex(mutex_);
         int rest = len_ - n;
@@ -191,6 +177,18 @@ void APU::PlayBuffer(void* stream, int bufsz) {
         //fprintf(stderr, "Audio underrun\n");
         memset(stream, 0, bufsz);
     }
+#else
+    float* out = static_cast<float*>(stream);
+    while(n && consumer_ < producer_) {
+        *out++ = data_[consumer_ % BUFFERLEN];
+        ++consumer_;
+        --n;
+    }
+    while(n) {
+        *out++ = 0.0f;
+        --n;
+    }
+#endif
 }
 
 void APU::Write(uint16_t addr, uint8_t val) {

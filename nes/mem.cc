@@ -172,6 +172,7 @@ void Mem::PPUWrite(uint16_t addr, uint8_t val) {
     }
 }
 
+#ifdef DELETE_ME
 void Mem::HexDump(int addr, int len) {
     static const char hex[] = "0123456789abcdef";
     char line[80];
@@ -269,7 +270,7 @@ void Mem::MemDump() {
 
 }
 
-void Mem::DebugStuff() {
+void Mem::XXXDebugStuff() {
     static bool display_hexdump, display_ppuram, display_memdump;;
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("Memory")) {
@@ -302,4 +303,5 @@ void Mem::DebugStuff() {
         ImGui::End();
     }
 }
+#endif
 }  // namespace protones

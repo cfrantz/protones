@@ -44,3 +44,52 @@ cc_library(
         "//external:imgui",
     ],
 )
+
+cc_library(
+    name = "apu_debug",
+    hdrs = ["apu_debug.h"],
+    srcs = ["apu_debug.cc"],
+    deps = [
+        ":base",
+        "//nes:apu",
+        "//external:imgui",
+    ],
+)
+
+cc_library(
+    name = "controller_debug",
+    hdrs = ["controller_debug.h"],
+    srcs = ["controller_debug.cc"],
+    deps = [
+        ":base",
+        "//nes:controller",
+        "//nes:nes-interface",
+        "//external:imgui",
+    ],
+)
+
+cc_library(
+    name = "mem_debug",
+    hdrs = ["mem_debug.h"],
+    srcs = ["mem_debug.cc"],
+    deps = [
+        ":base",
+        "//nes:mem",
+        "//external:imgui",
+    ],
+)
+
+cc_library(
+    name = "ppu_debug",
+    hdrs = ["ppu_debug.h"],
+    srcs = ["ppu_debug.cc"],
+    deps = [
+        ":base",
+        "//nes:ppu",
+        "//nes:mapper",
+        "//nes:mem",
+        "//nes:nes-interface",
+        "//external:imgui",
+    ],
+)
+

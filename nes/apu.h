@@ -1,6 +1,7 @@
 #ifndef PROTONES_NES_APU_H
 #define PROTONES_NES_APU_H
 #include <cstdint>
+#include <chrono>
 #include <atomic>
 #include <SDL2/SDL.h>
 
@@ -32,7 +33,6 @@ class APU : public EmulatedDevice {
     void SignalIRQ();
     float Output();
     void Emulate();
-    void DebugStuff();
 
     void LoadState(proto::APU* state);
     void SaveState(proto::APU* state);
@@ -57,6 +57,8 @@ class APU : public EmulatedDevice {
 
     float data_[BUFFERLEN];
     std::atomic<int> len_;
+    std::atomic<int> producer_, consumer_;
+    friend class APUDebug;
 };
 
 }  // namespace protones

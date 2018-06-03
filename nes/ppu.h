@@ -30,7 +30,6 @@ class PPU : public EmulatedDevice {
     inline int scanline() const { return scanline_; }
     inline int cycle() const { return cycle_; }
     inline Mask mask() const { return mask_; }
-    void DebugStuff();
     void LoadState(proto::PPU* state);
     void SaveState(proto::PPU* state);
     inline uint32_t* picture() { return picture_; }
@@ -123,8 +122,6 @@ class PPU : public EmulatedDevice {
 
     bool debug_showbg_;
     bool debug_showsprites_;
-    void TileMemImage(uint32_t* imgbuf, uint16_t addr, int palette, uint8_t *prefcolor);
-    void DebugVram(bool* active, uint8_t prefcolor[2][256]);
     struct Position { int x, y, nt; };
     Position scrollreg_[262];
     Position last_scrollreg_;
@@ -133,6 +130,8 @@ class PPU : public EmulatedDevice {
     uint32_t normal_table_[256];
     uint32_t reflection_table_[256];
     uint32_t debug_dot_;
+    friend class PPUTileDebug;
+    friend class PPUVramDebug;
 };
 
 }  // namespace protones

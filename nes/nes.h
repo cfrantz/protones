@@ -52,7 +52,6 @@ class NES {
     static constexpr double frame_counter_rate = frequency / 240.0;
     static constexpr double sample_rate = frequency / 44100.0;
   private:
-    void DebugStuff(SDL_Renderer* r);
     void DebugPalette(bool* active);
     void HandleKeyboard(SDL_Event* event);
     APU* apu_;

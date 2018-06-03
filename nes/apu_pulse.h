@@ -21,7 +21,6 @@ class Pulse {
     void set_timer_low(uint8_t val);
     void set_timer_high(uint8_t val);
     inline uint16_t length() const { return length_value_; }
-    void DebugStuff();
     void LoadState(proto::APUPulse* state);
     void SaveState(proto::APUPulse* state);
   private:
@@ -60,6 +59,7 @@ class Pulse {
     const static int DBGBUFSZ = 1024;
     float dbgbuf_[DBGBUFSZ];
     int dbgp_;
+    friend class APUDebug;
 };
 
 }  // namespace protones

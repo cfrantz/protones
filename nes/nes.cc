@@ -84,7 +84,6 @@ NES::NES() :
                 apu_->PlayBuffer(stream, len); });
     io_->init_controllers(
             [this](SDL_Event* event) { controller_[0]->set_buttons(event); });
-    io_->set_refresh_callback([this](SDL_Renderer* r) { DebugStuff(r); });
     io_->set_keyboard_callback(
             [this](SDL_Event* event) { HandleKeyboard(event); });
 #endif

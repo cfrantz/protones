@@ -56,18 +56,6 @@ uint8_t Triangle::Output() {
     return val;
 }
 
-void Triangle::DebugStuff() {
-    ImGui::BeginGroup();
-    ImGui::PlotLines("", dbgbuf_, DBGBUFSZ, dbgp_, "Triangle", 0.0f, 15.0f, ImVec2(0,80));
-    ImGui::SameLine();
-    ImGui::BeginGroup();
-    ImGui::Text("Enabled %s", enabled_ ? "true" : "false");
-    ImGui::Text("control: %02x", reg_.control);
-    ImGui::Text("timer:   %02x%02x", reg_.thi, reg_.tlo);
-    ImGui::EndGroup();
-    ImGui::EndGroup();
-}
-
 void Triangle::StepTimer() {
     if (timer_value_ == 0) {
         timer_value_ = timer_period_;

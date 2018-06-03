@@ -22,7 +22,6 @@ class DMC {
     void set_length(uint8_t val);
     inline uint16_t length() const { return current_length_; }
     void restart();
-    void DebugStuff();
     void LoadState(proto::APUDMC* state);
     void SaveState(proto::APUDMC* state);
   private:
@@ -49,6 +48,7 @@ class DMC {
     const static int DBGBUFSZ = 1024;
     float dbgbuf_[DBGBUFSZ];
     int dbgp_;
+    friend class APUDebug;
 };
 
 }  // namespace protones

@@ -63,19 +63,6 @@ uint8_t Noise::Output() {
     return val;
 }
 
-void Noise::DebugStuff() {
-    ImGui::BeginGroup();
-    ImGui::PlotLines("", dbgbuf_, DBGBUFSZ, dbgp_, "Noise", 0.0f, 15.0f, ImVec2(0,80));
-    ImGui::SameLine();
-    ImGui::BeginGroup();
-    ImGui::Text("Enabled %s", enabled_ ? "true" : "false");
-    ImGui::Text("control: %02x", reg_.control);
-    ImGui::Text("period:  %02x", reg_.period);
-    ImGui::Text("length:  %02x", reg_.length);
-    ImGui::EndGroup();
-    ImGui::EndGroup();
-}
-
 void Noise::StepTimer() {
     if (timer_value_ == 0) {
         timer_value_ = timer_period_;

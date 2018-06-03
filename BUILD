@@ -33,6 +33,10 @@ cc_library(
     ],
     deps = [
         "//imwidget:base",
+        "//imwidget:apu_debug",
+        "//imwidget:controller_debug",
+        "//imwidget:mem_debug",
+        "//imwidget:ppu_debug",
         "//imwidget:error_dialog",
         "//nes:nes",
         "//util:browser",

@@ -18,7 +18,6 @@ class Controller : public EmulatedDevice {
     void set_buttons(SDL_Event* event);
     void AppendButtons(uint8_t b);
     void Emulate();
-    void DebugStuff();
 
     static const int BUTTON_A      = 0x01;
     static const int BUTTON_B      = 0x02;
@@ -35,6 +34,7 @@ class Controller : public EmulatedDevice {
     std::vector<uint8_t> movie_;
     bool got_read_;
     int cnum_;
+    friend class ControllerDebug;
 };
 
 }  // namespace protones

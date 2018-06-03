@@ -101,8 +101,10 @@ void ImApp::SetTitle(const std::string& title, bool with_appname) {
 void ImApp::Run() {
     running_ = true;
     while(running_) {
-        if (!ProcessEvents())
+        if (!ProcessEvents()) {
+            running_ = false;
             break;
+        }
         BaseDraw();
         //fpsmgr_.Delay();
     }

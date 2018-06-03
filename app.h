@@ -10,6 +10,13 @@
 
 namespace protones {
 
+class APUDebug;
+class ControllerDebug;
+class MemDebug;
+class PPUTileDebug;
+class PPUVramDebug;
+
+
 class ProtoNES: public ImApp {
   public:
     ProtoNES(const std::string& name) : ImApp(name, 1280, 720) {}
@@ -23,6 +30,7 @@ class ProtoNES: public ImApp {
     bool PreDraw() override;
     void Draw() override;
     void Run();
+    void EmulateInThread();
 
     void AudioCallback(void* stream, int len) override;
 
@@ -34,6 +42,14 @@ class ProtoNES: public ImApp {
     float aspect_;
     std::unique_ptr<NES> nes_;
     std::string save_filename_;
+
+    APUDebug* apu_debug_;
+    ControllerDebug* controller_debug_;
+    MemDebug* mem_debug_;
+    PPUTileDebug* ppu_tile_debug_;
+    PPUVramDebug* ppu_vram_debug_;
+    float frametime_[100];
+    int ftp_;
 };
 
 }  // namespace protones
