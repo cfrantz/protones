@@ -4,6 +4,10 @@
 
 #include "app.h"
 #include "util/config.h"
+#include "proto/config.pb.h"
+#include "protones_config.h"
+
+DEFINE_string(config, "", "ProtoNES config file");
 
 const char kUsage[] =
 R"ZZZ(<optional flags> [user-supplied-nes-rom]
@@ -19,6 +23,14 @@ Flags:
 int main(int argc, char *argv[]) {
     gflags::SetUsageMessage(kUsage);
     gflags::ParseCommandLineFlags(&argc, &argv, true);
+
+    auto* loader = ConfigLoader<proto::Configuration>::Get();
+    if (!FLAGS_config.empty()) {
+        loader->Load(FLAGS_config);
+    } else {
+        loader->Parse(kProtonesCfg);
+    }
+
 
     protones::ProtoNES app("ProtoNES");
     app.Init();

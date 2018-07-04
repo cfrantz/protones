@@ -1,0 +1,5 @@
+controls {
+  buttons { scancode: SDL_SCANCODE_PAUSE button: ControllerPause }
+  buttons { scancode: SDL_SCANCODE_BACKSLASH button: ControllerFrameStep }
+  buttons { scancode: SDL_SCANCODE_F11 button: ControllerReset }
+}

@@ -5,6 +5,7 @@
 #include <thread>
 
 #include <gflags/gflags.h>
+#include <gflags/gflags_declare.h>
 
 #include "absl/memory/memory.h"
 #include "app.h"
@@ -15,12 +16,14 @@
 #include "imwidget/mem_debug.h"
 #include "imwidget/ppu_debug.h"
 #include "imwidget/error_dialog.h"
+#include "proto/config.pb.h"
 #include "nes/apu.h"
 #include "nes/cartridge.h"
 #include "nes/controller.h"
 #include "nes/ppu.h"
 #include "nes/nes.h"
 #include "util/browser.h"
+#include "util/config.h"
 #include "util/os.h"
 #include "util/logging.h"
 #include "util/imgui_impl_sdl.h"
@@ -31,8 +34,11 @@
 #include "nfd.h"
 #endif
 
+DECLARE_double(volume);
 
 namespace protones {
+
+using proto::ControllerButtons;
 
 void ProtoNES::Init() {
     loaded_ = false;
@@ -41,6 +47,15 @@ void ProtoNES::Init() {
     aspect_ = 1.2f;
     memset(frametime_, 0, sizeof(frametime_));
     ftp_ = 0;
+    volume_ = FLAGS_volume;
+    preferences_ = false;
+    pause_ = false;
+    step_ = false;
+
+    const auto& config = ConfigLoader<proto::Configuration>::GetConfig();
+    for(const auto& b : config.controls().buttons()) {
+        buttons_[b.scancode()] = b.button();
+    }
 
     apu_debug_ = new APUDebug(nes_->apu());
     AddDrawCallback(apu_debug_);
@@ -52,6 +67,7 @@ void ProtoNES::Init() {
     AddDrawCallback(ppu_tile_debug_);
     ppu_vram_debug_ = new PPUVramDebug(nes_.get(), ppu_tile_debug_);
     AddDrawCallback(ppu_vram_debug_);
+
 
     glEnable(GL_TEXTURE_2D);
     glGenTextures(1, &nesimg_);
@@ -75,6 +91,26 @@ void ProtoNES::ProcessEvent(SDL_Event* event) {
     case SDL_CONTROLLERBUTTONUP:
     case SDL_CONTROLLERAXISMOTION:
         nes_->controller(0)->set_buttons(event);
+        break;
+    case SDL_KEYDOWN: {
+        ControllerButtons b = buttons_[event->key.keysym.scancode];
+        switch (b) {
+        case ControllerButtons::ControllerPause:
+            pause_ = !pause_;
+            break;
+        case ControllerButtons::ControllerFrameStep:
+            pause_ = true;
+            step_ = true;
+            break;
+        case ControllerButtons::ControllerReset:
+            nes_->Reset();
+            break;
+        default:
+            ;
+        }
+        }
+        break;
+    case SDL_KEYUP:
         break;
     default:
         ;
@@ -117,6 +153,29 @@ bool ProtoNES::PreDraw() {
     return true;
 }
 
+void ProtoNES::DrawPreferences() {
+    if (!preferences_)
+        return;
+
+    ImGui::Begin("Preferences", &preferences_);
+    float fta = 0;
+    for(int i=0; i<100; i++) {
+        fta += frametime_[i];
+    }
+    fta = 1.0f / (fta / 100.0f);
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::Text("Fps: %.1f, %.1f", io.Framerate, fta);
+
+    ImGui::PushItemWidth(200);
+    ImGui::DragFloat("Zoom", &scale_, 0.01f, 0.0f, 10.0f, "%.02f");
+    ImGui::DragFloat("Aspect Ratio", &aspect_, 0.001f, 0.0f, 2.0f, "%.03f");
+    if (ImGui::SliderFloat("Volume", &volume_, 0.0f, 1.0f)) {
+        nes_->apu()->set_volume(volume_);
+    }
+    ImGui::ColorEdit3("Clear Color", (float*)&clear_color_);
+    ImGui::PopItemWidth();
+    ImGui::End();
+}
 
 void ProtoNES::Draw() {
     ImGui::SetNextWindowSize(ImVec2(500,300), ImGuiSetCond_FirstUseEver);
@@ -166,12 +225,11 @@ save_as:
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit")) {
-            ImGui::MenuItem("Debug Console", nullptr,
-                            &console_.visible());
+            ImGui::MenuItem("Debug Console", nullptr, &console_.visible());
+            ImGui::MenuItem("Preferences", nullptr, &preferences_);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
-            //ImGui::ColorEdit3("Clear Color", (float*)&clear_color_);
             ImGui::MenuItem("Audio", nullptr, &apu_debug_->visible());
             ImGui::MenuItem("Controllers", nullptr, &controller_debug_->visible());
             ImGui::MenuItem("Memory", nullptr, &mem_debug_->visible());
@@ -204,29 +262,14 @@ save_as:
             }
             ImGui::EndMenu();
         }
-        ImGui::PushItemWidth(200);
-        ImGui::DragFloat("Zoom", &scale_, 0.01f, 0.0f, 10.0f, "%.02f");
-        ImGui::SameLine();
-        ImGui::DragFloat("Aspect Ratio", &aspect_, 0.001f, 0.0f, 2.0f, "%.03f");
-        ImGui::PopItemWidth();
+
         ImGui::EndMainMenuBar();
     }
-
-    static bool open = true;
-    if (ImGui::Begin("MyDebug", &open)) {
-        float fta = 0;
-        for(int i=0; i<100; i++) {
-            fta += frametime_[i];
-        }
-        fta = 1.0f / (fta / 100.0f);
-        ImGuiIO& io = ImGui::GetIO();
-        ImGui::Text("Fps: %.1f, %.1f", io.Framerate, fta);
-    }
-    ImGui::End();
 
     if (!loaded_) {
         goto load_file;
     }
+    DrawPreferences();
 }
 
 void ProtoNES::Run() {
@@ -246,10 +289,18 @@ void ProtoNES::Run() {
 
 void ProtoNES::EmulateInThread() {
     while(running_) {
-        int64_t t0 = os::utime_now();
-        if (loaded_) {
-            nes_->EmulateFrame();
+        if (!loaded_) {
+            continue;
         }
+        if (pause_) {
+            os::SchedulerYield();
+            if (!step_) {
+                continue;
+            }
+            step_ = false;
+        }
+        int64_t t0 = os::utime_now();
+        nes_->EmulateFrame();
         int64_t t1 = os::utime_now();
         frametime_[ftp_] = (t1-t0) / 1e6;
         ftp_ = (ftp_ + 1) % 100;

@@ -39,7 +39,9 @@ cc_library(
         "//imwidget:ppu_debug",
         "//imwidget:error_dialog",
         "//nes:nes",
+        "//proto:config",
         "//util:browser",
+        "//util:config",
         "//util:fpsmgr",
         "//util:imgui_sdl_opengl",
         "//util:os",
@@ -61,14 +63,14 @@ filegroup(
 )
 
 genrule(
-    name = "make_zelda2_config",
+    name = "make_protones_config",
     srcs = [
-        "zelda2.textpb",
+        "protones.textpb",
         ":content",
     ],
-    outs = ["zelda2_config.h"],
-    cmd = "$(location //tools:pack_config) --config $(location zelda2.textpb)" +
-          " --symbol kZelda2Cfg > $(@)",
+    outs = ["protones_config.h"],
+    cmd = "$(location //tools:pack_config) --config $(location protones.textpb)" +
+          " --symbol kProtonesCfg > $(@)",
     tools = ["//tools:pack_config"],
 )
 
@@ -100,11 +102,13 @@ cc_binary(
         ],
     }),
     srcs = [
+        "protones_config.h",
         "main.cc",
     ],
     deps = [
         ":app",
         "//util:config",
+        "//proto:config",
         "//external:gflags",
     ],
 )

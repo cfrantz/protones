@@ -60,3 +60,18 @@ cc_proto_library(
     name = "nes",
     deps = [":nes_proto"],
 )
+
+proto_library(
+    name = "config_proto",
+    srcs = [
+        "config.proto",
+        "controller.proto",
+    ],
+    deps = [
+    ],
+)
+
+cc_proto_library(
+    name = "config",
+    deps = [":config_proto"],
+)

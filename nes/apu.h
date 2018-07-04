@@ -36,6 +36,7 @@ class APU : public EmulatedDevice {
 
     void LoadState(proto::APU* state);
     void SaveState(proto::APU* state);
+    void set_volume(float v) { volume_ = v; }
     static const int BUFFERLEN = 1024;
   private:
     void set_frame_counter(uint8_t val);
