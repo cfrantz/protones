@@ -1,7 +1,7 @@
 #include <string>
 #include <gflags/gflags.h>
 
-#include "proto/rominfo.pb.h"
+#include "proto/config.pb.h"
 #include "util/config.h"
 
 DEFINE_string(config, "", "ROM info config file");
@@ -11,14 +11,14 @@ DEFINE_string(delimeter, "ZCFGZ", "C++ raw string delimiter");
 int main(int argc, char *argv[]) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    auto* loader = ConfigLoader<protones::RomInfo>::Get();
+    auto* loader = ConfigLoader<proto::Configuration>::Get();
     if (FLAGS_config.empty()) {
         LOG(FATAL, "Need a config file.");
     }
 
     loader->Load(FLAGS_config);
 
-    protones::RomInfo* config = loader->MutableConfig();
+    proto::Configuration* config = loader->MutableConfig();
     config->mutable_load()->Clear();
     std::string data = config->DebugString();
     
