@@ -31,6 +31,7 @@ class Controller : public EmulatedDevice {
     NES* nes_;
     uint8_t buttons_;
     int index_, strobe_;
+    uint32_t movie_frame_;
     std::vector<uint8_t> movie_;
     bool got_read_;
     int cnum_;

@@ -19,6 +19,7 @@ class Cpu : public EmulatedDevice {
     void Reset();
     void Emulate() { Execute(); }
     int Execute();
+    void Stall(int s) { stall_ += s; }
     std::string Disassemble(uint16_t *nexti=nullptr, bool tracemode=false);
     std::string CpuState();
     inline void NMI() {
@@ -36,7 +37,7 @@ class Cpu : public EmulatedDevice {
     inline void irq() { IRQ(); }
     inline void memory(Mem* mem) { mem_ = mem; }
 
-    inline int cycles() { return cycles_; }
+    inline uint64_t cycles() { return cycles_; }
 
     inline uint8_t a() { return a_; }
     inline uint8_t x() { return x_; }

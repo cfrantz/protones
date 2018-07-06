@@ -14,6 +14,7 @@ class Cpu;
 class Cartridge;
 class Controller;
 class Debugger;
+class FM2Movie;
 class Mapper;
 class Mem;
 class PPU;
@@ -32,14 +33,17 @@ class NES {
     inline Cpu* cpu() { return cpu_; }
     inline PPU* ppu() { return ppu_; }
     inline Mem* mem() { return mem_; }
+    inline FM2Movie* movie() { return movie_; }
     inline Mapper* mapper() { return mapper_; }
     inline Cartridge* cartridge() { return cart_; }
     inline Controller* controller(int n) { return controller_[n]; }
     inline uint32_t palette(uint8_t c) { return palette_[c % 64]; }
     inline uint64_t frame() { return frame_; }
+    inline bool lag() { return lag_; }
+    inline void set_lag(bool val) { lag_ = val; }
 
-    int cpu_cycles();
-    inline void Stall(int s) { stall_ += s; }
+    uint64_t cpu_cycles();
+    void Stall(int s);
 
     void Reset();
     bool Emulate();
@@ -56,6 +60,7 @@ class NES {
     void HandleKeyboard(SDL_Event* event);
     APU* apu_;
     Cpu* cpu_;
+    FM2Movie* movie_;
     PPU* ppu_;
     Mem* mem_;
     Mapper* mapper_;
@@ -66,9 +71,9 @@ class NES {
     proto::NES state_;
 
     uint32_t palette_[64];
-    bool pause_, step_, debug_, reset_;
-    int stall_;
+    bool pause_, step_, debug_, reset_, lag_;
     uint64_t frame_;
+    double remainder_;
 };
 
 }  // namespace protones

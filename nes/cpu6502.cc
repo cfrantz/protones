@@ -170,6 +170,7 @@ int Cpu::Execute(void) {
         return 1;
     if (stall_ > 0) {
       stall_--;
+      cycles_++;
       return 1;
     }
     int cycles = cycles_;

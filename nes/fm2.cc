@@ -7,14 +7,13 @@ DEFINE_int32(fm2_predelay, 0, "Number of frames of pre-delay on fm2 inputs.");
 namespace protones {
 
 FM2Movie::FM2Movie(NES* nes) :
-    nes_(nes) {}
+    nes_(nes),
+    loaded_(false) {}
 
 void FM2Movie::Emulate() {
-#if 0
     for(int i=0; i<nes_->controller_size(); i++) {
-        nes_->controller(i)->Emulate(frame);
+        nes_->controller(i)->Emulate();
     }
-#endif
 }
 
 void FM2Movie::Load(const std::string& filename) {
@@ -52,7 +51,8 @@ void FM2Movie::Load(const std::string& filename) {
         Parse(line);
         n++;
     }
-    printf("Parse %d records.\n", n);
+    printf("Parsed %d records.\n", n);
+    loaded_ = true;
 }
 
 void FM2Movie::Parse(const std::string& s) {

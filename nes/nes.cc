@@ -45,8 +45,9 @@ NES::NES() :
     step_(false),
     debug_(false),
     reset_(false),
-    stall_(0),
-    frame_(0)
+    lag_(false),
+    frame_(0),
+    remainder_(0)
 {
     mem_ = new Mem(this);
     devices_.emplace_back(mem_);
@@ -57,6 +58,9 @@ NES::NES() :
     cpu_ = new Cpu();
     cpu_->memory(mem_);
     devices_.emplace_back(cpu_);
+
+    movie_ = new FM2Movie(this);
+    devices_.emplace_back(movie_);
 
     ppu_ = new PPU(this);
     devices_.emplace_back(ppu_);
@@ -74,19 +78,7 @@ NES::NES() :
     devices_.emplace_back(controller_[3]);
 
     mapper_ = nullptr;
-    //movie_ = new FM2Movie(this);
 
-#if 0
-    io_ = new IO(256, 240, FLAGS_fps);
-
-    io_->init_audio(44100, 1, APU::BUFFERLEN/2, AUDIO_F32,
-            [this](uint8_t* stream, int len) {
-                apu_->PlayBuffer(stream, len); });
-    io_->init_controllers(
-            [this](SDL_Event* event) { controller_[0]->set_buttons(event); });
-    io_->set_keyboard_callback(
-            [this](SDL_Event* event) { HandleKeyboard(event); });
-#endif
     for(size_t i=0; i<sizeof(palette_)/sizeof(palette_[0]); i++) {
         palette_[i] = (standard_palette[i] & 0xFF00FF00) |
                       ((standard_palette[i] >> 16 ) & 0xFF) |
@@ -98,11 +90,10 @@ NES::NES() :
 void NES::LoadFile(const std::string& filename) {
     cart_->LoadFile(filename);
     mapper_ = MapperRegistry::New(this, cart_->mapper());
-#if 0
+
     if (!FLAGS_fm2.empty()) {
         movie_->Load(FLAGS_fm2);
     }
-#endif
 }
 
 void NES::LoadState(const std::string& filename) {
@@ -193,8 +184,8 @@ void NES::HandleKeyboard(SDL_Event *event) {
     }
 }
 
-int NES::cpu_cycles() {
-    return int(cpu_->cycles());
+uint64_t NES::cpu_cycles() {
+    return cpu_->cycles();
 }
 
 void NES::Reset() {
@@ -218,16 +209,22 @@ bool NES::Emulate() {
 }
 
 bool NES::EmulateFrame() {
-    frame_ = ppu_->frame();
+    double count = double(frequency) / FLAGS_fps - remainder_;
+    double eof = cpu_->cycles() + count;
 
-    //movie_->Emulate(frame_);
-    while(frame_ == ppu_->frame()) {
+    movie_->Emulate();
+    // Assume there will be lag during this frame.  If the game reads the
+    // controllers on time, the controller emulation will clear the lag flag.
+    lag_ = true;
+    while(double(cpu_->cycles()) < eof) {
         //for(const auto& n : nailed_)
         //    mem_->Write(n.first, n.second);
 
         if (!Emulate())
             return false;
     }
+    frame_++;
+    remainder_ = double(cpu_->cycles()) - eof;
     return true;
 }
 
@@ -239,5 +236,8 @@ void NES::NMI() {
     cpu_->nmi();
 }
 
+void NES::Stall(int s) {
+    cpu_->Stall(s);
+}
 
 }  // namespace protones

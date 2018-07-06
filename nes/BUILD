@@ -103,6 +103,7 @@ cc_library(
     srcs = ["fm2.cc"],
     hdrs = ["fm2.h"],
     deps = [
+        ":base",
         ":controller",
         ":nes-interface",
         "//external:gflags",

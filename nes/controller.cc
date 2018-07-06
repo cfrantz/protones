@@ -9,12 +9,14 @@ Controller::Controller(NES* nes, int cnum) :
     buttons_(0),
     index_(0),
     strobe_(0),
+    movie_frame_(0),
     movie_(0),
     got_read_(false),
     cnum_(cnum) {}
 
 uint8_t Controller::Read() {
     uint8_t ret = 0;
+    nes_->set_lag(false);
     got_read_ = true;
     if (index_ < 8)
         ret = (buttons_ >> index_) & 1;
@@ -111,18 +113,13 @@ void Controller::AppendButtons(uint8_t b) {
 }
 
 void Controller::Emulate() {
-#if 0
-    if (frame < int(movie_.size())) {
-        buttons_ = movie_.at(frame);
-        if (!got_read_ && cnum_ == 0) {
-            printf("Missed controller read @ %d\n", frame-1);
-        }
-        got_read_ = false;
-//        if (buttons_) {
-//            printf("Press %02x at %d\n", buttons_, frame);
-//        }
+    if (movie_.empty()) {
+        return;
     }
-#endif
-
+    if (movie_frame_ < movie_.size()) {
+        buttons_ = movie_.at(movie_frame_);
+    }
+    movie_frame_++;
 }
+
 }  // namespace protones
