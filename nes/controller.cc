@@ -1,8 +1,12 @@
 #include <cstdint>
 #include "imgui.h"
 #include "nes/controller.h"
+#include "proto/config.pb.h"
+#include "util/config.h"
 
 namespace protones {
+
+using proto::ControllerButtons;
 
 Controller::Controller(NES* nes, int cnum) :
     nes_(nes),
@@ -12,7 +16,16 @@ Controller::Controller(NES* nes, int cnum) :
     movie_frame_(0),
     movie_(0),
     got_read_(false),
-    cnum_(cnum) {}
+    cnum_(cnum) {
+    const auto& config = ConfigLoader<proto::Configuration>::GetConfig();
+    for(const auto& cont : config.controls().controller()) {
+        if (cont.number() == cnum) {
+            for(const auto& b : cont.buttons()) {
+                keyb_[b.scancode()] = b.button();
+            }
+        }
+    }
+}
 
 uint8_t Controller::Read() {
     uint8_t ret = 0;
@@ -104,6 +117,30 @@ void Controller::set_buttons(SDL_Event* event) {
                 buttons_ &= ~BUTTON_UP;
                 buttons_ &= ~BUTTON_DOWN;
             }
+        }
+    } else if (event->type == SDL_KEYDOWN ||event->type == SDL_KEYUP) {
+#define SETCLR(val, bit, s) (val = (s) ? (val) | (bit) : (val) & ~(bit))
+        bool set = event->type == SDL_KEYDOWN;
+        switch(keyb_[event->key.keysym.scancode]) {
+        case ControllerButtons::ControllerUp:
+            SETCLR(buttons_, BUTTON_UP, set); break;
+        case ControllerButtons::ControllerDown:
+            SETCLR(buttons_, BUTTON_DOWN, set); break;
+        case ControllerButtons::ControllerLeft:
+            SETCLR(buttons_, BUTTON_LEFT, set); break;
+        case ControllerButtons::ControllerRight:
+            SETCLR(buttons_, BUTTON_RIGHT, set); break;
+        case ControllerButtons::ControllerSelect:
+            SETCLR(buttons_, BUTTON_SELECT, set); break;
+        case ControllerButtons::ControllerStart:
+            SETCLR(buttons_, BUTTON_START, set); break;
+        case ControllerButtons::ControllerA:
+            SETCLR(buttons_, BUTTON_A, set); break;
+        case ControllerButtons::ControllerB:
+            SETCLR(buttons_, BUTTON_B, set); break;
+        default:
+            // Nothing
+            ;
         }
     }
 }

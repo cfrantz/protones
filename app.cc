@@ -106,11 +106,12 @@ void ProtoNES::ProcessEvent(SDL_Event* event) {
             nes_->Reset();
             break;
         default:
-            ;
+            nes_->controller(0)->set_buttons(event);
         }
         }
         break;
     case SDL_KEYUP:
+        nes_->controller(0)->set_buttons(event);
         break;
     default:
         ;

@@ -2,4 +2,16 @@ controls {
   buttons { scancode: SDL_SCANCODE_PAUSE button: ControllerPause }
   buttons { scancode: SDL_SCANCODE_BACKSLASH button: ControllerFrameStep }
   buttons { scancode: SDL_SCANCODE_F11 button: ControllerReset }
+
+  controller {
+    number: 0
+    buttons { scancode: SDL_SCANCODE_UP     button: ControllerUp }
+    buttons { scancode: SDL_SCANCODE_DOWN   button: ControllerDown }
+    buttons { scancode: SDL_SCANCODE_LEFT   button: ControllerLeft }
+    buttons { scancode: SDL_SCANCODE_RIGHT  button: ControllerRight }
+    buttons { scancode: SDL_SCANCODE_LSHIFT button: ControllerSelect }
+    buttons { scancode: SDL_SCANCODE_TAB    button: ControllerStart }
+    buttons { scancode: SDL_SCANCODE_LCTRL  button: ControllerA }
+    buttons { scancode: SDL_SCANCODE_LALT   button: ControllerB }
+  }
 }

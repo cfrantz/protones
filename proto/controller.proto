@@ -272,5 +272,10 @@ message ControllerModel {
 		SDL_Scancode scancode = 1;
 		ControllerButtons button = 2;
 	};
+    message Controller {
+        int32 number = 1;
+	    repeated Mapping buttons = 2;
+    };
 	repeated Mapping buttons = 2;
+    repeated Controller controller = 3;
 }
