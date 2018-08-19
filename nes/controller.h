@@ -5,6 +5,7 @@
 #include <SDL2/SDL.h>
 #include "nes/base.h"
 #include "nes/nes.h"
+#include "proto/controller.pb.h"
 namespace protones {
 
 class Controller : public EmulatedDevice {
@@ -36,6 +37,7 @@ class Controller : public EmulatedDevice {
     bool got_read_;
     int cnum_;
     friend class ControllerDebug;
+    std::map<int, proto::ControllerButtons> keyb_;
 };
 
 }  // namespace protones
