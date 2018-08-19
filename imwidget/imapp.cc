@@ -38,8 +38,11 @@ ImApp::ImApp(const std::string& name, int width, int height)
                                SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 
     glcontext_ = SDL_GL_CreateContext(window_);
+    // Setup ImGui binding
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
     ImGui_ImplSdl_SetHiDPIScale(FLAGS_hidpi);
-    ImGui_ImplSdl_Init(window_);
+    ImGui_ImplSdlGL2_Init(window_);
     clear_color_ = ImColor(114, 144, 154);
     //fpsmgr_.SetRate(60);
 
@@ -47,7 +50,8 @@ ImApp::ImApp(const std::string& name, int width, int height)
 }
 
 ImApp::~ImApp() {
-    ImGui_ImplSdl_Shutdown();
+    ImGui_ImplSdlGL2_Shutdown();
+    ImGui::DestroyContext();
     SDL_GL_DeleteContext(glcontext_);
     SDL_DestroyWindow(window_);
     SDL_Quit();
@@ -114,7 +118,7 @@ bool ImApp::ProcessEvents() {
     SDL_Event event;
     bool done = false;
     while (SDL_PollEvent(&event)) {
-        ImGui_ImplSdl_ProcessEvent(&event);
+        ImGui_ImplSdlGL2_ProcessEvent(&event);
         if (event.type == SDL_QUIT)
             done = true;
         ProcessEvent(&event);
@@ -131,7 +135,7 @@ void ImApp::BaseDraw() {
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
-    ImGui_ImplSdl_NewFrame(window_);
+    ImGui_ImplSdlGL2_NewFrame(window_);
     console_.Draw();
     for(auto it=draw_callback_.begin(); it != draw_callback_.end();) {
         if ((*it)->visible()) {
@@ -145,6 +149,7 @@ void ImApp::BaseDraw() {
 
     Draw();
     ImGui::Render();
+    ImGui_ImplSdlGL2_RenderDrawData(ImGui::GetDrawData());
     SDL_GL_SwapWindow(window_);
     for(auto& widget : draw_added_) {
         draw_callback_.emplace_back(std::move(widget));
@@ -185,7 +190,7 @@ void ImApp::AudioCallback(void* stream, int len) {
 
 void ImApp::AudioCallback_(void* userdata, uint8_t* stream, int len) {
     ImApp* instance = (ImApp*)userdata;
-    instance->AudioCallback((float*)stream, len);
+    instance->AudioCallback(stream, len);
 }
 
 void ImApp::AddDrawCallback(ImWindowBase* window) {

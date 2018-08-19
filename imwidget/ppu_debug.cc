@@ -125,8 +125,7 @@ bool PPUTileDebug::Draw() {
             for(int c=0; c<4; c++) {
                 ImGui::SameLine();
                 uint8_t pval = nes_->mem()->PaletteRead(p*4+c);
-                ImGui::PushStyleColor(ImGuiCol_Button,
-                                      ImColor(nes_->palette(pval)));
+                ImGui::PushStyleColor(ImGuiCol_Button, nes_->palette(pval));
                 sprintf(palette_colors[p][c], "%02x", pval);
                 ImGui::Button(palette_colors[p][c]);
                 ImGui::PopStyleColor(1);
