@@ -7,6 +7,7 @@
 #include <SDL2/SDL_opengl.h>
 
 #include "proto/controller.pb.h"
+#include "pybind11/embed.h"
 #include "imwidget/imapp.h"
 #include "nes/nes.h"
 
@@ -32,11 +33,24 @@ class ProtoNES: public ImApp {
     bool PreDraw() override;
     void Draw() override;
     void Run();
-    void EmulateInThread();
     void DrawPreferences();
 
     void AudioCallback(void* stream, int len) override;
     void Help(const std::string& topickey);
+
+    std::shared_ptr<NES> nes() { return nes_; }
+    float scale() { return scale_; }
+    float aspect() { return aspect_; }
+    float volume() { return volume_; }
+    void set_scale(float s) { scale_ = s; }
+    void set_aspect(float a) { aspect_ = a; }
+    void set_volume(float v);
+    static void set_python_root(std::shared_ptr<ProtoNES>& root);
+
+    pybind11::object& hook() { return hook_; }
+    void set_hook(const pybind11::object& h) { hook_ = h; }
+
+
   private:
     bool loaded_;
     bool pause_;
@@ -46,7 +60,8 @@ class ProtoNES: public ImApp {
     float aspect_;
     float volume_;
     bool preferences_;
-    std::unique_ptr<NES> nes_;
+    //std::unique_ptr<NES> nes_;
+    std::shared_ptr<NES> nes_;
     std::string save_filename_;
 
     APUDebug* apu_debug_;
@@ -57,6 +72,7 @@ class ProtoNES: public ImApp {
     float frametime_[100];
     int ftp_;
     std::map<int, proto::ControllerButtons> buttons_;
+    pybind11::object hook_;
 };
 
 }  // namespace protones

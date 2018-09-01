@@ -23,6 +23,7 @@ cc_library(
         "-lSDL2_image",
         "-lSDL2_mixer",
         "-lSDL2_gfx",
+        "-lpython3.7m",
     ],
     hdrs = [
         "app.h",
@@ -40,6 +41,7 @@ cc_library(
         "//imwidget:error_dialog",
         "//nes:nes",
         "//proto:config",
+        "//python:protones",
         "//util:browser",
         "//util:config",
         "//util:fpsmgr",
@@ -54,6 +56,7 @@ cc_library(
         # not link with nfd (native-file-dialog).
         "//external:nfd",
         "@com_google_absl//absl/memory",
+        "@pybind11_git//:pybind11",
     ],
 )
 
@@ -97,6 +100,7 @@ cc_binary(
         ],
         "//conditions:default": [
             "-lpthread",
+            "-lpython3.7m",
             "-lm",
             "-lGL",
         ],
@@ -110,6 +114,8 @@ cc_binary(
         "//util:config",
         "//proto:config",
         "//external:gflags",
+        "@pybind11_git//:pybind11",
+        "@com_github_bimpy//:bimpy",
     ],
 )
 
@@ -117,5 +123,16 @@ pkg_winzip(
     name = "protones-windows",
     files = [
         ":protones",
+    ],
+)
+
+cc_binary(
+    name = "pe",
+    linkopts = [
+        "-lpython3.7m",
+    ],
+    srcs = ["pe.cc"],
+    deps = [
+        "@pybind11_git//:pybind11",
     ],
 )

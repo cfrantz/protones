@@ -6,6 +6,7 @@
 #include "util/config.h"
 #include "proto/config.pb.h"
 #include "protones_config.h"
+#include "pybind11/embed.h"
 
 DEFINE_string(config, "", "ProtoNES config file");
 
@@ -23,6 +24,7 @@ Flags:
 int main(int argc, char *argv[]) {
     gflags::SetUsageMessage(kUsage);
     gflags::ParseCommandLineFlags(&argc, &argv, true);
+    pybind11::scoped_interpreter python{};
 
     auto* loader = ConfigLoader<proto::Configuration>::Get();
     if (!FLAGS_config.empty()) {
@@ -31,12 +33,12 @@ int main(int argc, char *argv[]) {
         loader->Parse(kProtonesCfg);
     }
 
-
-    protones::ProtoNES app("ProtoNES");
-    app.Init();
+    auto app = std::make_shared<protones::ProtoNES>("ProtoNES");
+    protones::ProtoNES::set_python_root(app);
+    app->Init();
     if (argc > 1) {
-        app.Load(argv[1]);
+        app->Load(argv[1]);
     }
-    app.Run();
+    app->Run();
     return 0;
 }

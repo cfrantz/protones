@@ -1,7 +1,9 @@
 ######################################################################
 # gflags
 ######################################################################
-load("//rules:patched_http_archive.bzl", "patched_http_archive")
+load("//rules:patched_http_archive.bzl",
+     "patched_http_archive",
+     "new_patched_http_archive")
 
 patched_http_archive(
     name = "com_github_gflags_gflags",
@@ -36,6 +38,18 @@ bind(
 )
 
 ######################################################################
+# bimpy (python bindings for imgui)
+######################################################################
+new_patched_http_archive(
+    name = "com_github_bimpy",
+    urls = ["https://github.com/podgorskiy/bimpy/archive/54fa78cec38b48770a486ac41404e08465c789e0.zip"],
+    strip_prefix = "bimpy-54fa78cec38b48770a486ac41404e08465c789e0",
+    sha256 = "f691eaf43ece6b5e7b85b0419c12753ad2512a860a5abe88f70a3ebdd3871b20",
+    patch = "//rules:bimpy.patch",
+    build_file = "//rules:bimpy.BUILD",
+)
+
+######################################################################
 # IconFontCppHeaders
 ######################################################################
 new_git_repository(
@@ -56,6 +70,16 @@ git_repository(
 	name = "com_google_protobuf",
 	remote = "https://github.com/google/protobuf.git",
 	tag = "v3.5.0"
+)
+
+######################################################################
+# pybind11
+######################################################################
+new_git_repository(
+	name = "pybind11_git",
+	remote = "https://github.com/pybind/pybind11.git",
+	tag = "v2.2.3",
+    build_file = "//rules:pybind11.BUILD",
 )
 
 ######################################################################

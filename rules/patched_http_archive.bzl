@@ -9,7 +9,7 @@ def _new_patched_http_archive_impl(rctx):
 
   # Now patch the repository
   patch_file = str(rctx.path(rctx.attr.patch).realpath)
-  result = rctx.execute(["bash", "-c", "pwd && patch -p0 < " + patch_file])
+  result = rctx.execute(["bash", "-c", "pwd && patch -p1 < " + patch_file])
   if result.return_code != 0:
     fail("Failed to patch (%s): %s" % (result.return_code, result.stdout))
 

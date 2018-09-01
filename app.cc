@@ -22,6 +22,8 @@
 #include "nes/controller.h"
 #include "nes/ppu.h"
 #include "nes/nes.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/embed.h"
 #include "util/browser.h"
 #include "util/config.h"
 #include "util/os.h"
@@ -36,6 +38,7 @@
 
 DECLARE_double(volume);
 
+namespace py = pybind11;
 namespace protones {
 
 using proto::ControllerButtons;
@@ -80,6 +83,40 @@ void ProtoNES::Init() {
                  GL_UNSIGNED_BYTE, nes_->ppu()->picture());
     InitControllers();
     InitAudio(44100, 1, APU::BUFFERLEN, AUDIO_F32);
+
+    py::exec(R"py(
+        import app
+        import bimpy
+        import code
+        import protones
+        import threading
+
+        class EmulatorHooks(object):
+            def __init__(self, root=None):
+                self.root = root or app.root()
+
+            def EmulateFrame(self):
+                return self.root.nes.EmulateFrame()
+
+            def FileMenu(self):
+                pass
+            def EditMenu(self):
+                pass
+            def ViewMenu(self):
+                pass
+            def HelpMenu(self):
+                pass
+            def MenuBar(self):
+                pass
+            def Draw(self):
+                pass
+
+        app.EmulatorHooks = EmulatorHooks
+        app.root().hook = EmulatorHooks()
+
+        threading.Thread(name='Console', target=code.interact, daemon=True,
+                         args=('ProtoNES python console',)).start()
+    )py");
 }
 
 void ProtoNES::ProcessEvent(SDL_Event* event) {
@@ -125,6 +162,11 @@ void ProtoNES::AudioCallback(void* stream, int len) {
     if (nes_) {
         nes_->apu()->PlayBuffer(stream, len);
     }
+}
+
+void ProtoNES::set_volume(float v) {
+    volume_ = v;
+    nes_->apu()->set_volume(volume_);
 }
 
 bool ProtoNES::PreDraw() {
@@ -223,11 +265,13 @@ save_as:
                 }
                 free(filename);
             }
+            hook_.attr("FileMenu")();
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit")) {
             ImGui::MenuItem("Debug Console", nullptr, &console_.visible());
             ImGui::MenuItem("Preferences", nullptr, &preferences_);
+            hook_.attr("EditMenu")();
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
@@ -236,6 +280,7 @@ save_as:
             ImGui::MenuItem("Memory", nullptr, &mem_debug_->visible());
             ImGui::MenuItem("PPU Tile Data", nullptr, &ppu_tile_debug_->visible());
             ImGui::MenuItem("PPU VRAM", nullptr, &ppu_vram_debug_->visible());
+            hook_.attr("ViewMenu")();
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Help")) {
@@ -261,9 +306,11 @@ save_as:
                     );
 
             }
+            hook_.attr("HelpMenu")();
             ImGui::EndMenu();
         }
 
+        hook_.attr("MenuBar")();
         ImGui::EndMainMenuBar();
     }
 
@@ -271,40 +318,22 @@ save_as:
         goto load_file;
     }
     DrawPreferences();
+    hook_.attr("Draw")();
 }
 
 void ProtoNES::Run() {
     running_ = true;
     if (loaded_)
         nes_->Reset();
-    std::thread emulator(&ProtoNES::EmulateInThread, this);
+
     while(running_) {
+        py::gil_scoped_acquire gil;
+        hook_.attr("EmulateFrame")();
         BaseDraw();
         if (!ProcessEvents()) {
             running_ = false;
             break;
         }
-    }
-    emulator.join();
-}
-
-void ProtoNES::EmulateInThread() {
-    while(running_) {
-        if (!loaded_) {
-            continue;
-        }
-        if (pause_) {
-            os::SchedulerYield();
-            if (!step_) {
-                continue;
-            }
-            step_ = false;
-        }
-        int64_t t0 = os::utime_now();
-        nes_->EmulateFrame();
-        int64_t t1 = os::utime_now();
-        frametime_[ftp_] = (t1-t0) / 1e6;
-        ftp_ = (ftp_ + 1) % 100;
     }
 }
 
@@ -315,5 +344,22 @@ void ProtoNES::Load(const std::string& filename) {
 
 void ProtoNES::Help(const std::string& topickey) {
 }
+
+std::function<std::shared_ptr<ProtoNES>()> app_root;
+void ProtoNES::set_python_root(std::shared_ptr<ProtoNES>& root) {
+    app_root = [&](){ return root; };
+}
+
+PYBIND11_EMBEDDED_MODULE(app, m) {
+    py::class_<ProtoNES, std::shared_ptr<ProtoNES>>(m, "ProtoNES")
+        .def_property_readonly("nes", &ProtoNES::nes)
+        .def_property("scale", &ProtoNES::scale, &ProtoNES::set_scale)
+        .def_property("aspect", &ProtoNES::aspect, &ProtoNES::set_aspect)
+        .def_property("volume", &ProtoNES::volume, &ProtoNES::set_volume)
+        .def_property("hook", &ProtoNES::hook, &ProtoNES::set_hook);
+
+    m.def("root", app_root);
+}
+
 
 }  // namespace protones
