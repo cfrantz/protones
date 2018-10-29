@@ -38,6 +38,7 @@ cc_library(
         "//imwidget:controller_debug",
         "//imwidget:mem_debug",
         "//imwidget:ppu_debug",
+        "//imwidget:python_console",
         "//imwidget:error_dialog",
         "//nes:nes",
         "//proto:config",

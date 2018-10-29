@@ -89,7 +89,37 @@ void ProtoNES::Init() {
         import bimpy
         import code
         import protones
+        import pydoc
+        import sys
         import threading
+
+        pydoc.pager = pydoc.plainpager
+        sys.stdout.orig_write = sys.stdout.write
+        sys.stdout.orig_write = sys.stdout.write
+
+        class PythonConsole(code.InteractiveInterpreter):
+            def __init__(self, *args, **kwargs):
+                code.InteractiveInterpreter.__init__(self, *args, **kwargs)
+                self.outbuf = ''
+                self.errbuf = ''
+                sys.stdout.write = self.outwrite
+                sys.stderr.write = self.errwrite
+
+            def outwrite(self, data):
+                self.outbuf += data
+
+            def errwrite(self, data):
+                self.errbuf += data
+
+            def GetOut(self):
+                data = self.outbuf
+                self.outbuf = ''
+                return data;
+
+            def GetErr(self):
+                data = self.errbuf
+                self.errbuf = ''
+                return data;
 
         class EmulatorHooks(object):
             def __init__(self, root=None):
@@ -97,6 +127,11 @@ void ProtoNES::Init() {
 
             def EmulateFrame(self):
                 return self.root.nes.EmulateFrame()
+
+            def GetPythonConsole(self):
+                p = PythonConsole(globals())
+                sys.stdout.orig_write("p = " + str( p))
+                return p
 
             def FileMenu(self):
                 pass
@@ -114,9 +149,16 @@ void ProtoNES::Init() {
         app.EmulatorHooks = EmulatorHooks
         app.root().hook = EmulatorHooks()
 
-        threading.Thread(name='Console', target=code.interact, daemon=True,
-                         args=('ProtoNES python console',)).start()
+        #threading.Thread(name='Console', target=code.interact, daemon=True,
+        #                 args=('ProtoNES python console',)).start()
     )py");
+
+    console_ = absl::make_unique<PythonConsole>(
+        hook_.attr("GetPythonConsole")());
+}
+
+void ProtoNES::Import(const std::string& name) {
+    py::module::import(name.c_str());
 }
 
 void ProtoNES::ProcessEvent(SDL_Event* event) {
@@ -269,7 +311,7 @@ save_as:
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit")) {
-            ImGui::MenuItem("Debug Console", nullptr, &console_.visible());
+            ImGui::MenuItem("Debug Console", nullptr, &console_->visible());
             ImGui::MenuItem("Preferences", nullptr, &preferences_);
             hook_.attr("EditMenu")();
             ImGui::EndMenu();
@@ -318,6 +360,7 @@ save_as:
         goto load_file;
     }
     DrawPreferences();
+    console_->Draw();
     hook_.attr("Draw")();
 }
 

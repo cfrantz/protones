@@ -51,6 +51,21 @@ PYBIND11_EMBEDDED_MODULE(protones, m) {
     py::class_<Mem>(m, "Memory")
         .def("__getitem__", &Mem::read_byte)
         .def("__setitem__", &Mem::write_byte)
+        .def("ReadSignedByte", [](Mem* self, uint16_t addr) -> int8_t {
+                return int8_t(self->read_byte(addr));
+        }, py::arg("addr"))
+        .def("ReadWord", [](Mem* self, uint16_t addrl, uint16_t addrh) -> uint16_t {
+                return self->read_byte(addrl) |
+                       uint16_t(self->read_byte(addrh)) << 8;
+        }, py::arg("addrl"), py::arg("addrh"))
+        .def("ReadSignedWord", [](Mem* self, uint16_t addrl, uint16_t addrh) -> int16_t {
+                return self->read_byte(addrl) |
+                       int16_t(self->read_byte(addrh)) << 8;
+        }, py::arg("addrl"), py::arg("addrh"))
+        .def("WriteWord", [](Mem* self, uint16_t addrl, uint16_t addrh, uint16_t val) {
+                self->write_byte(addrl, val);
+                self->write_byte(addrh, val >> 8);
+        }, py::arg("addrl"), py::arg("addrh"), py::arg("val"))
         .def("Read", [](Mem* self, uint16_t addr, uint16_t len) {
             std::string v(len, '\0');
             for(uint16_t i=0; i<len; i++) v[i] = self->read_byte(addr+i);

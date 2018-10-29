@@ -26,6 +26,18 @@ cc_library(
 )
 
 cc_library(
+    name = "python_console",
+    hdrs = ["python_console.h"],
+    srcs = ["python_console.cc"],
+    deps = [
+        ":base",
+        "//util:logging",
+        "//external:imgui",
+        "@pybind11_git//:pybind11",
+    ],
+)
+
+cc_library(
     name = "error_dialog",
     hdrs = ["error_dialog.h"],
     srcs = ["error_dialog.cc"],

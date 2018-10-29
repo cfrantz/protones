@@ -9,6 +9,7 @@
 #include "proto/controller.pb.h"
 #include "pybind11/embed.h"
 #include "imwidget/imapp.h"
+#include "imwidget/python_console.h"
 #include "nes/nes.h"
 
 namespace protones {
@@ -49,7 +50,7 @@ class ProtoNES: public ImApp {
 
     pybind11::object& hook() { return hook_; }
     void set_hook(const pybind11::object& h) { hook_ = h; }
-
+    void Import(const std::string& name);
 
   private:
     bool loaded_;
@@ -69,6 +70,8 @@ class ProtoNES: public ImApp {
     MemDebug* mem_debug_;
     PPUTileDebug* ppu_tile_debug_;
     PPUVramDebug* ppu_vram_debug_;
+    std::unique_ptr<PythonConsole> console_;
+
     float frametime_[100];
     int ftp_;
     std::map<int, proto::ControllerButtons> buttons_;

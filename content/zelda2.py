@@ -1,0 +1,53 @@
+import app
+import bimpy
+
+class Zelda2(app.EmulatorHooks):
+    def __init__(self, root=None):
+        super().__init__(root)
+
+    def z2goto(self, a, b, c, d, e, f, g):
+        mem = self.root.nes.mem
+        mem[0x769] = a
+        mem[0x706] = b
+        mem[0x707] = c
+        mem[0x56b] = d
+        mem[0x56c] = e
+        mem[0x748] = f
+        mem[0x561] = g
+        mem[0x736] = 0
+
+    def MenuBar(self):
+        if bimpy.begin_menu("Goto"):
+            if bimpy.menu_item("Palace 1"):
+                self.z2goto(4, 0, 3, 4, 0, 52, 0);                               
+            elif bimpy.menu_item("Palace 2"):
+                self.z2goto(4, 0, 3, 4, 1, 53, 0xe);                             
+            elif bimpy.menu_item("Palace 3"):
+                self.z2goto(4, 0, 4, 5, 2, 54, 0);                               
+            elif bimpy.menu_item("Palace 4"):
+                self.z2goto(4, 1, 4, 8, 0, 52, 0xf);                             
+            elif bimpy.menu_item("Palace 5"):
+                self.z2goto(4, 2, 3, 8, 0, 52, 0x23);                            
+            elif bimpy.menu_item("Palace 6"):
+                self.z2goto(4, 2, 4, 8, 1, 53, 0x24);                            
+            elif bimpy.menu_item("Palace 7"):
+                self.z2goto(5, 2, 5, 9, 2, 54, 0);                               
+            elif bimpy.menu_item("Rauru"):
+                self.z2goto(3, 0, 1, 0, 0xf8, 45, 2);                            
+            elif bimpy.menu_item("Ruto"):
+                self.z2goto(3, 0, 1, 1, 0xf8, 47, 5);                            
+            elif bimpy.menu_item("Saria"):
+                self.z2goto(3, 0, 1, 2, 0xf8, 49, 8);                            
+            elif bimpy.menu_item("Mido"):
+                self.z2goto(3, 0, 1, 3, 0xf8, 51, 11);                           
+            elif bimpy.menu_item("Nabooru"):
+                self.z2goto(3, 2, 2, 4, 0xf8, 45, 14);                           
+            elif bimpy.menu_item("Darunia"):
+                self.z2goto(3, 2, 2, 5, 0xf8, 47, 17);                           
+            elif bimpy.menu_item("New Kasuto"):
+                self.z2goto(3, 2, 2, 6, 0xf8, 49, 20);                           
+            elif bimpy.menu_item("Old Kasuto"):
+                self.z2goto(3, 2, 2, 7, 0xf8, 51, 23); 
+            bimpy.end_menu()
+
+app.root().hook = Zelda2()

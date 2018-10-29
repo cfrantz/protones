@@ -2,3 +2,4 @@ imgui.ini
 bazel-*
 *.nes
 *.nes.sram
+__pycache__
