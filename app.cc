@@ -129,9 +129,7 @@ void ProtoNES::Init() {
                 return self.root.nes.EmulateFrame()
 
             def GetPythonConsole(self):
-                p = PythonConsole(globals())
-                sys.stdout.orig_write("p = " + str( p))
-                return p
+                return PythonConsole(globals())
 
             def FileMenu(self):
                 pass
@@ -148,9 +146,6 @@ void ProtoNES::Init() {
 
         app.EmulatorHooks = EmulatorHooks
         app.root().hook = EmulatorHooks()
-
-        #threading.Thread(name='Console', target=code.interact, daemon=True,
-        #                 args=('ProtoNES python console',)).start()
     )py");
 
     console_ = absl::make_unique<PythonConsole>(
@@ -228,6 +223,7 @@ bool ProtoNES::PreDraw() {
                   0, 0, 256, 240,
                   GL_RGBA, GL_UNSIGNED_BYTE, nes_->ppu()->picture());
 
+#if 0
     glBegin(GL_QUADS);
     float x0 = 0.0, y0 = 20.0 * io.DisplayFramebufferScale.y;
     glTexCoord2f(0, 0); glVertex2f(x0, y0);
@@ -235,6 +231,7 @@ bool ProtoNES::PreDraw() {
     glTexCoord2f(1, 1); glVertex2f(x0 + 256 * scale_ * aspect_, y0 + 240 * scale_);
     glTexCoord2f(0, 1); glVertex2f(x0, y0 + 240 * scale_);
     glEnd();
+#endif
     return true;
 }
 
@@ -361,7 +358,22 @@ save_as:
     }
     DrawPreferences();
     console_->Draw();
+
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::SetNextWindowPos(ImVec2(0, 20.0f * io.DisplayFramebufferScale.y));
+    ImVec2 imgsz(256.0f * scale_ * aspect_, 240.0f *scale_);
+    ImGui::SetNextWindowSize(imgsz);
+    ImGui::Begin("nesimg", nullptr, ImVec2(0, 0), 0.0f,
+                 ImGuiWindowFlags_NoTitleBar |
+                 ImGuiWindowFlags_NoResize |
+                 ImGuiWindowFlags_NoMove |
+                 ImGuiWindowFlags_NoScrollbar |
+                 ImGuiWindowFlags_NoBringToFrontOnFocus |
+                 ImGuiWindowFlags_NoScrollWithMouse);
+    ImGui::GetWindowDrawList()->AddImage(ImTextureID(nesimg_), 
+                                         ImVec2(0, 0), imgsz);
     hook_.attr("Draw")();
+    ImGui::End();
 }
 
 void ProtoNES::Run() {

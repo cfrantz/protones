@@ -199,6 +199,9 @@ int Cpu::Execute(void) {
 
     uint16_t fetchpc = pc_;
     uint16_t addr = 0;
+    if (exec_cb_[pc_]) {
+        pc_ = exec_cb_[pc_](this);
+    }
     uint8_t opcode = Read(pc_);
     InstructionInfo info = info_[opcode];
     Trace();

@@ -10,6 +10,8 @@ namespace protones {
 
 class Cpu : public EmulatedDevice {
   public:
+    typedef std::function<uint8_t(Cpu*, uint16_t, uint8_t)> MemoryCb;
+    typedef std::function<uint16_t(Cpu*)> ExecCb;
     Cpu() : Cpu(nullptr) {}
     Cpu(Mem* mem);
     ~Cpu() {}
@@ -43,8 +45,15 @@ class Cpu : public EmulatedDevice {
     inline uint8_t x() { return x_; }
     inline uint8_t y() { return y_; }
     inline uint8_t sp() { return sp_; }
+    inline uint8_t flags() { return flags_.value; }
     inline uint16_t pc() { return pc_; }
-    inline void set_pc(uint16_t pc) { pc_ = pc; }
+
+    inline void set_a(uint8_t v) { a_ = v; }
+    inline void set_x(uint8_t v) { x_ = v; }
+    inline void set_y(uint8_t v) { y_ = v; }
+    inline void set_sp(uint8_t v) { sp_ = v; }
+    inline void set_flags(uint8_t v) { flags_.value = v; }
+    inline void set_pc(uint16_t v) { pc_ = v; }
 
     inline bool cf() { return flags_.c; }
     inline bool zf() { return flags_.z; }
@@ -94,23 +103,24 @@ class Cpu : public EmulatedDevice {
         ZeroPageY,
     };
 
-    inline void set_write_cb(std::function<void(Cpu*, uint16_t, uint8_t)> cb) {
-        write_cb_ = cb;
+    inline void set_read_cb(uint16_t addr, const MemoryCb& cb) {
+        read_cb_[addr] = cb;
     }
-    inline void set_exec_cb(std::function<void(Cpu*, uint16_t, uint8_t)> cb) {
-        exec_cb_ = cb;
+    inline void set_write_cb(uint16_t addr, const MemoryCb& cb) {
+        write_cb_[addr] = cb;
     }
-    inline void set_read_cb(std::function<void(Cpu*, uint16_t, uint8_t)> cb) {
-        read_cb_ = cb;
+    inline void set_exec_cb(uint16_t addr, const ExecCb& cb) {
+        exec_cb_[addr] = cb;
     }
+
   private:
     uint8_t inline Read(uint16_t addr) {
         uint8_t val = mem_->read_byte(addr);
-        if (read_cb_) read_cb_(this, addr, val);
+        if (read_cb_[addr]) val = read_cb_[addr](this, addr, val);
         return val;
     }
     void inline Write(uint16_t addr, uint8_t val) {
-        if (write_cb_) write_cb_(this, addr, val);
+        if (write_cb_[addr]) val = write_cb_[addr](this, addr, val);
         mem_->write_byte(addr, val);
     }
     uint16_t inline Read16(uint16_t addr) {
@@ -174,9 +184,9 @@ class Cpu : public EmulatedDevice {
     char tracebuf_[TRACEBUFSZ][80];
     int tbptr_;
     bool halted_;
-    std::function<void(Cpu*, uint16_t, uint8_t)> write_cb_;
-    std::function<void(Cpu*, uint16_t, uint8_t)> exec_cb_;
-    std::function<void(Cpu*, uint16_t, uint8_t)> read_cb_;;
+    std::map<uint16_t, MemoryCb> read_cb_;
+    std::map<uint16_t, MemoryCb> write_cb_;
+    std::map<uint16_t, ExecCb> exec_cb_;
 };
 
 }  // namespace protones

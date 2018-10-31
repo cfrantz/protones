@@ -1,11 +1,28 @@
+######################################################################
+# Simple cheats script for Zelda 2
+#
+# This script serves as an example of how to hook into ProtoNES 
+# with python.
+######################################################################
 import app
 import bimpy
+from . import cheats
+from . import hitbox
 
+# Subclass the EmulatorHooks class
 class Zelda2(app.EmulatorHooks):
     def __init__(self, root=None):
+        # Call the superclass' init first.
         super().__init__(root)
+        # Then initialize our own local data
+        self.cheats = cheats.Cheats(self.root)
+        self.hitbox_visible = bimpy.Bool()
+        self.hitbox = [hitbox.LinkHitbox(self.root)]
+        self.hitbox.extend(
+                hitbox.EnemyHitbox(self.root, i) for i in range(13))
 
     def z2goto(self, a, b, c, d, e, f, g):
+        """Go to a sideview area in Zelda 2"""
         mem = self.root.nes.mem
         mem[0x769] = a
         mem[0x706] = b
@@ -17,6 +34,7 @@ class Zelda2(app.EmulatorHooks):
         mem[0x736] = 0
 
     def MenuBar(self):
+        """Hook into the menubar and some menus."""
         if bimpy.begin_menu("Goto"):
             if bimpy.menu_item("Palace 1"):
                 self.z2goto(4, 0, 3, 4, 0, 52, 0);                               
@@ -49,5 +67,29 @@ class Zelda2(app.EmulatorHooks):
             elif bimpy.menu_item("Old Kasuto"):
                 self.z2goto(3, 2, 2, 7, 0xf8, 51, 23); 
             bimpy.end_menu()
+        if bimpy.begin_menu("Cheats"):
+            if bimpy.menu_item("Cheats", selected=self.cheats.visible.value):
+                self.cheats.visible.value = not self.cheats.visible.value
+            if bimpy.menu_item("Show Hitboxes", selected=self.hitbox_visible.value):
+                self.hitbox_visible.value = not self.hitbox_visible.value
+            bimpy.end_menu()
 
+    def EmulateFrame(self):
+        """Called for every frame."""
+        for h in self.hitbox:
+            h.Update()
+        # Be sure to call the superclass too.
+        super().EmulateFrame()
+
+    def Draw(self):
+        """Called on each frame to draw on the screen and draw your own GUIs."""
+
+        mem = self.root.nes.mem
+        # Only draw the hitboxes in gamestate "b" (side-view)
+        if self.hitbox_visible.value and mem[0x736] == 0x0b:
+            for h in self.hitbox:
+                h.Draw()
+        self.cheats.Draw()
+
+# Set the emulation hook to our custom class
 app.root().hook = Zelda2()

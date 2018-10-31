@@ -1,11 +1,13 @@
 #include "nes/apu.h"
 #include "nes/cartridge.h"
 #include "nes/controller.h"
+#include "nes/cpu6502.h"
 #include "nes/ppu.h"
 #include "nes/mem.h"
 #include "nes/nes.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/embed.h"
+#include "pybind11/functional.h"
 
 //#include "version.h"
 
@@ -25,6 +27,7 @@ PYBIND11_EMBEDDED_MODULE(protones, m) {
         .def("NMI", &NES::NMI, "Signal an NMI to the CPU")
         .def_property_readonly("mem", &NES::mem, "NES memory")
         .def_property_readonly("cartridge", &NES::cartridge)
+        .def_property_readonly("cpu", &NES::cpu)
         .def_property_readonly_static("frequency",
                 [](py::object /*self*/){ return NES::frequency; });
 
@@ -47,6 +50,25 @@ PYBIND11_EMBEDDED_MODULE(protones, m) {
                       &Controller::buttons,
                       (void (Controller::*)(int))&Controller::set_buttons,
                       "Controller button state");
+
+    py::class_<Cpu>(m, "Cpu")
+        .def_property("a", &Cpu::a, &Cpu::set_a)
+        .def_property("x", &Cpu::x, &Cpu::set_x)
+        .def_property("y", &Cpu::y, &Cpu::set_y)
+        .def_property("sp", &Cpu::sp, &Cpu::set_sp)
+        .def_property("flags", &Cpu::flags, &Cpu::set_flags)
+        .def_property("pc", &Cpu::pc, &Cpu::set_pc)
+        .def_property_readonly("irq_pending", &Cpu::irq_pending)
+        .def("Reset", &Cpu::Reset, "Reset the CPU")
+        .def("IRQ", &Cpu::IRQ, "Signal an IRQ to the CPU")
+        .def("NMI", &Cpu::NMI, "Signal an NMI to the CPU")
+        .def("SetReadCallback", &Cpu::set_read_cb)
+        .def("SetWriteCallback", &Cpu::set_write_cb)
+        .def("SetExecCallback", &Cpu::set_exec_cb)
+        .def("Disassemble", [](Cpu* self, uint16_t addr) {
+            std::string s = self->Disassemble(&addr);
+            return std::make_pair(addr, s);
+        });
 
     py::class_<Mem>(m, "Memory")
         .def("__getitem__", &Mem::read_byte)

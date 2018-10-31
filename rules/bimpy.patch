@@ -1,5 +1,5 @@
 diff --git a/bimpy.cpp b/bimpy.cpp
-index a46fecd..e7b3e26 100644
+index a46fecd..dc219ef 100644
 --- a/bimpy.cpp
 +++ b/bimpy.cpp
 @@ -3,20 +3,24 @@
@@ -129,7 +129,62 @@ index a46fecd..e7b3e26 100644
  		.def_readwrite("curve_tessellation_tol", &ImGuiStyle::CurveTessellationTol)
  		.def("get_color",[](ImGuiStyle& self, ImGuiCol_ a)
  			{
-@@ -408,7 +416,7 @@ PYBIND11_MODULE(_bimpy, m) {
+@@ -402,13 +410,62 @@ PYBIND11_MODULE(_bimpy, m) {
+ 				self.Colors[(int)a] = c;
+ 			});
+ 
++    py::class_<ImGuiIO>(m, "ImGuiIO")
++        .def(py::init())
++        .def_readonly("display_size", &ImGuiIO::DisplaySize)
++        .def_readonly("delta_time", &ImGuiIO::DeltaTime)
++        .def_readonly("ini_saving_rate", &ImGuiIO::IniSavingRate)
++        .def_readonly("ini_filename", &ImGuiIO::IniFilename)
++        .def_readonly("log_filename", &ImGuiIO::LogFilename)
++        .def_readonly("mouse_double_click_time", &ImGuiIO::MouseDoubleClickTime)
++        .def_readonly("mouse_drag_threshold", &ImGuiIO::MouseDragThreshold)
++        .def_property_readonly("key_map", [](ImGuiIO* self){ return std::vector<int>(std::begin(self->KeyMap), std::end(self->KeyMap)); })
++        .def_readonly("key_repeat_delay", &ImGuiIO::KeyRepeatDelay)
++        .def_readonly("key_repeat_rate", &ImGuiIO::KeyRepeatRate)
++//        .def_readonly("fonts", &ImGuiIO::Fonts)
++        .def_readonly("font_global_scale", &ImGuiIO::FontGlobalScale)
++        .def_readonly("font_allow_user_scaling", &ImGuiIO::FontAllowUserScaling)
++//        .def_readonly("font_default", &ImGuiIO::FontDefault)
++        .def_readonly("display_framebuffer_scale", &ImGuiIO::DisplayFramebufferScale)
++        .def_readonly("display_visible_min", &ImGuiIO::DisplayVisibleMin)
++        .def_readonly("display_visible_max", &ImGuiIO::DisplayVisibleMax)
++//        .def_readonly("config_cursor_blink", &ImGuiIO::ConfigCursorBlink)
++//        .def_readonly("config_resize_windows_from_edges", &ImGuiIO::ConfigResizeWindowsFromEdges)
++        .def_readonly("mouse_pos", &ImGuiIO::MousePos)
++        .def_property_readonly("mouse_down", [](ImGuiIO* self){ return std::vector<bool>(std::begin(self->MouseDown), std::end(self->MouseDown)); })
++        .def_readonly("mouse_wheel", &ImGuiIO::MouseWheel)
++        .def_readonly("mouse_wheel_h", &ImGuiIO::MouseWheelH)
++        .def_readonly("mouse_draw_cursor", &ImGuiIO::MouseDrawCursor)
++        .def_readonly("key_ctrl", &ImGuiIO::KeyCtrl)
++        .def_readonly("key_shift", &ImGuiIO::KeyShift)
++        .def_readonly("key_alt", &ImGuiIO::KeyAlt)
++        .def_readonly("key_super", &ImGuiIO::KeySuper)
++        .def_property_readonly("keys_down", [](ImGuiIO* self){ return std::vector<bool>(std::begin(self->KeysDown), std::end(self->KeysDown)); })
++        .def_readonly("want_capture_mouse", &ImGuiIO::WantCaptureMouse)
++        .def_readonly("want_capture_keyboard", &ImGuiIO::WantCaptureKeyboard)
++        .def_readonly("want_text_input", &ImGuiIO::WantTextInput)
++        .def_readonly("want_set_mouse_pos", &ImGuiIO::WantSetMousePos)
++//        .def_readonly("want_save_ini_settings", &ImGuiIO::WantSaveIniSettings)
++        .def_readonly("nav_active", &ImGuiIO::NavActive)
++        .def_readonly("nav_visible", &ImGuiIO::NavVisible)
++        .def_readonly("framerate", &ImGuiIO::Framerate)
++        .def_readonly("metrics_render_vertices", &ImGuiIO::MetricsRenderVertices)
++        .def_readonly("metrics_render_indices", &ImGuiIO::MetricsRenderIndices)
++//        .def_readonly("metrics_render_windows", &ImGuiIO::MetricsRenderWindows)
++        .def_readonly("metrics_active_windows", &ImGuiIO::MetricsActiveWindows)
++//        .def_readonly("metrics_active_allocations", &ImGuiIO::MetricsActiveAllocations)
++        .def_readonly("mouse_delta", &ImGuiIO::MouseDelta);
++
++    m.def("is_mouse_dragging", &ImGui::IsMouseDragging,
++          py::arg("name") = 0, py::arg("lock_threshold") = -1.0f);
++	m.def("get_io", &ImGui::GetIO);
+ 	m.def("get_style", &ImGui::GetStyle);
+ 	m.def("set_style", [](const ImGuiStyle& a) 
+ 		{
  			ImGui::GetStyle() = a;
  		});
  	
@@ -138,7 +193,7 @@ index a46fecd..e7b3e26 100644
  	
  	m.def("begin",[](const std::string& name, Bool& opened, ImGuiWindowFlags flags) -> bool
  		{
-@@ -427,6 +435,15 @@ PYBIND11_MODULE(_bimpy, m) {
+@@ -427,6 +484,15 @@ PYBIND11_MODULE(_bimpy, m) {
  		py::arg("str_id"), py::arg("size") = ImVec2(0,0), py::arg("border") = false, py::arg("extra_flags") = ImGuiWindowFlags_(0));
  		
  	m.def("end_child", &ImGui::EndChild);
@@ -154,7 +209,7 @@ index a46fecd..e7b3e26 100644
  	
  	m.def("get_content_region_max", &ImGui::GetContentRegionMax);
  	m.def("get_content_region_avail", &ImGui::GetContentRegionAvail);
-@@ -434,7 +451,7 @@ PYBIND11_MODULE(_bimpy, m) {
+@@ -434,7 +500,7 @@ PYBIND11_MODULE(_bimpy, m) {
  	m.def("get_window_content_region_min", &ImGui::GetWindowContentRegionMin);
  	m.def("get_window_content_region_max", &ImGui::GetWindowContentRegionMax);
  	m.def("get_window_content_region_width", &ImGui::GetWindowContentRegionWidth);
@@ -163,7 +218,18 @@ index a46fecd..e7b3e26 100644
  	m.def("set_window_font_scale", &ImGui::SetWindowFontScale);
  	m.def("get_window_pos", &ImGui::GetWindowPos);
  	m.def("get_window_size", &ImGui::GetWindowSize);
-@@ -774,8 +791,8 @@ PYBIND11_MODULE(_bimpy, m) {
+@@ -527,6 +593,10 @@ PYBIND11_MODULE(_bimpy, m) {
+ 	m.def("button", &ImGui::Button, py::arg("label"), py::arg("size") = ImVec2(0,0));
+ 	m.def("small_button", &ImGui::SmallButton);
+ 	m.def("invisible_button", &ImGui::InvisibleButton);
++	m.def("is_item_active", &ImGui::IsItemActive);
++	m.def("is_item_focused", &ImGui::IsItemFocused);
++	m.def("is_item_hovered", &ImGui::IsItemHovered, py::arg("flags") = 0);
++	m.def("is_item_clicked", &ImGui::IsItemClicked, py::arg("mouse_button") = 0);
+ 	m.def("collapsing_header", [](const char* label, ImGuiTreeNodeFlags flags){ return ImGui::CollapsingHeader(label, flags); }, py::arg("label"), py::arg("flags") = 0);
+ 	m.def("checkbox", [](const char* label, Bool& v){ return ImGui::Checkbox(label, &v.value); });
+ 	m.def("radio_button", [](const char* label, bool active){ return ImGui::RadioButton(label, active); });
+@@ -774,8 +844,8 @@ PYBIND11_MODULE(_bimpy, m) {
  	m.def("color_button", &ImGui::ColorButton, py::arg("desc_id"), py::arg("col"), py::arg("flags") = 0, py::arg("size") = ImVec2(0,0));
  	
  	m.def("add_line", &AddLine, py::arg("a"), py::arg("b"), py::arg("col"), py::arg("thickness") = 1.0f);
