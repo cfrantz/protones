@@ -173,9 +173,9 @@ void  PythonConsole::ExecCommand(const char* command_line) {
     history_.push_back(strdup(command_line));
 
     if (more_) {
-        absl::StrAppend(&source_, command_line, "\n");
+        absl::StrAppend(&source_, "\n", command_line);
     } else {
-        source_ = absl::StrCat(command_line, "\n");
+        source_ = command_line;
     }
     py::bool_ more = hook_.attr("runsource")(source_, "<input>");
     more_ = more;
