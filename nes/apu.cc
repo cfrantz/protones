@@ -7,7 +7,7 @@
 #include "nes/apu.h"
 #include "nes/nes.h"
 
-DEFINE_double(volume, 0.5, "Sound volume");
+DEFINE_double(volume, 0.2, "Sound volume");
 namespace protones {
 
 static float pulse_table[32];
@@ -141,7 +141,7 @@ void APU::Emulate() {
     int s1 = int(c1 / NES::sample_rate);
     int s2 = int(c2 / NES::sample_rate);
     if (s1 != s2) {
-#if 0
+#if 1
         SDL_LockMutex(mutex_);
         while(len_ == BUFFERLEN) {
             SDL_CondWait(cond_, mutex_);
@@ -164,7 +164,7 @@ void APU::Emulate() {
 
 void APU::PlayBuffer(void* stream, int bufsz) {
     int n = bufsz / sizeof(float);
-#if 0
+#if 1
     if (len_ >= n) {
         SDL_LockMutex(mutex_);
         int rest = len_ - n;
