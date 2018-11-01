@@ -81,14 +81,16 @@ class Zelda2(app.EmulatorHooks):
         # Be sure to call the superclass too.
         super().EmulateFrame()
 
-    def Draw(self):
-        """Called on each frame to draw on the screen and draw your own GUIs."""
-
+    def DrawImage(self):
+        """Called on each frame to draw on the NES image."""
         mem = self.root.nes.mem
         # Only draw the hitboxes in gamestate "b" (side-view)
         if self.hitbox_visible.value and mem[0x736] == 0x0b:
             for h in self.hitbox:
-                h.Draw()
+                h.DrawImage()
+
+    def Draw(self):
+        """Called on each frame to draw your own GUIs."""
         self.cheats.Draw()
 
 # Set the emulation hook to our custom class

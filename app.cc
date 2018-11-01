@@ -36,6 +36,7 @@
 #include "nfd.h"
 #endif
 
+DEFINE_bool(focus, false, "Whether joystick events require window focus");
 DECLARE_double(volume);
 
 namespace py = pybind11;
@@ -55,6 +56,8 @@ void ProtoNES::Init() {
     pause_ = false;
     step_ = false;
 
+    SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS,
+                FLAGS_focus ? "0" : "1");
     const auto& config = ConfigLoader<proto::Configuration>::GetConfig();
     for(const auto& b : config.controls().buttons()) {
         buttons_[b.scancode()] = b.button();
@@ -141,6 +144,8 @@ void ProtoNES::Init() {
                 pass
             def MenuBar(self):
                 pass
+            def DrawImage(self):
+                pass
             def Draw(self):
                 pass
 
@@ -157,6 +162,7 @@ void ProtoNES::Import(const std::string& name) {
 }
 
 void ProtoNES::ProcessEvent(SDL_Event* event) {
+    ImGuiIO& io = ImGui::GetIO();
     switch(event->type) {
     case SDL_CONTROLLERDEVICEADDED:
     case SDL_CONTROLLERDEVICEREMOVED:
@@ -167,6 +173,8 @@ void ProtoNES::ProcessEvent(SDL_Event* event) {
         nes_->controller(0)->set_buttons(event);
         break;
     case SDL_KEYDOWN: {
+        if (io.WantCaptureKeyboard)
+            break;
         ControllerButtons b = buttons_[event->key.keysym.scancode];
         switch (b) {
         case ControllerButtons::ControllerPause:
@@ -185,6 +193,8 @@ void ProtoNES::ProcessEvent(SDL_Event* event) {
         }
         break;
     case SDL_KEYUP:
+        if (io.WantCaptureKeyboard)
+            break;
         nes_->controller(0)->set_buttons(event);
         break;
     default:
@@ -222,16 +232,6 @@ bool ProtoNES::PreDraw() {
     glTexSubImage2D(GL_TEXTURE_2D, 0,
                   0, 0, 256, 240,
                   GL_RGBA, GL_UNSIGNED_BYTE, nes_->ppu()->picture());
-
-#if 0
-    glBegin(GL_QUADS);
-    float x0 = 0.0, y0 = 20.0 * io.DisplayFramebufferScale.y;
-    glTexCoord2f(0, 0); glVertex2f(x0, y0);
-    glTexCoord2f(1, 0); glVertex2f(x0 + 256 * scale_ * aspect_, y0);
-    glTexCoord2f(1, 1); glVertex2f(x0 + 256 * scale_ * aspect_, y0 + 240 * scale_);
-    glTexCoord2f(0, 1); glVertex2f(x0, y0 + 240 * scale_);
-    glEnd();
-#endif
     return true;
 }
 
@@ -305,6 +305,10 @@ save_as:
                 free(filename);
             }
             hook_.attr("FileMenu")();
+            ImGui::Separator();
+            if (ImGui::MenuItem("Quit")) {
+                running_ = false;
+            }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit")) {
@@ -363,6 +367,9 @@ save_as:
     ImGui::SetNextWindowPos(ImVec2(0, 20.0f * io.DisplayFramebufferScale.y));
     ImVec2 imgsz(256.0f * scale_ * aspect_, 240.0f *scale_);
     ImGui::SetNextWindowSize(imgsz);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
     ImGui::Begin("nesimg", nullptr, ImVec2(0, 0), 0.0f,
                  ImGuiWindowFlags_NoTitleBar |
                  ImGuiWindowFlags_NoResize |
@@ -370,10 +377,13 @@ save_as:
                  ImGuiWindowFlags_NoScrollbar |
                  ImGuiWindowFlags_NoBringToFrontOnFocus |
                  ImGuiWindowFlags_NoScrollWithMouse);
-    ImGui::GetWindowDrawList()->AddImage(ImTextureID(nesimg_), 
-                                         ImVec2(0, 0), imgsz);
-    hook_.attr("Draw")();
+    ImGui::GetWindowDrawList()->AddImage(
+            reinterpret_cast<ImTextureID>(nesimg_), ImVec2(0, 0), imgsz);
+    hook_.attr("DrawImage")();
     ImGui::End();
+    ImGui::PopStyleVar(3);
+
+    hook_.attr("Draw")();
 }
 
 void ProtoNES::Run() {
@@ -407,6 +417,7 @@ void ProtoNES::set_python_root(std::shared_ptr<ProtoNES>& root) {
 
 PYBIND11_EMBEDDED_MODULE(app, m) {
     py::class_<ProtoNES, std::shared_ptr<ProtoNES>>(m, "ProtoNES")
+        .def_property("clear_color", &ProtoNES::clear_color, &ProtoNES::set_clear_color)
         .def_property_readonly("nes", &ProtoNES::nes)
         .def_property("scale", &ProtoNES::scale, &ProtoNES::set_scale)
         .def_property("aspect", &ProtoNES::aspect, &ProtoNES::set_aspect)

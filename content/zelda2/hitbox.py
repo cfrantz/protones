@@ -75,7 +75,7 @@ class EnemyHitbox(object):
         self.hbsz.x = mem[self.SIZETABLE + ofs + 1]
         self.hbsz.y = mem[self.SIZETABLE + ofs + 3]
 
-    def Draw(self):
+    def DrawImage(self):
         if self.exists and self.xscr != -1:
             scale = bimpy.Vec2(self.root.scale * self.root.aspect,
                                self.root.scale)
@@ -127,8 +127,8 @@ class LinkHitbox(object):
         self.exists = True
         scroll = mem.ReadWord(0x72c, 0x72a)
         if self.dragging or self.locked:
-            mem[0x29] = self.ypos
-            mem.WriteWord(0x4d, 0x3b, self.xpos)
+            mem[0x29] = int(self.ypos)
+            mem.WriteWord(0x4d, 0x3b, int(self.xpos))
         else:
             self.ypos = mem[0x29]
             self.xpos = mem.ReadWord(0x4d, 0x3b)
@@ -160,7 +160,7 @@ class LinkHitbox(object):
         self.swsz.x = 14
         self.swsz.y = 3
 
-    def Draw(self):
+    def DrawImage(self):
         if not self.exists:
             return
 
@@ -183,8 +183,8 @@ class LinkHitbox(object):
             self.dragging = True
             if bimpy.is_mouse_dragging():
                 delta = bimpy.get_io().mouse_delta / scale
-                self.xpos += int(delta.x)
-                self.ypos += int(delta.y)
+                self.xpos += delta.x
+                self.ypos += delta.y
         else:
             self.dragging = False
 
