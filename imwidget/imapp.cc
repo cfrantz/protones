@@ -43,7 +43,7 @@ ImApp::ImApp(const std::string& name, int width, int height)
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     ImGui_ImplSdl_SetHiDPIScale(FLAGS_hidpi);
     ImGui_ImplSdlGL2_Init(window_);
-    clear_color_ = ImColor(114, 144, 154);
+    clear_color_ = ImColor(0, 16, 64);
     //fpsmgr_.SetRate(60);
 
     RegisterCommand("quit", "Quit the application.", this, &ImApp::Quit);

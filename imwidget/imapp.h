@@ -52,6 +52,9 @@ class ImApp {
     void AddDrawCallback(ImWindowBase* window);
     void HelpButton(const std::string& topickey, bool right_justify=false);
 
+    inline const ImVec4& clear_color() { return clear_color_; }
+    inline void set_clear_color(const ImVec4& c) { clear_color_ = c; }
+
   protected:
     virtual void AudioCallback(void* stream, int len);
     std::string name_;
