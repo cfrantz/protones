@@ -175,7 +175,7 @@ void Mapper1::WriteRegister(uint16_t addr, uint8_t val) {
 void Mapper1::LoadRegister(uint16_t addr, uint8_t val) {
     if (val & 0x80) {
         shift_register_ = 0x10;
-        WriteControl(control_ & 0x0C);
+        WriteControl(control_ | 0x0C);
         UpdateOffsets();
     } else {
         int complete = shift_register_ & 0x01;
