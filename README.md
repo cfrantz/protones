@@ -1,4 +1,6 @@
 # ProtoNES
 
-A NES emulator based on Fogelman's NES.  Uses Google protobufs for
-save states.
+A NES emulator based on Fogelman's NES.
+
+Includes an ImGui-based user interface and extensibility through Python
+scripting.
