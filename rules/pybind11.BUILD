@@ -1,5 +1,12 @@
 package(default_visibility = ["//visibility:public"])
 
+config_setting(
+    name = "windows",
+    values = {
+        "crosstool_top": "@mxebzl//tools/windows:toolchain",
+    }
+)
+
 HEADERS = [
     "pybind11/options.h",
     "pybind11/common.h",
@@ -29,26 +36,51 @@ HEADERS = [
     "pybind11/operators.h",
 ]
 
+# This is mildly awful, but I don't know how to solve this in a better way.
+# Depending on the configuration, rewrite the include paths in pybind11 to
+# the correct system path for that configuration.
+#
+# The windows configuration is based on where the pseudo mxe package installs
+# include files into the MXE tree.
+#
+# The default configuration is based on the include paths on arch linux.
 [genrule(
     name = "fix_" + F.replace('/', '_').replace('.', '_'),
     srcs = [ 'include/' + F ],
     outs = [ 'fixed/' + F ],
-    cmd = """
-        sed \
-            -e "s|Python\.h|python3.7m/Python.h|g" \
-            -e "s|frameobject\.h|python3.7m/frameobject.h|g" \
-            -e "s|pythread\.h|python3.7m/pythread.h|g" \
-            < $(<) > $(@)
-    """,
+    cmd = select({
+        ":windows": """
+            sed \
+                -e "s|Python\.h|python37/Python.h|g" \
+                -e "s|frameobject\.h|python37/frameobject.h|g" \
+                -e "s|pythread\.h|python37/pythread.h|g" \
+                < $(<) > $(@)
+            """,
+        "//conditions:default": """
+            sed \
+                -e "s|Python\.h|python3.7m/Python.h|g" \
+                -e "s|frameobject\.h|python3.7m/frameobject.h|g" \
+                -e "s|pythread\.h|python3.7m/pythread.h|g" \
+                < $(<) > $(@)
+            """
+    }),
+
 ) for F in HEADERS]
 
-#            -e 's|#include "\.\./|#include "|g' \
-#            -e 's|#include "|#include "pybind11/|g' \
-
+# And again, the library link specifications are based on how each respective
+# system names its libraries.
 cc_library(
     name = "pybind11",
     includes = [
         "fixed",
     ],
     hdrs = [ 'fixed/' + F for F in HEADERS ],
+    linkopts = select({
+        ":windows": [
+            "-lpython",
+        ],
+        "//conditions:default": [
+            "-lpython3.7m",
+        ]
+    }),
 )

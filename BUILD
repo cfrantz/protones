@@ -23,7 +23,6 @@ cc_library(
         "-lSDL2_image",
         "-lSDL2_mixer",
         "-lSDL2_gfx",
-        "-lpython3.7m",
     ],
     hdrs = [
         "app.h",
@@ -61,16 +60,11 @@ cc_library(
     ],
 )
 
-filegroup(
-    name = "content",
-    srcs = glob(["content/*.textpb"]),
-)
-
 genrule(
     name = "make_protones_config",
     srcs = [
         "protones.textpb",
-        ":content",
+        "//content:controls",
     ],
     outs = ["protones_config.h"],
     cmd = "$(location //tools:pack_config) --config $(location protones.textpb)" +
@@ -101,7 +95,6 @@ cc_binary(
         ],
         "//conditions:default": [
             "-lpthread",
-            "-lpython3.7m",
             "-lm",
             "-lGL",
         ],
@@ -118,22 +111,23 @@ cc_binary(
         "@pybind11_git//:pybind11",
         "@com_github_bimpy//:bimpy",
     ],
+    data = ["//content"] + select({
+        ":windows": ["@mxebzl//runtime/python37"],
+        "//conditions:default": [],
+    })
 )
 
 pkg_winzip(
     name = "protones-windows",
     files = [
         ":protones",
+        "//content",
     ],
-)
-
-cc_binary(
-    name = "pe",
-    linkopts = [
-        "-lpython3.7m",
+    skip_dlls = [
+        # Supplied by the python runtime
+        "python37.dll",
     ],
-    srcs = ["pe.cc"],
-    deps = [
-        "@pybind11_git//:pybind11",
+    zips = [
+        "@mxebzl//runtime/python37",
     ],
 )

@@ -4,8 +4,9 @@
 set -e
 bazel build \
     --crosstool_top=@mxebzl//tools/windows:toolchain --cpu=win64 \
-    -c opt :protones-windows
+    -c opt :protones-windows "$@"
 
 VERSION=$(grep BUILD_GIT_VERSION bazel-out/volatile-status.txt | cut -f2 -d' ')
 
+rm -f protones-windows-${VERSION}.zip
 cp bazel-bin/protones-windows.zip protones-windows-${VERSION}.zip
