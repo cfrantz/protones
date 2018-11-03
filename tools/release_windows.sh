@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#    --workspace_status_command tools/buildstamp/get_workspace_status \
 set -e
 bazel build \
+    --workspace_status_command tools/buildstamp/get_workspace_status \
     --crosstool_top=@mxebzl//tools/windows:toolchain --cpu=win64 \
     -c opt :protones-windows "$@"
 
