@@ -14,12 +14,15 @@
 #include "nes/mapper.h"
 #include "nes/mem.h"
 #include "nes/ppu.h"
+#include "proto/config.pb.h"
+#include "util/config.h"
 
 DEFINE_string(fm2, "", "FM2 Movie file.");
 DEFINE_double(fps, 60.0988, "Desired NES fps.");
 namespace protones {
 
 using namespace std::placeholders;
+using proto::ControllerButtons;
 
 const uint32_t standard_palette[] = {
     0xFF666666, 0xFF002A88, 0xFF1412A7, 0xFF3B00A4,
@@ -83,6 +86,10 @@ NES::NES() :
         palette_[i] = (standard_palette[i] & 0xFF00FF00) |
                       ((standard_palette[i] >> 16 ) & 0xFF) |
                       ((standard_palette[i] & 0xFF) << 16);
+    }
+    const auto& config = ConfigLoader<proto::Configuration>::GetConfig();
+    for(const auto& b : config.controls().buttons()) {
+        buttons_[b.scancode()] = b.button();
     }
 
 }
@@ -152,35 +159,42 @@ void NES::SaveState(const std::string& filename, bool text) {
 
 
 void NES::HandleKeyboard(SDL_Event *event) {
-    if (event->type == SDL_KEYDOWN) {
-        switch(event->key.keysym.scancode) {
-        case SDL_SCANCODE_F9:
+    switch(event->type) {
+    case SDL_KEYDOWN: {
+        ControllerButtons b = buttons_[event->key.keysym.scancode];
+        switch (b) {
+        case ControllerButtons::ControllerPause:
+            pause_ = !pause_;
+            break;
+        case ControllerButtons::ControllerFrameStep:
+            pause_ = true;
+            step_ = true;
+            break;
+        case ControllerButtons::ControllerReset:
+            Reset();
+            break;
+        case ControllerButtons::Controller2UpA:
             controller_[1]->set_buttons(Controller::BUTTON_UP |
                                         Controller::BUTTON_A);
             break;
         default:
-            ;
+            controller_[0]->set_buttons(event);
         }
-    } else if (event->type == SDL_KEYUP) {
-        switch(event->key.keysym.scancode) {
-        case SDL_SCANCODE_PAUSE:
-            pause_ = !pause_;
-            break;
-        case SDL_SCANCODE_BACKSLASH:
-            pause_ = true; step_ = true;
-            break;
-        case SDL_SCANCODE_PERIOD:
-            debug_ = !debug_;
-            break;
-        case SDL_SCANCODE_F11:
-            Reset();
-            break;
-        case SDL_SCANCODE_F9:
+        }
+        break;
+    case SDL_KEYUP: {
+        ControllerButtons b = buttons_[event->key.keysym.scancode];
+        switch (b) {
+        case ControllerButtons::Controller2UpA:
             controller_[1]->set_buttons(0);
             break;
         default:
-            ;
+            controller_[0]->set_buttons(event);
         }
+        }
+        break;
+    default:
+        ;
     }
 }
 
@@ -209,6 +223,10 @@ bool NES::Emulate() {
 }
 
 bool NES::EmulateFrame() {
+    if (pause_) {
+        if (!step_) return true;
+        step_ = false;
+    }
     double count = double(frequency) / FLAGS_fps - remainder_;
     double eof = cpu_->cycles() + count;
 

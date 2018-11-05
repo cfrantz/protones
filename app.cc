@@ -16,7 +16,6 @@
 #include "imwidget/mem_debug.h"
 #include "imwidget/ppu_debug.h"
 #include "imwidget/error_dialog.h"
-#include "proto/config.pb.h"
 #include "nes/apu.h"
 #include "nes/cartridge.h"
 #include "nes/controller.h"
@@ -25,7 +24,6 @@
 #include "pybind11/pybind11.h"
 #include "pybind11/embed.h"
 #include "util/browser.h"
-#include "util/config.h"
 #include "util/os.h"
 #include "util/logging.h"
 #include "util/imgui_impl_sdl.h"
@@ -42,8 +40,6 @@ DECLARE_double(volume);
 namespace py = pybind11;
 namespace protones {
 
-using proto::ControllerButtons;
-
 void ProtoNES::Init() {
     loaded_ = false;
     nes_ = absl::make_unique<NES>();
@@ -58,10 +54,6 @@ void ProtoNES::Init() {
 
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS,
                 FLAGS_focus ? "0" : "1");
-    const auto& config = ConfigLoader<proto::Configuration>::GetConfig();
-    for(const auto& b : config.controls().buttons()) {
-        buttons_[b.scancode()] = b.button();
-    }
 
     apu_debug_ = new APUDebug(nes_->apu());
     AddDrawCallback(apu_debug_);
@@ -88,69 +80,7 @@ void ProtoNES::Init() {
     InitAudio(44100, 1, APU::BUFFERLEN, AUDIO_F32);
 
     py::exec(R"py(
-        import app
-        import bimpy
-        import code
-        import protones
-        import pydoc
-        import sys
-        import threading
-
-        pydoc.pager = pydoc.plainpager
-        sys.stdout.orig_write = sys.stdout.write
-        sys.stdout.orig_write = sys.stdout.write
-
-        class PythonConsole(code.InteractiveInterpreter):
-            def __init__(self, *args, **kwargs):
-                code.InteractiveInterpreter.__init__(self, *args, **kwargs)
-                self.outbuf = ''
-                self.errbuf = ''
-                sys.stdout.write = self.outwrite
-                sys.stderr.write = self.errwrite
-
-            def outwrite(self, data):
-                self.outbuf += data
-
-            def errwrite(self, data):
-                self.errbuf += data
-
-            def GetOut(self):
-                data = self.outbuf
-                self.outbuf = ''
-                return data;
-
-            def GetErr(self):
-                data = self.errbuf
-                self.errbuf = ''
-                return data;
-
-        class EmulatorHooks(object):
-            def __init__(self, root=None):
-                self.root = root or app.root()
-
-            def EmulateFrame(self):
-                return self.root.nes.EmulateFrame()
-
-            def GetPythonConsole(self):
-                return PythonConsole(globals())
-
-            def FileMenu(self):
-                pass
-            def EditMenu(self):
-                pass
-            def ViewMenu(self):
-                pass
-            def HelpMenu(self):
-                pass
-            def MenuBar(self):
-                pass
-            def DrawImage(self):
-                pass
-            def Draw(self):
-                pass
-
-        app.EmulatorHooks = EmulatorHooks
-        app.root().hook = EmulatorHooks()
+        from content.protones import *
     )py");
 
     console_ = absl::make_unique<PythonConsole>(
@@ -172,30 +102,11 @@ void ProtoNES::ProcessEvent(SDL_Event* event) {
     case SDL_CONTROLLERAXISMOTION:
         nes_->controller(0)->set_buttons(event);
         break;
-    case SDL_KEYDOWN: {
-        if (io.WantCaptureKeyboard)
-            break;
-        ControllerButtons b = buttons_[event->key.keysym.scancode];
-        switch (b) {
-        case ControllerButtons::ControllerPause:
-            pause_ = !pause_;
-            break;
-        case ControllerButtons::ControllerFrameStep:
-            pause_ = true;
-            step_ = true;
-            break;
-        case ControllerButtons::ControllerReset:
-            nes_->Reset();
-            break;
-        default:
-            nes_->controller(0)->set_buttons(event);
-        }
-        }
-        break;
+    case SDL_KEYDOWN:
     case SDL_KEYUP:
-        if (io.WantCaptureKeyboard)
-            break;
-        nes_->controller(0)->set_buttons(event);
+        if (!io.WantCaptureKeyboard) {
+            nes_->HandleKeyboard(event);
+        }
         break;
     default:
         ;

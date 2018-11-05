@@ -21,6 +21,7 @@ cc_library(
     ],
     deps = [
         "//proto:nes",
+        "//proto:config",
     ],
 )
 
@@ -168,6 +169,8 @@ cc_library(
         ":nes-interface",
         ":ppu",
         "//external:imgui",
+        "//proto:config",
+        "//util:config",
     ],
 )
 

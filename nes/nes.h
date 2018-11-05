@@ -7,6 +7,8 @@
 
 #include "nes/base.h"
 #include "proto/nes.pb.h"
+#include "proto/controller.pb.h"
+
 namespace protones {
 
 class APU;
@@ -48,6 +50,7 @@ class NES {
     void Reset();
     bool Emulate();
     bool EmulateFrame();
+    void HandleKeyboard(SDL_Event* event);
 
     void LoadState(const std::string& filename);
     void SaveState(const std::string& filename, bool text=false);
@@ -57,7 +60,6 @@ class NES {
     static constexpr double sample_rate = frequency / 44100.0;
   private:
     void DebugPalette(bool* active);
-    void HandleKeyboard(SDL_Event* event);
     APU* apu_;
     Cpu* cpu_;
     FM2Movie* movie_;
@@ -74,6 +76,7 @@ class NES {
     bool pause_, step_, debug_, reset_, lag_;
     uint64_t frame_;
     double remainder_;
+    std::map<int, proto::ControllerButtons> buttons_;
 };
 
 }  // namespace protones

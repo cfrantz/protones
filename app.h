@@ -6,7 +6,6 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 
-#include "proto/controller.pb.h"
 #include "pybind11/embed.h"
 #include "imwidget/imapp.h"
 #include "imwidget/python_console.h"
@@ -74,7 +73,6 @@ class ProtoNES: public ImApp {
 
     float frametime_[100];
     int ftp_;
-    std::map<int, proto::ControllerButtons> buttons_;
     pybind11::object hook_;
 };
 

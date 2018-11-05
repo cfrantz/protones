@@ -7,9 +7,8 @@ filegroup(
 
 filegroup(
     name = "content",
-    srcs = [
-        "__init__.py"
-    ] + glob([
+    srcs = glob([
+        "*.py",
         "zelda2/*.py",
     ]),
 )

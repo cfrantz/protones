@@ -264,6 +264,7 @@ enum ControllerButtons {
 	ControllerPause = 101;
 	ControllerFrameStep = 102;
     ControllerReset = 103;
+    Controller2UpA = 104;
 }
 
 message ControllerModel {
