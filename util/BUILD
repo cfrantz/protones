@@ -44,6 +44,13 @@ cc_library(
 )
 
 cc_library(
+    name = "crc",
+    linkopts = ["-lz"],
+    hdrs = ["crc.h"],
+    srcs = ["crc.cc"],
+)
+
+cc_library(
 	name = "file",
 	srcs = [
 		"file.cc",
