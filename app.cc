@@ -54,6 +54,7 @@ void ProtoNES::Init() {
 
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS,
                 FLAGS_focus ? "0" : "1");
+    SDL_GL_SetSwapInterval(0);
 
     apu_debug_ = new APUDebug(nes_->apu());
     AddDrawCallback(apu_debug_);

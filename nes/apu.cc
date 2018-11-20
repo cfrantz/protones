@@ -8,6 +8,8 @@
 #include "nes/nes.h"
 
 DEFINE_double(volume, 0.2, "Sound volume");
+DEFINE_bool(lock_framerate_to_audio, true,
+            "Lock the framerate to audio playback");
 namespace protones {
 
 static float pulse_table[32];
@@ -141,24 +143,31 @@ void APU::Emulate() {
     int s1 = int(c1 / NES::sample_rate);
     int s2 = int(c2 / NES::sample_rate);
     if (s1 != s2) {
+        if (FLAGS_lock_framerate_to_audio) {
 #if 1
-        SDL_LockMutex(mutex_);
-        while(len_ == BUFFERLEN) {
-            SDL_CondWait(cond_, mutex_);
-        }
-        if (len_ < BUFFERLEN) {
-            data_[len_++] = Output();
-        } else {
-            fprintf(stderr, "Audio overrun\n");
-        }
-        SDL_UnlockMutex(mutex_);
+            SDL_LockMutex(mutex_);
+            while(len_ == BUFFERLEN) {
+                SDL_CondWait(cond_, mutex_);
+            }
+            if (len_ < BUFFERLEN) {
+                data_[len_++] = Output();
+            } else {
+                fprintf(stderr, "Audio overrun\n");
+            }
+            SDL_UnlockMutex(mutex_);
+
 #else
-        while((producer_ + 1) % BUFFERLEN == consumer_ % BUFFERLEN) {
-            os::SchedulerYield();
-        }
-        data_[producer_ % BUFFERLEN] = Output();
-        ++producer_;
+            while((producer_ + 1) % BUFFERLEN == consumer_ % BUFFERLEN) {
+                os::SchedulerYield();
+            }
+            data_[producer_ % BUFFERLEN] = Output();
+            ++producer_;
 #endif
+        } else {
+            if (len_ < BUFFERLEN) {
+                data_[len_++] = Output();
+            }
+        }
     }
 }
 
