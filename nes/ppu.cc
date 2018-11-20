@@ -31,7 +31,7 @@ void IntVal(T* thing, uint32_t val) {
 
 PPU::PPU(NES* nes)
     : nes_(nes),
-    cycle_(0), scanline_(0), frame_(0),
+    cycle_(0), scanline_(0), dead_(1*262*341), frame_(0),
     oam_{0, },
     v_(0), t_(0), x_(0), w_(0), f_(0), register_(0),
     nmi_{0,},
@@ -96,8 +96,9 @@ void PPU::SaveState(proto::PPU* state) {
 }
 
 void PPU::Reset() {
-    cycle_ = 340;
-    scanline_ = 240;
+    dead_ = 2 * (262*341);
+    cycle_ = 341-18;;
+    scanline_ = 239;
     frame_ = 0;
     set_control(0);
     set_mask(0);
@@ -450,7 +451,11 @@ void PPU::EvaluateSprites() {
     sprite_.count = count;
 }
 
-void PPU::Tick() {
+bool PPU::Tick() {
+    if (dead_) {
+        --dead_;
+        return false;
+    }
     if (nmi_.delay) {
         nmi_.delay--;
         if (nmi_.delay == 0 && nmi_.output && nmi_.occured)
@@ -463,7 +468,7 @@ void PPU::Tick() {
             scanline_ = 0;
             frame_++;
             f_ = f_ ^ 1;
-            return;
+            return true;
         }
     }
 
@@ -477,10 +482,13 @@ void PPU::Tick() {
             f_ = f_ ^ 1;
         }
     }
+    return true;
 }
 
 void PPU::Emulate() {
-    Tick();
+    if (!Tick()) {
+        return;
+    }
 
     const bool pre_line = scanline_ == 261;
     const bool visible_line = scanline_ < 240;

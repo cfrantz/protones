@@ -60,13 +60,14 @@ class PPU : public EmulatedDevice {
     void RenderPixel();
     uint32_t FetchSpritePattern(int i, int row);
     void EvaluateSprites();
-    void Tick();
+    bool Tick();
 
 
     NES* nes_;
 
     int cycle_;
     int scanline_;
+    int dead_;
     uint64_t frame_;
 
     uint8_t oam_[256];
