@@ -48,7 +48,8 @@ class Mem : public EmulatedDevice {
 
     NES* nes_;
     uint8_t ram_[2048];
-    uint8_t ppuram_[2048];
+    // NES has 2k of PPU vram, some carts provide extra vram.
+    uint8_t ppuram_[4096];
     uint8_t palette_[32];
 
     std::vector<std::string> custom_memdump_;

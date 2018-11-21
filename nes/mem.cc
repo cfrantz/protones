@@ -136,16 +136,16 @@ void Mem::write_word_no_io(uint16_t addr, uint16_t v) {
 
 uint16_t Mem::MirrorAddress(int mode, uint16_t addr) {
     static const uint16_t lookup[5][4] = {
-        { 0, 0, 1, 1, },
-        { 0, 1, 1, 0, },
-        { 0, 0, 0, 0, },
-        { 1, 1, 1, 1, },
-        { 0, 1, 2, 3, },
+        { 0, 0, 1, 1, }, // Horiz
+        { 0, 1, 0, 1, }, // Vert
+        { 0, 0, 0, 0, }, // single 0
+        { 1, 1, 1, 1, }, // single 1
+        { 0, 1, 2, 3, }, // four
     };
     addr = (addr - 0x2000) % 0x1000;
     int table = addr / 0x400;
     int offset = addr % 0x400;
-    return lookup[mode][table] * 0x400 + offset + 0x2000;
+    return lookup[mode][table] * 0x400 + offset;
 }
 
 uint8_t Mem::PPURead(uint16_t addr) {
@@ -154,7 +154,7 @@ uint8_t Mem::PPURead(uint16_t addr) {
         return nes_->mapper()->Read(addr);
     } else if (addr < 0x3F00) {
         int mode = int(nes_->cartridge()->mirror());
-        return ppuram_[MirrorAddress(mode, addr) % 2048];
+        return ppuram_[MirrorAddress(mode, addr)];
     } else {
         return PaletteRead(addr % 32);
     }
@@ -166,7 +166,7 @@ void Mem::PPUWrite(uint16_t addr, uint8_t val) {
         nes_->mapper()->Write(addr, val);
     } else if (addr < 0x3F00) {
         int mode = int(nes_->cartridge()->mirror());
-        ppuram_[MirrorAddress(mode, addr) % 2048] = val;
+        ppuram_[MirrorAddress(mode, addr)] = val;
     } else {
         PaletteWrite(addr % 32, val);
     }
