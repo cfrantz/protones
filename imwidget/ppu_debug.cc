@@ -5,6 +5,7 @@
 #include <SDL2/SDL_opengl.h>
 
 #include "imgui.h"
+#include "nes/cartridge.h"
 #include "nes/mapper.h"
 #include "nes/mem.h"
 #include "nes/nes.h"
@@ -145,18 +146,21 @@ bool PPUVramDebug::Draw() {
     if (!visible_)
         return false;
 
+    PPU* ppu = nes_->ppu();
     ImGui::Begin("Name Tables", &visible_);
-#if 0
+#if 1
     ImGui::Text("ctrl=%02x mask=%02x status=%02x oam=%02x scroll=(%02x %02x)",
-        IntVal(&control_),
-        IntVal(&mask_),
-        IntVal(&status_),
-        oam_addr_,
-        last_scrollreg_.x,
-        last_scrollreg_.y);
+        *reinterpret_cast<uint8_t*>(&ppu->control_),
+        *reinterpret_cast<uint8_t*>(&ppu->mask_),
+        *reinterpret_cast<uint8_t*>(&ppu->status_),
+        ppu->oam_addr_,
+        ppu->last_scrollreg_.x,
+        ppu->last_scrollreg_.y);
+    const char* mm[] = {"HORIZONTAL", "VERTICAL", "SINGLE0", "SINGLE1", "FOUR"};
+    ImGui::Text("mirroring=%s", mm[nes_->cartridge()->mirror()]);
+
 #endif
 
-    PPU* ppu = nes_->ppu();
     ImGui::Checkbox("Background", &ppu->debug_showbg_);
     ImGui::SameLine();
     ImGui::Checkbox("Sprites", &ppu->debug_showsprites_);
