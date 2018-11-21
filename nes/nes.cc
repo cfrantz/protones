@@ -49,6 +49,7 @@ NES::NES() :
     debug_(false),
     reset_(false),
     lag_(false),
+    has_movie_(false),
     frame_(0),
     remainder_(0)
 {
@@ -95,12 +96,12 @@ NES::NES() :
 }
 
 void NES::LoadFile(const std::string& filename) {
-    cart_->LoadFile(filename);
-    mapper_ = MapperRegistry::New(this, cart_->mapper());
-
     if (!FLAGS_fm2.empty()) {
         movie_->Load(FLAGS_fm2);
+        has_movie_ = true;
     }
+    cart_->LoadFile(filename);
+    mapper_ = MapperRegistry::New(this, cart_->mapper());
 }
 
 void NES::LoadState(const std::string& filename) {

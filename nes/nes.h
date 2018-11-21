@@ -43,6 +43,7 @@ class NES {
     inline uint64_t frame() { return frame_; }
     inline bool lag() { return lag_; }
     inline void set_lag(bool val) { lag_ = val; }
+    inline bool has_movie() { return has_movie_; }
 
     uint64_t cpu_cycles();
     void Stall(int s);
@@ -73,7 +74,7 @@ class NES {
     proto::NES state_;
 
     uint32_t palette_[64];
-    bool pause_, step_, debug_, reset_, lag_;
+    bool pause_, step_, debug_, reset_, lag_, has_movie_;
     uint64_t frame_;
     double remainder_;
     std::map<int, proto::ControllerButtons> buttons_;

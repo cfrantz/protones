@@ -4,6 +4,7 @@
 #include <gflags/gflags.h>
 
 #include "nes/cartridge.h"
+#include "util/crc.h"
 
 DEFINE_bool(sram_on_disk, true, "Save SRAM to disk.");
 
@@ -12,6 +13,7 @@ Cartridge::Cartridge(NES* nes)
     : nes_(nes),
     prg_(nullptr), prglen_(0),
     chr_(nullptr), chrlen_(0),
+    crc32_(0),
     trainer_(nullptr),
     sram_{0,} {
 }
@@ -35,7 +37,6 @@ void Cartridge::LoadFile(const std::string& filename) {
         fprintf(stderr, "Couldn't read header.\n");
         abort();
     }
-    PrintHeader();
 
     mirror_ = MirrorMode(header_.mirror0 | (header_.mirror1 << 1));
     prglen_ = 16384 * header_.prgsz;
@@ -67,16 +68,19 @@ void Cartridge::LoadFile(const std::string& filename) {
         abort();
     }
     fclose(fp);
+    crc32_ = Crc32(0, prg_, prglen_);
+    crc32_ = Crc32(crc32_, chr_, chrlen_);
 
     sram_filename_ = filename + ".sram";
-    if (FLAGS_sram_on_disk && header_.sram) {
+    if (FLAGS_sram_on_disk && header_.sram && !nes_->has_movie()) {
         if ((fp = fopen(sram_filename_.c_str(), "rb")) != nullptr) {;
-            if (fread(sram_, sizeof(sram_), 1, fp) == 1) {
+            if (fread(sram_, sizeof(sram_), 1, fp) == 0) {
                 fprintf(stderr, "Couldn't read SRAM.\n");
             }
             fclose(fp);
         }
     }
+    PrintHeader();
 }
 
 void Cartridge::Emulate() {
@@ -131,5 +135,6 @@ void Cartridge::PrintHeader() {
     printf("  Has SRAM:  %d\n", header_.sram);
     printf("  Has trainer: %d\n", header_.trainer);
     printf("  Mapper: %d\n", mapper());
+    printf("  ROM CRC32: 0x%08x\n", crc32_);
 }
 }  // namespace protones
