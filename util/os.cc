@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <cstdlib>
 #include <time.h>
 #include <unistd.h>
@@ -8,7 +9,9 @@
 #endif
 
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_split.h"
 #include "util/os.h"
+#include "util/logging.h"
 
 namespace os {
 std::string GetCWD() {
@@ -80,6 +83,54 @@ int System(const std::string& cmd, bool background) {
     return system(absl::StrCat(header, cmd, trailer).c_str());
 }
 
+std::string ExePath() {
+    char exepath[PATH_MAX] = {0, };
+#ifdef _WIN32
+    GetModuleFileName(nullptr, exepath, PATH_MAX);
+#else
+    char self[PATH_MAX];
+#ifdef __linux__
+    snprintf(self, sizeof(self), "/proc/self/exe");
+#elif defined(__FreeBSD__)
+    snprintf(self, sizeof(self), "/proc/%d/file", getpid());
+#else
+#error "Don't know how to get ExePath"
+#endif
+    if (!realpath(self, exepath)) {
+        perror("realpath");
+    }
+#endif
+    return std::string(exepath);
+}
+
+std::string ResourceDir(const std::string& name) {
+    std::string exe = ExePath();
+    if (exe.find("_bazel_") != std::string::npos) {
+        LOG(INFO, "ExePath contains '_bazel_'. Assuming ResourceDir is CWD.");
+        return GetCWD();
+    }
+
+    std::vector<std::string> path = path::Split(exe);
+    if (exe.at(0) == '/') {
+        path.insert(path.begin(), "/");
+    }
+    std::string executable = path.back();
+    path.pop_back(); // Remove exe filename
+#ifdef _WIN32
+    LOG(INFO, "Windows: assuming ResourceDir is", path::Join(path));
+#else
+    if (path.back() == "bin") {
+        path.pop_back();
+        path.push_back("share");
+        path.push_back(name.empty() ? executable : name);
+    } else {
+        LOG(INFO, "Unix: Did not find 'bin' in ExePath. Assuming ResourcDir"
+                  " is ", path::Join(path));
+    }
+#endif
+    return path::Join(path);
+}
+
 namespace path {
 char kPathSep = '/';
 
@@ -87,19 +138,26 @@ std::string Join(const std::vector<std::string>& components) {
     std::string result;
 
     for(const auto& p : components) {
-        if (!result.empty()) {
+        if (!result.empty() && result.back() != kPathSep) {
             result.push_back(kPathSep);
         }
         if (p.front() == kPathSep) {
             result.clear();
         }
         if (p.back() == kPathSep) {
-            result.append(p, 0, p.length() - 1);
+            size_t len = p.length() - 1;
+            //  In case we're adding a single "/" component.
+            if (len == 0) len = 1;
+            result.append(p, 0, len);
         } else {
             result.append(p);
         }
     }
     return result;
+}
+
+std::vector<std::string> Split(const std::string& path) {
+    return absl::StrSplit(path, absl::ByAnyChar("\\/"));
 }
 
 } // namespace path

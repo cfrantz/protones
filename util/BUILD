@@ -86,6 +86,7 @@ cc_library(
 		"os.h",
 	],
 	deps = [
+        ":logging",
         "@com_google_absl//absl/strings",
 	]
 )
