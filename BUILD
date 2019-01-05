@@ -1,4 +1,6 @@
 package(default_visibility=["//visibility:public"])
+
+load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
 load("@mxebzl//tools/windows:rules.bzl", "pkg_winzip")
 
 config_setting(
@@ -127,5 +129,34 @@ pkg_winzip(
     ],
     zips = [
         "@mxebzl//runtime/python37",
+    ],
+)
+
+pkg_tar(
+    name = "protones-bin",
+    srcs = [
+        ":protones",
+    ],
+    package_dir = "/usr/local/bin",
+    mode = "0755",
+)
+
+pkg_tar(
+    name = "protones-share",
+    srcs = [
+        "//content",
+    ],
+    # BUG: https://github.com/bazelbuild/bazel/issues/2176
+    strip_prefix = ".",
+    package_dir = "/usr/local/share/protones",
+    mode = "0644",
+)
+
+pkg_tar(
+    name = "protones-linux",
+    extension = "tar.gz",
+    deps = [
+        ":protones-bin",
+        ":protones-share",
     ],
 )

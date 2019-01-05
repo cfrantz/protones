@@ -1,15 +1,19 @@
 #include <cstdio>
+#include <bsd/stdlib.h>
 #include <string>
 #include <gflags/gflags.h>
 
 #include "app.h"
 #include "util/config.h"
+#include "util/os.h"
+#include "util/logging.h"
 #include "proto/config.pb.h"
 #include "protones_config.h"
 #include "pybind11/embed.h"
 
 DEFINE_string(config, "", "ProtoNES config file");
 DEFINE_string(import, "", "Python module to import");
+
 
 const char kUsage[] =
 R"ZZZ(<optional flags> [user-supplied-nes-rom]
@@ -22,10 +26,16 @@ Flags:
   --hidpi <n>         Set the scaling factor on hidpi displays (try 2.0).
 )ZZZ";
 
+namespace py = pybind11;
+
 int main(int argc, char *argv[]) {
     gflags::SetUsageMessage(kUsage);
     gflags::ParseCommandLineFlags(&argc, &argv, true);
-    pybind11::scoped_interpreter python{};
+
+    // Create a python interpreter and add our resource dir to sys.path.
+    py::scoped_interpreter python{};
+    py::object sys = py::module::import("sys");
+    sys.attr("path").attr("append")(os::ResourceDir("protones"));
 
     auto* loader = ConfigLoader<proto::Configuration>::Get();
     if (!FLAGS_config.empty()) {
