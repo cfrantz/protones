@@ -9,6 +9,7 @@
 DEFINE_bool(sram_on_disk, true, "Save SRAM to disk.");
 
 namespace protones {
+
 Cartridge::Cartridge(NES* nes)
     : nes_(nes),
     prg_(nullptr), prglen_(0),
@@ -38,7 +39,8 @@ void Cartridge::LoadFile(const std::string& filename) {
         abort();
     }
 
-    mirror_ = MirrorMode(header_.mirror0 | (header_.mirror1 << 1));
+    mirror_ = MirrorMode(
+            header_.fourscreen ? MirrorMode::FOUR : header_.mirror);
     prglen_ = 16384 * header_.prgsz;
     prg_ = new uint8_t[prglen_];
 

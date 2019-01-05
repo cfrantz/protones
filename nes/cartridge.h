@@ -14,10 +14,10 @@ class Cartridge : public EmulatedDevice {
         uint32_t signature;
         uint8_t prgsz;
         uint8_t chrsz;
-        uint8_t mirror0: 1;
+        uint8_t mirror: 1;
         uint8_t sram: 1;
         uint8_t trainer: 1;
-        uint8_t mirror1: 1;
+        uint8_t fourscreen: 1;
         uint8_t mapperl: 4;
         uint8_t vs_unisystem: 1;
         uint8_t playchoice_10: 1;
@@ -38,7 +38,9 @@ class Cartridge : public EmulatedDevice {
     void LoadFile(const std::string& filename);
     void PrintHeader();
     inline uint8_t mirror() const { return mirror_; }
-    inline void set_mirror(MirrorMode m) { mirror_ = m; }
+    inline void set_mirror(MirrorMode m) {
+        if (!header_.fourscreen) mirror_ = m;
+    }
     inline bool battery() const {
         return header_.sram;
     }

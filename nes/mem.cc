@@ -113,7 +113,7 @@ void Mem::write_byte(uint16_t addr, uint8_t v) {
     } else if (addr >= 0x6000) {
         nes_->mapper()->Write(addr, v);
     } else {
-        fprintf(stderr, "Unknown write at %04x\n", addr);
+        fprintf(stderr, "Unknown write at %04x = %02x\n", addr, v);
     }
 }
 
