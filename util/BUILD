@@ -60,6 +60,7 @@ cc_library(
 	],
 	deps = [
 		":status",
+        "@com_google_absl//absl/strings",
 	]
 )
 

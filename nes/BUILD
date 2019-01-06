@@ -72,6 +72,8 @@ cc_library(
         ":nes-interface",
         "//proto:mappers",
         "//util:crc",
+        "//util:file",
+        "//util:os",
         "//external:gflags",
     ],
 )

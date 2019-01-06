@@ -44,6 +44,7 @@ cc_library(
         "//nes:nes",
         "//python:protones",
         "//util:browser",
+        "//util:config",
         "//util:fpsmgr",
         "//util:imgui_sdl_opengl",
         "//util:os",
@@ -106,6 +107,8 @@ cc_binary(
     deps = [
         ":app",
         "//util:config",
+        "//util:file",
+        "//util:os",
         "//proto:config",
         "//external:gflags",
         "@pybind11_git//:pybind11",

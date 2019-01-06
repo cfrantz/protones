@@ -8,15 +8,22 @@ import app
 import bimpy
 from . import cheats
 from . import hitbox
+from . import random
+from . import memory
+from .. import debug
 
 # Subclass the EmulatorHooks class
 class Zelda2(app.EmulatorHooks):
+
     def __init__(self, root=None):
         # Call the superclass' init first.
         super().__init__(root)
         # Then initialize our own local data
         self.cheats = cheats.Cheats(self.root)
+        self.rng = random.RNG(self.root)
+        self.memory = memory.Memory(self.root)
         self.hitbox_visible = bimpy.Bool()
+        self.disable_encounters = bimpy.Bool()
         self.hitbox = [hitbox.LinkHitbox(self.root)]
         self.hitbox.extend(
                 hitbox.EnemyHitbox(self.root, i) for i in range(13))
@@ -32,6 +39,15 @@ class Zelda2(app.EmulatorHooks):
         mem[0x748] = f
         mem[0x561] = g
         mem[0x736] = 0
+
+    def DisableEncounters(self, dis):
+        if dis:
+            # nop, nop, sec.  carry flag causes jump away from enc routine
+            debug.WritePrgBank(0, 0x83c4, [0xea, 0xea, 0x38])
+        else:
+            # jsr blocked_by_tile_routine - checks what tile we'll take the
+            # encounter for.
+            debug.WritePrgBank(0, 0x83c4, [0x20, 0x0f, 0x87])
 
     def MenuBar(self):
         """Hook into the menubar and some menus."""
@@ -70,8 +86,15 @@ class Zelda2(app.EmulatorHooks):
         if bimpy.begin_menu("Cheats"):
             if bimpy.menu_item("Cheats", selected=self.cheats.visible.value):
                 self.cheats.visible.value = not self.cheats.visible.value
+            if bimpy.menu_item("Disable Encounters", selected=self.disable_encounters.value):
+                self.disable_encounters.value = not self.disable_encounters.value
+                self.DisableEncounters(self.disable_encounters.value)
             if bimpy.menu_item("Show Hitboxes", selected=self.hitbox_visible.value):
                 self.hitbox_visible.value = not self.hitbox_visible.value
+            if bimpy.menu_item("Memory Values", selected=self.memory.visible.value):
+                self.memory.visible.value = not self.memory.visible.value
+            if bimpy.menu_item("RNG", selected=self.rng.visible.value):
+                self.rng.visible.value = not self.rng.visible.value
             bimpy.end_menu()
 
     def EmulateFrame(self):
@@ -92,6 +115,8 @@ class Zelda2(app.EmulatorHooks):
     def Draw(self):
         """Called on each frame to draw your own GUIs."""
         self.cheats.Draw()
+        self.memory.Draw()
+        self.rng.Draw()
 
 # Set the emulation hook to our custom class
 app.root().hook = Zelda2()

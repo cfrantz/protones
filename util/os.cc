@@ -14,6 +14,10 @@
 #include "util/logging.h"
 
 namespace os {
+namespace {
+char ApplicationName[256];
+}  // namespace
+
 std::string GetCWD() {
     char path[PATH_MAX];
     std::string result;
@@ -83,7 +87,22 @@ int System(const std::string& cmd, bool background) {
     return system(absl::StrCat(header, cmd, trailer).c_str());
 }
 
-std::string ExePath() {
+void SetApplicationName(const char *name) {
+    strncpy(ApplicationName, name, sizeof(ApplicationName) - 1);
+}
+
+std::string GetApplicationName() {
+    std::string name = ApplicationName;
+    if (name == "") {
+        name = path::Split(path::Executable()).back();
+    }
+    return name;
+}
+
+namespace path {
+char kPathSep = '/';
+
+std::string Executable() {
     char exepath[PATH_MAX] = {0, };
 #ifdef _WIN32
     GetModuleFileName(nullptr, exepath, PATH_MAX);
@@ -94,7 +113,7 @@ std::string ExePath() {
 #elif defined(__FreeBSD__)
     snprintf(self, sizeof(self), "/proc/%d/file", getpid());
 #else
-#error "Don't know how to get ExePath"
+#error "Don't know how to get Executable"
 #endif
     if (!realpath(self, exepath)) {
         perror("realpath");
@@ -104,35 +123,51 @@ std::string ExePath() {
 }
 
 std::string ResourceDir(const std::string& name) {
-    std::string exe = ExePath();
+    std::string exe = Executable();
     if (exe.find("_bazel_") != std::string::npos) {
-        LOG(INFO, "ExePath contains '_bazel_'. Assuming ResourceDir is CWD.");
+        LOG(INFO, "Executable contains '_bazel_'. Assuming ResourceDir is CWD.");
         return GetCWD();
     }
-
-    std::vector<std::string> path = path::Split(exe);
-    if (exe.at(0) == '/') {
-        path.insert(path.begin(), "/");
-    }
-    std::string executable = path.back();
+    std::vector<std::string> path = Split(exe);
     path.pop_back(); // Remove exe filename
+
 #ifdef _WIN32
-    LOG(INFO, "Windows: assuming ResourceDir is", path::Join(path));
+    LOG(INFO, "Windows: assuming ResourceDir is", Join(path));
 #else
     if (path.back() == "bin") {
         path.pop_back();
         path.push_back("share");
-        path.push_back(name.empty() ? executable : name);
+        path.push_back(name);
     } else {
-        LOG(INFO, "Unix: Did not find 'bin' in ExePath. Assuming ResourcDir"
-                  " is ", path::Join(path));
+        LOG(INFO, "Unix: Did not find 'bin' in executable path. "
+                  "Assuming ResourcDir is ", Join(path));
     }
 #endif
-    return path::Join(path);
+    return Join(path);
 }
 
-namespace path {
-char kPathSep = '/';
+std::string DataPath(const std::vector<std::string>& components) {
+    std::vector<std::string> p;
+#ifdef _WIN32
+    const char *data = getenv("LOCALAPPDATA");
+    const char *home = getenv("USERPROFILE");
+#else
+    const char *data = getenv("XDG_DATA_HOME");
+    const char *home = getenv("HOME");
+#endif
+
+    if (data) {
+        p = Split(data);
+        p.push_back(absl::StrCat(GetApplicationName()));
+    } else if (home) {
+        p = Split(home);
+        p.push_back(absl::StrCat(".", GetApplicationName()));
+    } else {
+        LOG(ERROR, "ConfigPath is unknown.");
+    }
+    p.insert(p.end(), components.begin(), components.end());
+    return Join(p);
+}
 
 std::string Join(const std::vector<std::string>& components) {
     std::string result;
@@ -157,7 +192,11 @@ std::string Join(const std::vector<std::string>& components) {
 }
 
 std::vector<std::string> Split(const std::string& path) {
-    return absl::StrSplit(path, absl::ByAnyChar("\\/"));
+    std::vector<std::string> p = absl::StrSplit(path, absl::ByAnyChar("\\/"));
+    if (p[0] == "") {
+        p[0] = "/";
+    }
+    return p;
 }
 
 } // namespace path

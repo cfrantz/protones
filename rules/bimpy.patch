@@ -1,5 +1,5 @@
 diff --git a/bimpy.cpp b/bimpy.cpp
-index a46fecd..dc219ef 100644
+index a46fecd..9b72e32 100644
 --- a/bimpy.cpp
 +++ b/bimpy.cpp
 @@ -3,20 +3,24 @@
@@ -36,16 +36,20 @@ index a46fecd..dc219ef 100644
  
  struct Bool
  {
-@@ -201,7 +206,7 @@ void  AddTriangleFilled(const ImVec2& a, const ImVec2& b, const ImVec2& c, ImU32
+@@ -200,8 +205,11 @@ void  AddTriangle(const ImVec2& a, const ImVec2& b, const ImVec2& c, ImU32 col,
+ void  AddTriangleFilled(const ImVec2& a, const ImVec2& b, const ImVec2& c, ImU32 col){ ImGui::GetWindowDrawList()->AddTriangleFilled(a, b, c, col); }
  void  AddCircle(const ImVec2& centre, float radius, ImU32 col, int num_segments, float thickness){ ImGui::GetWindowDrawList()->AddCircle(centre, radius, col, num_segments, thickness); }
  void  AddCircleFilled(const ImVec2& centre, float radius, ImU32 col, int num_segments){ ImGui::GetWindowDrawList()->AddCircleFilled(centre, radius, col, num_segments); }
++void  AddText(const ImVec2& pos, ImU32 col, const char* text, float font_size=0.0f, float wrap_width = 0.0f) {
++    ImGui::GetWindowDrawList()->AddText(nullptr, font_size, pos, col, text, nullptr, wrap_width, nullptr);
++}
  
 -PYBIND11_MODULE(_bimpy, m) {
 +PYBIND11_EMBEDDED_MODULE(bimpy, m) {
  	static Bool null;
  	null.null = true;
  	
-@@ -222,7 +227,7 @@ PYBIND11_MODULE(_bimpy, m) {
+@@ -222,7 +230,7 @@ PYBIND11_MODULE(_bimpy, m) {
  		.value("NoScrollWithMouse", ImGuiWindowFlags_::ImGuiWindowFlags_NoScrollWithMouse)
  		.value("NoCollapse", ImGuiWindowFlags_::ImGuiWindowFlags_NoCollapse)
  		.value("AlwaysAutoResize", ImGuiWindowFlags_::ImGuiWindowFlags_AlwaysAutoResize)
@@ -54,7 +58,7 @@ index a46fecd..dc219ef 100644
  		.value("NoSavedSettings", ImGuiWindowFlags_::ImGuiWindowFlags_NoSavedSettings)
  		.value("NoInputs", ImGuiWindowFlags_::ImGuiWindowFlags_NoInputs)
  		.value("MenuBar", ImGuiWindowFlags_::ImGuiWindowFlags_MenuBar)
-@@ -274,7 +279,7 @@ PYBIND11_MODULE(_bimpy, m) {
+@@ -274,7 +282,7 @@ PYBIND11_MODULE(_bimpy, m) {
  		.value("ScrollbarGrab", ImGuiCol_::ImGuiCol_ScrollbarGrab)
  		.value("ScrollbarGrabHovered", ImGuiCol_::ImGuiCol_ScrollbarGrabHovered)
  		.value("ScrollbarGrabActive", ImGuiCol_::ImGuiCol_ScrollbarGrabActive)
@@ -63,7 +67,7 @@ index a46fecd..dc219ef 100644
  		.value("CheckMark", ImGuiCol_::ImGuiCol_CheckMark)
  		.value("SliderGrab", ImGuiCol_::ImGuiCol_SliderGrab)
  		.value("SliderGrabActive", ImGuiCol_::ImGuiCol_SliderGrabActive)
-@@ -290,9 +295,9 @@ PYBIND11_MODULE(_bimpy, m) {
+@@ -290,9 +298,9 @@ PYBIND11_MODULE(_bimpy, m) {
  		.value("ResizeGrip", ImGuiCol_::ImGuiCol_ResizeGrip)
  		.value("ResizeGripActive", ImGuiCol_::ImGuiCol_ResizeGripActive)
  		.value("ResizeGripHovered", ImGuiCol_::ImGuiCol_ResizeGripHovered)
@@ -76,7 +80,7 @@ index a46fecd..dc219ef 100644
  		.value("PlotLines", ImGuiCol_::ImGuiCol_PlotLines)
  		.value("PlotLinesHovered", ImGuiCol_::ImGuiCol_PlotLinesHovered)
  		.value("PlotHistogram", ImGuiCol_::ImGuiCol_PlotHistogram)
-@@ -300,7 +305,7 @@ PYBIND11_MODULE(_bimpy, m) {
+@@ -300,7 +308,7 @@ PYBIND11_MODULE(_bimpy, m) {
  		.value("TextSelectedBg", ImGuiCol_::ImGuiCol_TextSelectedBg)
  		.value("ModalWindowDarkening", ImGuiCol_::ImGuiCol_ModalWindowDarkening)
  		.export_values();
@@ -85,7 +89,7 @@ index a46fecd..dc219ef 100644
  	py::class_<Context>(m, "Context")
  		.def(py::init())
  		.def("init", &Context::Init, "Initializes context and creates window")
-@@ -312,13 +317,14 @@ PYBIND11_MODULE(_bimpy, m) {
+@@ -312,13 +320,14 @@ PYBIND11_MODULE(_bimpy, m) {
  			{
  				self.Render();
  			});
@@ -106,7 +110,7 @@ index a46fecd..dc219ef 100644
  		.export_values();
  	
  	py::class_<Bool>(m, "Bool")
-@@ -374,10 +380,12 @@ PYBIND11_MODULE(_bimpy, m) {
+@@ -374,10 +383,12 @@ PYBIND11_MODULE(_bimpy, m) {
  		.def_readwrite("window_padding", &ImGuiStyle::WindowPadding)
  		.def_readwrite("window_min_size", &ImGuiStyle::WindowMinSize)
  		.def_readwrite("window_rounding", &ImGuiStyle::WindowRounding)
@@ -120,7 +124,7 @@ index a46fecd..dc219ef 100644
  		.def_readwrite("item_spacing", &ImGuiStyle::ItemSpacing)
  		.def_readwrite("item_inner_spacing", &ImGuiStyle::ItemInnerSpacing)
  		.def_readwrite("touch_extra_padding", &ImGuiStyle::TouchExtraPadding)
-@@ -391,7 +399,7 @@ PYBIND11_MODULE(_bimpy, m) {
+@@ -391,7 +402,7 @@ PYBIND11_MODULE(_bimpy, m) {
  		.def_readwrite("display_window_padding", &ImGuiStyle::DisplayWindowPadding)
  		.def_readwrite("display_safe_area_padding", &ImGuiStyle::DisplaySafeAreaPadding)
  		.def_readwrite("anti_aliased_lines", &ImGuiStyle::AntiAliasedLines)
@@ -129,7 +133,7 @@ index a46fecd..dc219ef 100644
  		.def_readwrite("curve_tessellation_tol", &ImGuiStyle::CurveTessellationTol)
  		.def("get_color",[](ImGuiStyle& self, ImGuiCol_ a)
  			{
-@@ -402,13 +410,62 @@ PYBIND11_MODULE(_bimpy, m) {
+@@ -402,13 +413,62 @@ PYBIND11_MODULE(_bimpy, m) {
  				self.Colors[(int)a] = c;
  			});
  
@@ -193,7 +197,7 @@ index a46fecd..dc219ef 100644
  	
  	m.def("begin",[](const std::string& name, Bool& opened, ImGuiWindowFlags flags) -> bool
  		{
-@@ -427,6 +484,15 @@ PYBIND11_MODULE(_bimpy, m) {
+@@ -427,6 +487,15 @@ PYBIND11_MODULE(_bimpy, m) {
  		py::arg("str_id"), py::arg("size") = ImVec2(0,0), py::arg("border") = false, py::arg("extra_flags") = ImGuiWindowFlags_(0));
  		
  	m.def("end_child", &ImGui::EndChild);
@@ -209,7 +213,7 @@ index a46fecd..dc219ef 100644
  	
  	m.def("get_content_region_max", &ImGui::GetContentRegionMax);
  	m.def("get_content_region_avail", &ImGui::GetContentRegionAvail);
-@@ -434,7 +500,7 @@ PYBIND11_MODULE(_bimpy, m) {
+@@ -434,7 +503,7 @@ PYBIND11_MODULE(_bimpy, m) {
  	m.def("get_window_content_region_min", &ImGui::GetWindowContentRegionMin);
  	m.def("get_window_content_region_max", &ImGui::GetWindowContentRegionMax);
  	m.def("get_window_content_region_width", &ImGui::GetWindowContentRegionWidth);
@@ -218,7 +222,7 @@ index a46fecd..dc219ef 100644
  	m.def("set_window_font_scale", &ImGui::SetWindowFontScale);
  	m.def("get_window_pos", &ImGui::GetWindowPos);
  	m.def("get_window_size", &ImGui::GetWindowSize);
-@@ -527,6 +593,10 @@ PYBIND11_MODULE(_bimpy, m) {
+@@ -527,6 +596,10 @@ PYBIND11_MODULE(_bimpy, m) {
  	m.def("button", &ImGui::Button, py::arg("label"), py::arg("size") = ImVec2(0,0));
  	m.def("small_button", &ImGui::SmallButton);
  	m.def("invisible_button", &ImGui::InvisibleButton);
@@ -229,7 +233,7 @@ index a46fecd..dc219ef 100644
  	m.def("collapsing_header", [](const char* label, ImGuiTreeNodeFlags flags){ return ImGui::CollapsingHeader(label, flags); }, py::arg("label"), py::arg("flags") = 0);
  	m.def("checkbox", [](const char* label, Bool& v){ return ImGui::Checkbox(label, &v.value); });
  	m.def("radio_button", [](const char* label, bool active){ return ImGui::RadioButton(label, active); });
-@@ -774,8 +844,8 @@ PYBIND11_MODULE(_bimpy, m) {
+@@ -774,8 +847,8 @@ PYBIND11_MODULE(_bimpy, m) {
  	m.def("color_button", &ImGui::ColorButton, py::arg("desc_id"), py::arg("col"), py::arg("flags") = 0, py::arg("size") = ImVec2(0,0));
  	
  	m.def("add_line", &AddLine, py::arg("a"), py::arg("b"), py::arg("col"), py::arg("thickness") = 1.0f);
@@ -240,3 +244,10 @@ index a46fecd..dc219ef 100644
  	m.def("add_rect_filled_multicolor", &AddRectFilledMultiColor, py::arg("a"), py::arg("b"), py::arg("col_upr_left"), py::arg("col_upr_right"), py::arg("col_bot_right"), py::arg("col_bot_lefs"));
  	m.def("add_quad", &AddQuad, py::arg("a"), py::arg("b"), py::arg("c"), py::arg("d"), py::arg("col"), py::arg("thickness") = 1.0f);
  	m.def("add_quad_filled", &AddQuadFilled, py::arg("a"), py::arg("b"), py::arg("c"), py::arg("d"), py::arg("col"));
+@@ -783,4 +856,6 @@ PYBIND11_MODULE(_bimpy, m) {
+ 	m.def("add_triangle_filled", &AddTriangleFilled, py::arg("a"), py::arg("b"), py::arg("c"), py::arg("col"));
+ 	m.def("add_circle", &AddCircle, py::arg("centre"), py::arg("radius"), py::arg("col"), py::arg("num_segments") = 12, py::arg("thickness") = 1.0f);
+ 	m.def("add_circle_filled", &AddCircleFilled, py::arg("centre"), py::arg("radius"), py::arg("col"), py::arg("num_segments") = 12);
++	m.def("add_text", &AddText, py::arg("pos"), py::arg("col"), py::arg("text"),
++                                py::arg("font_size")=0.0f, py::arg("wrap_width")=0.0f);
+ }

@@ -53,8 +53,11 @@ class NES {
     bool EmulateFrame();
     void HandleKeyboard(SDL_Event* event);
 
-    void LoadState(const std::string& filename);
-    void SaveState(const std::string& filename, bool text=false);
+    bool LoadState(const std::string& state);
+    std::string SaveState(bool text=false);
+
+    bool LoadStateFromFile(const std::string& filename);
+    bool SaveStateToFile(const std::string& filename, bool text=false);
 
     static const int frequency = 1789773;
     static constexpr double frame_counter_rate = frequency / 240.0;

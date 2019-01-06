@@ -104,7 +104,7 @@ void NES::LoadFile(const std::string& filename) {
     mapper_ = MapperRegistry::New(this, cart_->mapper());
 }
 
-void NES::LoadState(const std::string& filename) {
+bool NES::LoadStateFromFile(const std::string& filename) {
     FILE* fp;
     std::string data;
     if ((fp = fopen(filename.c_str(), "rb")) != nullptr) {
@@ -116,14 +116,18 @@ void NES::LoadState(const std::string& filename) {
     } else {
         //console_.AddLog("[error] Could not LoadState from %s",
         //                filename.c_str());
+        return false;
     }
+    return LoadState(data);
+}
 
+bool NES::LoadState(const std::string& data) {
     state_.Clear();
     if (!state_.ParseFromString(data)) {
         if (!google::protobuf::TextFormat::ParseFromString(data, &state_)) {
             //console_.AddLog("[error] Could not parse data from %s",
             //                filename.c_str());
-            return;
+            return false;
         }
     }
 
@@ -133,9 +137,10 @@ void NES::LoadState(const std::string& filename) {
     ppu_->LoadState(state_.mutable_ppu());
     mapper_->LoadState(state_.mutable_mapper());
     cart_->LoadState(state_.mutable_mapper());
+    return true;
 }
 
-void NES::SaveState(const std::string& filename, bool text) {
+std::string NES::SaveState(bool text) {
     apu_->SaveState(state_.mutable_apu());
     cpu_->SaveState(state_.mutable_cpu());
     mem_->SaveState(&state_);
@@ -149,13 +154,20 @@ void NES::SaveState(const std::string& filename, bool text) {
     } else {
         state_.SerializeToString(&data);
     }
+    return data;
+}
+
+bool NES::SaveStateToFile(const std::string& filename, bool text) {
+    std::string data = SaveState(text);
     FILE* fp;
     if ((fp = fopen(filename.c_str(), "wb")) != nullptr) {
         fwrite(data.data(), 1, data.size(), fp);
         fclose(fp);
     } else {
         //console_.AddLog("[error] Could not SaveState to %s", filename.c_str());
+        return false;
     }
+    return true;
 }
 
 

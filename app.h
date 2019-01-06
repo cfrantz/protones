@@ -10,6 +10,7 @@
 #include "imwidget/imapp.h"
 #include "imwidget/python_console.h"
 #include "nes/nes.h"
+#include "proto/controller.pb.h"
 
 namespace protones {
 
@@ -51,6 +52,9 @@ class ProtoNES: public ImApp {
     void set_hook(const pybind11::object& h) { hook_ = h; }
     void Import(const std::string& name);
 
+    void SaveSlot(int slot);
+    void LoadSlot(int slot);
+
   private:
     bool loaded_;
     bool pause_;
@@ -60,7 +64,7 @@ class ProtoNES: public ImApp {
     float aspect_;
     float volume_;
     bool preferences_;
-    //std::unique_ptr<NES> nes_;
+    int save_state_slot_;
     std::shared_ptr<NES> nes_;
     std::string save_filename_;
 
@@ -70,6 +74,7 @@ class ProtoNES: public ImApp {
     PPUTileDebug* ppu_tile_debug_;
     PPUVramDebug* ppu_vram_debug_;
     std::unique_ptr<PythonConsole> console_;
+    std::map<int, proto::ControllerButtons> buttons_;
 
     float frametime_[100];
     int ftp_;

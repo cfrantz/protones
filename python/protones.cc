@@ -25,6 +25,16 @@ PYBIND11_EMBEDDED_MODULE(protones, m) {
         .def("Reset", &NES::Reset, "Reset the emulation")
         .def("IRQ", &NES::IRQ, "Signal an IRQ to the CPU")
         .def("NMI", &NES::NMI, "Signal an NMI to the CPU")
+        .def("LoadState", &NES::LoadState, "Load an emulator state")
+        .def("SaveState", &NES::SaveState,
+             "Save an emulator state",
+             py::arg("text")=false)
+        .def("LoadStateFromFile", &NES::LoadStateFromFile,
+             "Load an emulator state from a file",
+             py::arg("filename"))
+        .def("SaveStateToFile", &NES::SaveStateToFile,
+             "Save an emulator state to a file",
+             py::arg("filename"), py::arg("text")=false)
         .def_property_readonly("mem", &NES::mem, "NES memory")
         .def_property_readonly("cartridge", &NES::cartridge)
         .def_property_readonly("cpu", &NES::cpu)

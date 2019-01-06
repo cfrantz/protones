@@ -265,6 +265,19 @@ enum ControllerButtons {
 	ControllerFrameStep = 102;
     ControllerReset = 103;
     Controller2UpA = 104;
+    ControllerSaveState = 105;
+    ControllerLoadState = 106;
+
+    SaveSlot0 = 200;
+    SaveSlot1 = 201;
+    SaveSlot2 = 202;
+    SaveSlot3 = 203;
+    SaveSlot4 = 204;
+    SaveSlot5 = 205;
+    SaveSlot6 = 206;
+    SaveSlot7 = 207;
+    SaveSlot8 = 208;
+    SaveSlot9 = 209;
 }
 
 message ControllerModel {

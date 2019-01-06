@@ -5,6 +5,8 @@
 
 #include "nes/cartridge.h"
 #include "util/crc.h"
+#include "util/os.h"
+#include "util/file.h"
 
 DEFINE_bool(sram_on_disk, true, "Save SRAM to disk.");
 
@@ -28,6 +30,7 @@ Cartridge::~Cartridge() {
 
 
 void Cartridge::LoadFile(const std::string& filename) {
+    filename_ = filename;
     FILE* fp = fopen(filename.c_str(), "rb");
 
     if (fp == nullptr) {
@@ -73,7 +76,8 @@ void Cartridge::LoadFile(const std::string& filename) {
     crc32_ = Crc32(0, prg_, prglen_);
     crc32_ = Crc32(crc32_, chr_, chrlen_);
 
-    sram_filename_ = filename + ".sram";
+    sram_filename_ = os::path::DataPath({
+            File::Basename(filename) + ".sram" });
     if (FLAGS_sram_on_disk && header_.sram && !nes_->has_movie()) {
         if ((fp = fopen(sram_filename_.c_str(), "rb")) != nullptr) {;
             if (fread(sram_, sizeof(sram_), 1, fp) == 0) {

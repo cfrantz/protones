@@ -7,6 +7,7 @@ class EnemyHitbox(object):
     SIZETABLE = 0xe8fa
     HITBOX = 0x60FF0000
     SOLID = 0xFF000000
+    WHITE = 0xFFFFFFFF
     TRANSPARENT = bimpy.Vec4(0, 0, 0, 0)
 
     def __init__(self, root, index):
@@ -82,6 +83,7 @@ class EnemyHitbox(object):
             bimpy.add_rect_filled(self.hb*scale, (self.hb+self.hbsz)*scale, self.HITBOX)
             bimpy.add_rect(self.hb*scale, (self.hb+self.hbsz)*scale,
                            self.SOLID | self.HITBOX)
+            bimpy.add_text(self.hb*scale, self.WHITE, str(self.index+1))
 
             bimpy.set_cursor_screen_pos(self.hb*scale)
             bimpy.invisible_button(self.name, self.hbsz*scale)

@@ -4,6 +4,20 @@ controls {
   buttons { scancode: SDL_SCANCODE_F11 button: ControllerReset }
   buttons { scancode: SDL_SCANCODE_F9 button: Controller2UpA }
 
+  buttons { scancode: SDL_SCANCODE_F5 button: ControllerSaveState }
+  buttons { scancode: SDL_SCANCODE_F7 button: ControllerLoadState }
+
+  buttons { scancode: SDL_SCANCODE_0 button: SaveSlot0 }
+  buttons { scancode: SDL_SCANCODE_1 button: SaveSlot1 }
+  buttons { scancode: SDL_SCANCODE_2 button: SaveSlot2 }
+  buttons { scancode: SDL_SCANCODE_3 button: SaveSlot3 }
+  buttons { scancode: SDL_SCANCODE_4 button: SaveSlot4 }
+  buttons { scancode: SDL_SCANCODE_5 button: SaveSlot5 }
+  buttons { scancode: SDL_SCANCODE_6 button: SaveSlot6 }
+  buttons { scancode: SDL_SCANCODE_7 button: SaveSlot7 }
+  buttons { scancode: SDL_SCANCODE_8 button: SaveSlot8 }
+  buttons { scancode: SDL_SCANCODE_9 button: SaveSlot9 }
+
   controller {
     number: 0
     buttons { scancode: SDL_SCANCODE_UP     button: ControllerUp }

@@ -57,6 +57,7 @@ class Cartridge : public EmulatedDevice {
     inline void WritePrg(uint32_t addr, uint8_t val) { prg_[addr] = val; }
     inline void WriteChr(uint32_t addr, uint8_t val) { chr_[addr] = val; }
     inline void WriteSram(uint32_t addr, uint8_t val) { sram_[addr] = val; }
+    inline const std::string& filename() { return filename_; }
 
     void Emulate();
     void SaveSram();
@@ -74,6 +75,7 @@ class Cartridge : public EmulatedDevice {
     uint8_t *trainer_;
     MirrorMode mirror_;
     uint8_t sram_[0x2000];
+    std::string filename_;
     std::string sram_filename_;
 };
 

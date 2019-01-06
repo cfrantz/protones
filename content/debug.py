@@ -9,6 +9,21 @@ _addr = 0x8000
 _length = 64
 _bank = 0
 
+def ReadPrgBank(bank, addr, length=None):
+    if length is None:
+        return app.root().nes.cartridge.ReadPrg((0x4000 * bank) + (addr & 0x3FFF))
+    else:
+        return [
+            app.root().nes.cartridge.ReadPrg(
+                (0x4000 * bank) + ((addr+i) & 0x3FFF)) for i in range(length)]
+
+def WritePrgBank(bank, addr, val):
+    if not isinstance(val, (list, tuple)):
+        val = [val]
+    for i, v in enumerate(val):
+        app.root().nes.cartridge.WritePrg(
+                (0x4000 * bank) + ((addr+i) & 0x3FFF), v)
+
 def db(addr=None, length=None, b=None):
     global _addr, _length, _bank
     if addr is not None:
@@ -31,8 +46,7 @@ def db(addr=None, length=None, b=None):
         if (_addr < 0x8000):
             val = mem[_addr]
         else:
-            val = app.root().nes.cartridge.ReadPrg(
-                    (0x4000 * _bank) + (_addr & 0x3FFF))
+            val = ReadPrgBank(_bank, _addr)
         print(' %02x' % val, end='')
         buf[i % 16] = chr(val) if val>=32 and val<127 else '.'
         _addr += 1

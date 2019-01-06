@@ -11,6 +11,7 @@
 #include "app.h"
 #include "imgui.h"
 #include "absl/strings/match.h"
+#include "absl/strings/str_cat.h"
 #include "imwidget/apu_debug.h"
 #include "imwidget/controller_debug.h"
 #include "imwidget/mem_debug.h"
@@ -21,9 +22,12 @@
 #include "nes/controller.h"
 #include "nes/ppu.h"
 #include "nes/nes.h"
+#include "proto/config.pb.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/embed.h"
 #include "util/browser.h"
+#include "util/config.h"
+#include "util/file.h"
 #include "util/os.h"
 #include "util/logging.h"
 #include "util/imgui_impl_sdl.h"
@@ -37,8 +41,9 @@
 DEFINE_bool(focus, false, "Whether joystick events require window focus");
 DECLARE_double(volume);
 
-namespace py = pybind11;
 namespace protones {
+namespace py = pybind11;
+using proto::ControllerButtons;
 
 void ProtoNES::Init() {
     loaded_ = false;
@@ -86,6 +91,12 @@ void ProtoNES::Init() {
 
     console_ = absl::make_unique<PythonConsole>(
         hook_.attr("GetPythonConsole")());
+
+    const auto& config = ConfigLoader<proto::Configuration>::GetConfig();
+    for(const auto& b : config.controls().buttons()) {
+        buttons_[b.scancode()] = b.button();
+    }
+    save_state_slot_ = 1;
 }
 
 void ProtoNES::Import(const std::string& name) {
@@ -104,14 +115,62 @@ void ProtoNES::ProcessEvent(SDL_Event* event) {
         nes_->controller(0)->set_buttons(event);
         break;
     case SDL_KEYDOWN:
+        if (!io.WantCaptureKeyboard) {
+            nes_->HandleKeyboard(event);
+            ControllerButtons b = buttons_[event->key.keysym.scancode];
+            switch(b) {
+            case ControllerButtons::SaveSlot0:
+            case ControllerButtons::SaveSlot1:
+            case ControllerButtons::SaveSlot2:
+            case ControllerButtons::SaveSlot3:
+            case ControllerButtons::SaveSlot4:
+            case ControllerButtons::SaveSlot5:
+            case ControllerButtons::SaveSlot6:
+            case ControllerButtons::SaveSlot7:
+            case ControllerButtons::SaveSlot8:
+            case ControllerButtons::SaveSlot9:
+                save_state_slot_ = int(b - ControllerButtons::SaveSlot0);
+                console_->AddLog("Save state slot set to %d", save_state_slot_);
+                break;
+            default: ;
+            }
+        }
+        break;
     case SDL_KEYUP:
         if (!io.WantCaptureKeyboard) {
             nes_->HandleKeyboard(event);
+            ControllerButtons b = buttons_[event->key.keysym.scancode];
+            switch(b) {
+            case ControllerButtons::ControllerSaveState:
+                SaveSlot(save_state_slot_);
+                console_->AddLog("Save slot %d", save_state_slot_);
+                break;
+            case ControllerButtons::ControllerLoadState:
+                LoadSlot(save_state_slot_);
+                console_->AddLog("Load slot %d", save_state_slot_);
+                break;
+            default: ;
+            }
         }
         break;
+
     default:
         ;
     }
+}
+
+void ProtoNES::SaveSlot(int slot) {
+    std::string fn = os::path::DataPath({
+            absl::StrCat(File::Basename(nes_->cartridge()->filename()),
+                         ".state", slot)});
+    nes_->SaveStateToFile(fn);
+}
+
+void ProtoNES::LoadSlot(int slot) {
+    std::string fn = os::path::DataPath({
+            absl::StrCat(File::Basename(nes_->cartridge()->filename()),
+                         ".state", slot)});
+    nes_->LoadStateFromFile(fn);
 }
 
 void ProtoNES::ProcessMessage(const std::string& msg, const void* extra) {
@@ -216,6 +275,18 @@ save_as:
                 }
                 free(filename);
             }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Load State")) {
+                LoadSlot(save_state_slot_);
+            }
+            if (ImGui::MenuItem("Save State")) {
+                SaveSlot(save_state_slot_);
+            }
+            ImGui::Text("Save Slot"); ImGui::SameLine();
+            ImGui::PushItemWidth(64);
+            ImGui::Combo("##saveslot", &save_state_slot_,
+                         "0\0001\0002\0003\0004\0005\0006\0007\0008\0009\000\000\000");
+            ImGui::PopItemWidth();
             hook_.attr("FileMenu")();
             ImGui::Separator();
             if (ImGui::MenuItem("Quit")) {
