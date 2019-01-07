@@ -97,6 +97,8 @@ void ProtoNES::Init() {
         buttons_[b.scancode()] = b.button();
     }
     save_state_slot_ = 1;
+    history_ptr_ = 0;
+    history_enabled_ = false;
 }
 
 void ProtoNES::Import(const std::string& name) {
@@ -132,6 +134,21 @@ void ProtoNES::ProcessEvent(SDL_Event* event) {
                 save_state_slot_ = int(b - ControllerButtons::SaveSlot0);
                 console_->AddLog("Save state slot set to %d", save_state_slot_);
                 break;
+            case ControllerButtons::StateReverse: {
+                size_t i = (history_ptr_ - 1) % HISTORY_SIZE;
+                if (nes_->LoadState(history_[i])) {
+                    history_ptr_ = i;
+                }
+                break;
+            }
+            case ControllerButtons::StateForward: {
+                size_t i = (history_ptr_ + 1) % HISTORY_SIZE;
+                if (nes_->LoadState(history_[i])) {
+                    history_ptr_ = i;
+                }
+                break;
+            }
+
             default: ;
             }
         }
@@ -297,6 +314,7 @@ save_as:
         if (ImGui::BeginMenu("Edit")) {
             ImGui::MenuItem("Debug Console", nullptr, &console_->visible());
             ImGui::MenuItem("Preferences", nullptr, &preferences_);
+            ImGui::MenuItem("State History", nullptr, &history_enabled_);
             hook_.attr("EditMenu")();
             ImGui::EndMenu();
         }
@@ -376,7 +394,13 @@ void ProtoNES::Run() {
 
     while(running_) {
         py::gil_scoped_acquire gil;
+        uint64_t f0 = nes_->frame();
         hook_.attr("EmulateFrame")();
+        uint64_t f1 = nes_->frame();
+        if (history_enabled_ && f0 != f1) {
+            history_ptr_ = (history_ptr_ + 1) % HISTORY_SIZE;
+            history_[history_ptr_] = nes_->SaveState();
+        }
         BaseDraw();
         if (!ProcessEvents()) {
             running_ = false;

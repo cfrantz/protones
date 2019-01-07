@@ -268,6 +268,9 @@ enum ControllerButtons {
     ControllerSaveState = 105;
     ControllerLoadState = 106;
 
+    StateReverse = 107;
+    StateForward = 108;
+
     SaveSlot0 = 200;
     SaveSlot1 = 201;
     SaveSlot2 = 202;

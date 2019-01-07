@@ -55,6 +55,7 @@ class ProtoNES: public ImApp {
     void SaveSlot(int slot);
     void LoadSlot(int slot);
 
+    const static size_t HISTORY_SIZE = 256;
   private:
     bool loaded_;
     bool pause_;
@@ -67,6 +68,10 @@ class ProtoNES: public ImApp {
     int save_state_slot_;
     std::shared_ptr<NES> nes_;
     std::string save_filename_;
+
+    std::string history_[HISTORY_SIZE];
+    size_t history_ptr_;
+    bool history_enabled_;
 
     APUDebug* apu_debug_;
     ControllerDebug* controller_debug_;

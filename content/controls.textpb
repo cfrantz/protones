@@ -2,10 +2,12 @@ controls {
   buttons { scancode: SDL_SCANCODE_PAUSE button: ControllerPause }
   buttons { scancode: SDL_SCANCODE_BACKSLASH button: ControllerFrameStep }
   buttons { scancode: SDL_SCANCODE_F11 button: ControllerReset }
-  buttons { scancode: SDL_SCANCODE_F9 button: Controller2UpA }
+  buttons { scancode: SDL_SCANCODE_F12 button: Controller2UpA }
 
   buttons { scancode: SDL_SCANCODE_F5 button: ControllerSaveState }
   buttons { scancode: SDL_SCANCODE_F7 button: ControllerLoadState }
+  buttons { scancode: SDL_SCANCODE_F9 button: StateReverse }
+  buttons { scancode: SDL_SCANCODE_F10 button: StateForward }
 
   buttons { scancode: SDL_SCANCODE_0 button: SaveSlot0 }
   buttons { scancode: SDL_SCANCODE_1 button: SaveSlot1 }
