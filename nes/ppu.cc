@@ -61,7 +61,12 @@ void PPU::LoadState(proto::PPU* state) {
 
     const auto& oam = state->oam();
     memcpy(oam_, oam.data(),
-            oam.size() < sizeof(oam_) ? oam.size() : sizeof(oam_));
+           oam.size() < sizeof(oam_) ? oam.size() : sizeof(oam_));
+
+    const auto& picture = state->picture();
+    memcpy(picture_, picture.data(),
+           picture.size() < sizeof(picture_) ?
+           picture.size() : sizeof(picture_));
 
     sprite_.count = state->sprite_size();
     for(int i=0; i<sprite_.count; i++) {
@@ -85,6 +90,9 @@ void PPU::SaveState(proto::PPU* state) {
 
     auto* oam = state->mutable_oam();
     oam->assign((char*)oam_, sizeof(oam_));
+    auto* picture = state->mutable_picture();
+    picture->assign((char*)picture_, sizeof(picture_));
+
     state->clear_sprite();
     for(int i=0; i<sprite_.count; i++) {
         auto* sprite = state->add_sprite();

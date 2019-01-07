@@ -35,4 +35,5 @@ message PPU {
     bytes oam = 22;
     bytes ppuram = 23;
     bytes palette = 24;
+    bytes picture = 25;
 }
