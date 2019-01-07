@@ -44,6 +44,8 @@ class NES {
     inline bool lag() { return lag_; }
     inline void set_lag(bool val) { lag_ = val; }
     inline bool has_movie() { return has_movie_; }
+    inline bool pause() { return pause_; }
+    inline void set_pause(bool p) { pause_ = p; }
 
     uint64_t cpu_cycles();
     void Stall(int s);

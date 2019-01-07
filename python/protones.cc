@@ -35,6 +35,7 @@ PYBIND11_EMBEDDED_MODULE(protones, m) {
         .def("SaveStateToFile", &NES::SaveStateToFile,
              "Save an emulator state to a file",
              py::arg("filename"), py::arg("text")=false)
+        .def_property("pause", &NES::pause, &NES::set_pause)
         .def_property_readonly("mem", &NES::mem, "NES memory")
         .def_property_readonly("cartridge", &NES::cartridge)
         .def_property_readonly("cpu", &NES::cpu)
