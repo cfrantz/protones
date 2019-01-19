@@ -1,5 +1,11 @@
 package(default_visibility = ["//visibility:public"])
 
+# Configuration variables for python
+# The include path: /usr/include/<python-dir>/...
+PYTHON_INCLUDE="python3.7m"
+# The python library to link against.
+PYTHON_LIB="-lpython3.7m"
+
 config_setting(
     name = "windows",
     values = {
@@ -58,11 +64,11 @@ HEADERS = [
             """,
         "//conditions:default": """
             sed \
-                -e "s|Python\.h|python3.7m/Python.h|g" \
-                -e "s|frameobject\.h|python3.7m/frameobject.h|g" \
-                -e "s|pythread\.h|python3.7m/pythread.h|g" \
+                -e "s|Python\.h|{python}/Python.h|g" \
+                -e "s|frameobject\.h|{python}/frameobject.h|g" \
+                -e "s|pythread\.h|{python}/pythread.h|g" \
                 < $(<) > $(@)
-            """
+            """.format(python=PYTHON_INCLUDE)
     }),
 
 ) for F in HEADERS]
@@ -80,7 +86,7 @@ cc_library(
             "-lpython",
         ],
         "//conditions:default": [
-            "-lpython3.7m",
+            PYTHON_LIB,
         ]
     }),
 )
