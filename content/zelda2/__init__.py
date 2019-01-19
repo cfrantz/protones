@@ -102,7 +102,7 @@ class Zelda2(app.EmulatorHooks):
         for h in self.hitbox:
             h.Update()
         # Be sure to call the superclass too.
-        super().EmulateFrame()
+        return super().EmulateFrame()
 
     def DrawImage(self):
         """Called on each frame to draw on the NES image."""
