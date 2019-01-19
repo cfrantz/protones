@@ -365,7 +365,7 @@ save_as:
     console_->Draw();
 
     ImGuiIO& io = ImGui::GetIO();
-    ImGui::SetNextWindowPos(ImVec2(0, 20.0f * io.DisplayFramebufferScale.y));
+    ImGui::SetNextWindowPos(ImVec2(0, 20.0f));
     ImVec2 imgsz(256.0f * scale_ * aspect_, 240.0f *scale_);
     ImGui::SetNextWindowSize(imgsz);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
