@@ -20,7 +20,7 @@ message XXROM {
     uint32 prg_bank2 = 3;
 }
 
-message MMC4 {
+message MMC3 {
     bool irqen = 1;
     uint32 register = 2;
     uint32 reload = 3;
@@ -40,6 +40,7 @@ message Mapper {
         MMC1 mmc1 = 1;
         XXROM unrom = 2;
         XXROM cnrom = 3;
-        MMC4 mmc4 = 4;
+        MMC3 mmc3 = 4;
+        XXROM axrom = 7;
     }
 }

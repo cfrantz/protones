@@ -50,7 +50,7 @@ Mapper4::Mapper4(NES* nes)
 }
 
 void Mapper4::LoadState(proto::Mapper* mstate) {
-    auto* state = mstate->mutable_mmc4();
+    auto* state = mstate->mutable_mmc3();
     LOAD(irqen, reload, counter, prg_mode, chr_mode);
     LOAD_FIELD(register_, register_);
     for(int i=0; i<8; i++) {
@@ -61,7 +61,7 @@ void Mapper4::LoadState(proto::Mapper* mstate) {
 
 }
 void Mapper4::SaveState(proto::Mapper* mstate) {
-    auto* state = mstate->mutable_mmc4();
+    auto* state = mstate->mutable_mmc3();
     SAVE(irqen, reload, counter, prg_mode, chr_mode);
     SAVE_FIELD(register_, register_);
     for(int i=0; i<8; i++) {

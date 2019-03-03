@@ -127,6 +127,7 @@ cc_library(
         "mapper2.cc",
         "mapper3.cc",
         "mapper4.cc",
+        "mapper7.cc",
     ],
     deps = [
         ":mapper",
