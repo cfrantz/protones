@@ -1,13 +1,14 @@
 #ifndef PROTONES_NES_APU_NOISE_H
 #define PROTONES_NES_APU_NOISE_H
 #include <cstdint>
+#include "nes/nes.h"
 #include "proto/apu.pb.h"
 
 namespace protones {
 
 class Noise {
   public:
-    Noise();
+    Noise(NES* nes);
     uint8_t Output();
     void StepTimer();
     void StepEnvelope();
@@ -22,6 +23,8 @@ class Noise {
     void LoadState(proto::APUNoise *state);
   private:
     uint8_t InternalOutput();
+    NES* nes_;
+    static const int channel_ = 3;
     bool enabled_;
     bool mode_;
 

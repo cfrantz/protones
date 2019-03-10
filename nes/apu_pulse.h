@@ -1,13 +1,14 @@
 #ifndef PROTONES_NES_APU_PULSE_H
 #define PROTONES_NES_APU_PULSE_H
 #include <cstdint>
+#include "nes/nes.h"
 #include "proto/apu.pb.h"
 
 namespace protones {
 
 class Pulse {
   public:
-    Pulse(uint8_t channel);
+    Pulse(NES* nes, uint8_t channel);
     uint8_t Output();
     void Sweep();
     void StepTimer();
@@ -25,6 +26,7 @@ class Pulse {
     void SaveState(proto::APUPulse* state);
   private:
     uint8_t InternalOutput();
+    NES* nes_;
     bool enabled_;
     uint8_t channel_;
 

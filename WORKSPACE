@@ -106,6 +106,16 @@ bind(
     actual = "@nativefiledialog_git//:nfd",
 )
 
+######################################################################
+# rtmidi
+######################################################################
+new_git_repository(
+    name = "rtmidi_git",
+    tag = "2.1.1",
+    remote = "https://github.com/thestk/rtmidi.git",
+    build_file = "//rules:rtmidi.BUILD",
+)
+
 
 ######################################################################
 # compilers for windows

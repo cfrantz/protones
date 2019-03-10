@@ -1,5 +1,6 @@
 #include "imgui.h"
 #include "nes/apu_pulse.h"
+#include "nes/midi.h"
 #include "pbmacro.h"
 
 #include <cstdint>
@@ -22,8 +23,9 @@ static uint8_t length_table[32] = {
     12,  16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28, 32, 30,
 };
 
-Pulse::Pulse(uint8_t channel)
-    : enabled_(false),
+Pulse::Pulse(NES* nes, uint8_t channel)
+    : nes_(nes),
+    enabled_(false),
     channel_(channel),
     length_enabled_(false), length_value_(0),
     timer_period_(0), timer_value_(0),
@@ -151,8 +153,12 @@ void Pulse::StepSweep() {
 }
 
 void Pulse::StepLength() {
-    if (length_enabled_ && length_value_ > 0)
+    if (length_enabled_ && length_value_ > 0) {
         length_value_--;
+        if (length_value_ == 0) {
+            nes_->midi()->NoteOff(channel_);
+        }
+    }
 }
 
 void Pulse::set_enabled(bool val) {
@@ -170,6 +176,9 @@ void Pulse::set_control(uint8_t val) {
     envelope_period_ = val & 0x0f;
     constant_volume_ = val & 0x0f;
     envelope_start_ = true;
+    auto* m = nes_->midi();
+    m->NoteOnFreq(channel_-1, m->frequency(timer_period_), 
+                  envelope_enable_ ? 15*8 : constant_volume_*8);
 }
 
 void Pulse::set_sweep(uint8_t val) {
@@ -192,5 +201,8 @@ void Pulse::set_timer_high(uint8_t val) {
     timer_period_ = (timer_period_ & 0x00FF) | (uint16_t(val & 0x07) << 8);
     envelope_start_ = true;
     duty_value_ = 0;
+    auto* m = nes_->midi();
+    m->NoteOnFreq(channel_-1, m->frequency(timer_period_), 
+                  envelope_enable_ ? 15*8 : constant_volume_*8);
 }
 }  // namespace protones

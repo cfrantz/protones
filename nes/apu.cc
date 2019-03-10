@@ -31,7 +31,9 @@ static void init_tables() {
 
 APU::APU(NES *nes)
     : nes_(nes),
-    pulse_({1, 2}),
+    pulse_({{nes, 1}, {nes, 2}}),
+    triangle_(nes),
+    noise_(nes),
     dmc_(nes),
     cycle_(0),
     frame_period_(0),

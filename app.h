@@ -19,6 +19,7 @@ class ControllerDebug;
 class MemDebug;
 class PPUTileDebug;
 class PPUVramDebug;
+class MidiSetup;
 
 
 class ProtoNES: public ImApp {
@@ -76,6 +77,7 @@ class ProtoNES: public ImApp {
     APUDebug* apu_debug_;
     ControllerDebug* controller_debug_;
     MemDebug* mem_debug_;
+    MidiSetup* midi_setup_;
     PPUTileDebug* ppu_tile_debug_;
     PPUVramDebug* ppu_vram_debug_;
     std::unique_ptr<PythonConsole> console_;

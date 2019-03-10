@@ -20,6 +20,7 @@ class FM2Movie;
 class Mapper;
 class Mem;
 class PPU;
+class MidiConnector;
 
 class NES {
   public:
@@ -39,6 +40,7 @@ class NES {
     inline Mapper* mapper() { return mapper_; }
     inline Cartridge* cartridge() { return cart_; }
     inline Controller* controller(int n) { return controller_[n]; }
+    inline MidiConnector* midi() { return midi_; }
     inline uint32_t palette(uint8_t c) { return palette_[c % 64]; }
     inline uint64_t frame() { return frame_; }
     inline bool lag() { return lag_; }
@@ -74,6 +76,7 @@ class NES {
     Mapper* mapper_;
     Cartridge* cart_;
     Controller* controller_[4];
+    MidiConnector* midi_;
     std::vector<std::unique_ptr<EmulatedDevice>> devices_;
 
     proto::NES state_;

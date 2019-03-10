@@ -13,6 +13,7 @@
 #include "nes/fm2.h"
 #include "nes/mapper.h"
 #include "nes/mem.h"
+#include "nes/midi.h"
 #include "nes/ppu.h"
 #include "proto/config.pb.h"
 #include "util/config.h"
@@ -71,6 +72,9 @@ NES::NES() :
 
     cart_ = new Cartridge(this);
     devices_.emplace_back(cart_);
+
+    midi_ = new MidiConnector();
+    devices_.emplace_back(midi_);
 
     controller_[0] = new Controller(this, 0);
     controller_[1] = new Controller(this, 1);

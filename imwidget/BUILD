@@ -92,6 +92,18 @@ cc_library(
 )
 
 cc_library(
+    name = "midi_setup",
+    hdrs = ["midi_setup.h"],
+    srcs = ["midi_setup.cc"],
+    deps = [
+        ":base",
+        "//nes:nes-interface",
+        "//nes:midi",
+        "//external:imgui",
+    ],
+)
+
+cc_library(
     name = "ppu_debug",
     hdrs = ["ppu_debug.h"],
     srcs = ["ppu_debug.cc"],

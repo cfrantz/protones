@@ -98,6 +98,17 @@ class Memory(object):
                '%6s: %2x.%02x.%02x    %02x  %4x  %4x  %02x  %02x  %02x  %02x' % (
                 label, page, posx, subpx, posy, velx, anim, hp, eid, ai, it))
 
+        memloc = {
+            0x71f: 'Scroll direction',
+            0x720: 'Delay Scroll dir',
+            0x732: 'Next screen left',
+            0x733: 'Next screen right',
+            0x734: 'Next tile left',
+            0x735: 'Next tile right',
+        }
+        for addr, desc in sorted(memloc.items()):
+            bimpy.text('%04x: %20s = %02x' % (addr, desc, mem[addr]))
+
     def Overworld(self):
         mem = self.root.nes.mem
         spawn_timer = mem[0x516]

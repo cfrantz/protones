@@ -57,3 +57,45 @@ def db(addr=None, length=None, b=None):
     else:
         i = 0
     print(' %*c%s' % (i, ' ', ''.join(buf)))
+
+def PrintStack(sp):
+    sp += 0x100
+    osp = sp
+    mem = app.root().nes.mem
+    s = []
+    while True:
+        sp += 1
+        if sp == 0x200:
+            break;
+        addr = mem.ReadWord(sp, sp+1) - 2
+        if addr >= 0x8000 and mem[addr] == 0x20:
+            s.append('%04x' % addr)
+            sp += 1
+            if sp == 0x200:
+                break;
+        else:
+            s.append('%02x' % mem[sp])
+
+    print('SP=%04x: %s' % (osp, ' '.join(s)))
+
+
+def PrintMemCb(cpu, addr, val):
+    print("pc=%04x accessed addr %04x val=%02x" % (cpu.pc, addr, val))
+    return val
+
+def PrintExecCb(cpu):
+    print("pc=%04x a=%02x x=%02x y=%02x sp=1%02x" % (
+        cpu.pc, cpu.a, cpu.x, cpu.y, cpu.sp))
+    PrintStack(cpu.sp)
+
+    return cpu.pc
+
+def ReadWatch(addr, on=True):
+    app.root().nes.cpu.SetReadCallback(addr, PrintMemCb if on else None)
+
+def WriteWatch(addr, on=True):
+    app.root().nes.cpu.SetWriteCallback(addr, PrintMemCb if on else None)
+
+def ExecWatch(addr, on=True):
+    app.root().nes.cpu.SetExecCallback(addr, PrintExecCb if on else None)
+

@@ -12,8 +12,9 @@ static uint16_t noise_table[] = {
     4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068,
 };
 
-Noise::Noise()
-    : enabled_(false),
+Noise::Noise(NES* nes)
+    : nes_(nes),
+    enabled_(false),
     mode_(false),
     shift_register_(1),
     length_enabled_(false),
