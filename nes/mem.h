@@ -16,10 +16,10 @@ class Mem : public EmulatedDevice {
     inline uint8_t Read(uint16_t addr) { return read_byte(addr); }
     inline void Write(uint16_t addr, int val) { return write_byte(addr, val); }
 
-    uint8_t read_byte(uint16_t addr) ;
-    uint8_t read_byte_no_io(uint16_t addr) ;
-    void write_byte(uint16_t addr, uint8_t v) ;
-    void write_byte_no_io(uint16_t addr, uint8_t v) ;
+    virtual uint8_t read_byte(uint16_t addr) ;
+    virtual uint8_t read_byte_no_io(uint16_t addr) ;
+    virtual void write_byte(uint16_t addr, uint8_t v) ;
+    virtual void write_byte_no_io(uint16_t addr, uint8_t v) ;
     uint16_t read_word(uint16_t addr) ;
     uint16_t read_word_no_io(uint16_t) ;
     void write_word(uint16_t addr, uint16_t v) ;
