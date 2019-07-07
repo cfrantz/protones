@@ -80,7 +80,13 @@ util::Status File::Access(const std::string& path) {
 }
 
 util::Status File::MakeDir(const std::string& path, mode_t mode) {
-    if (mkdir(path.c_str(), mode) == -1) {
+    int rc;
+#ifndef _WIN32
+    rc = mkdir(path.c_str(), mode);
+#else
+    rc = mkdir(path.c_str());
+#endif
+    if (rc == -1) {
         return util::PosixStatus(errno);
     }
     return util::Status();
