@@ -1,5 +1,5 @@
 #include <cstdio>
-#include <bsd/stdlib.h>
+#include <cstdlib>
 #include <string>
 #include <gflags/gflags.h>
 
