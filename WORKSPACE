@@ -123,7 +123,7 @@ new_git_repository(
 git_repository(
     name = "mxebzl",
     remote = "https://github.com/cfrantz/mxebzl.git",
-	tag = "20181103_RC02",
+	tag = "20190619_RC01",
 )
 
 load("@mxebzl//tools:repository.bzl", "mxe_compilers")
