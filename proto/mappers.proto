@@ -20,6 +20,11 @@ message XXROM {
     uint32 prg_bank2 = 3;
 }
 
+message CNROM {
+    uint32 chr_banks = 1;
+    uint32 chr_bank1 = 2;
+}
+
 message MMC3 {
     bool irqen = 1;
     uint32 register = 2;
@@ -39,7 +44,7 @@ message Mapper {
     oneof hardware {
         MMC1 mmc1 = 1;
         XXROM unrom = 2;
-        XXROM cnrom = 3;
+        CNROM cnrom = 3;
         MMC3 mmc3 = 4;
         XXROM axrom = 7;
     }
