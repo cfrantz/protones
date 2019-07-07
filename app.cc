@@ -302,6 +302,7 @@ save_as:
             if (ImGui::MenuItem("Save State")) {
                 SaveSlot(save_state_slot_);
             }
+            ImGui::AlignFirstTextHeightToWidgets();
             ImGui::Text("Save Slot"); ImGui::SameLine();
             ImGui::PushItemWidth(64);
             ImGui::Combo("##saveslot", &save_state_slot_,

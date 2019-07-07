@@ -1,6 +1,7 @@
 #ifndef PROTONES_NES_MIDI_H
 #define PROTONES_NES_MIDI_H
 #include <cstdint>
+#include <cmath>
 #include <memory>
 
 #include "nes/base.h"
