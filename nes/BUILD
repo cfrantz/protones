@@ -115,6 +115,20 @@ cc_library(
     ],
 )
 
+cc_binary(
+    name = "cpu_test",
+    srcs = ["cpu_test.cc"],
+    deps = [
+        ":cpu6502",
+        ":nes",
+        ":mem",
+        "//external:gflags",
+    ],
+    linkopts = [
+        "-lSDL2",
+    ],
+)
+
 cc_library(
     name = "fm2",
     srcs = ["fm2.cc"],
@@ -188,6 +202,7 @@ cc_library(
         "//proto:config",
         "//util:config",
     ],
+    alwayslink = 1,
 )
 
 cc_library(
