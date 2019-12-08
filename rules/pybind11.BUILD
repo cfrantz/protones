@@ -1,10 +1,6 @@
 package(default_visibility = ["//visibility:public"])
 
-# Configuration variables for python
-# The include path: /usr/include/<python-dir>/...
-PYTHON_INCLUDE="python3.7m"
-# The python library to link against.
-PYTHON_LIB="-lpython3.7m"
+# TODO: re-evaluate this after fixing windows builds.
 
 config_setting(
     name = "windows",
@@ -62,13 +58,8 @@ HEADERS = [
                 -e "s|pythread\.h|python37/pythread.h|g" \
                 < $(<) > $(@)
             """,
-        "//conditions:default": """
-            sed \
-                -e "s|Python\.h|{python}/Python.h|g" \
-                -e "s|frameobject\.h|{python}/frameobject.h|g" \
-                -e "s|pythread\.h|{python}/pythread.h|g" \
-                < $(<) > $(@)
-            """.format(python=PYTHON_INCLUDE)
+        "//conditions:default": "cp $< $@",
+
     }),
 
 ) for F in HEADERS]
@@ -82,11 +73,13 @@ cc_library(
     ],
     hdrs = [ 'fixed/' + F for F in HEADERS ],
     linkopts = select({
-        ":windows": [
-            "-lpython",
-        ],
+        ":windows": ["-lpython"],
+        "//conditions:default": [],
+    }),
+    deps = select({
+        ":windows": [],
         "//conditions:default": [
-            PYTHON_LIB,
-        ]
+            "@system_python//:system_python",
+        ],
     }),
 )

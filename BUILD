@@ -1,7 +1,7 @@
 package(default_visibility=["//visibility:public"])
 
 load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
-load("@mxebzl//tools/windows:rules.bzl", "pkg_winzip")
+#load("@mxebzl//tools/windows:rules.bzl", "pkg_winzip")
 
 config_setting(
     name = "windows",
@@ -121,20 +121,20 @@ cc_binary(
     })
 )
 
-pkg_winzip(
-    name = "protones-windows",
-    files = [
-        ":protones",
-        "//content",
-    ],
-    skip_dlls = [
-        # Supplied by the python runtime
-        "python37.dll",
-    ],
-    zips = [
-        "@mxebzl//runtime/python37",
-    ],
-)
+#pkg_winzip(
+#    name = "protones-windows",
+#    files = [
+#        ":protones",
+#        "//content",
+#    ],
+#    skip_dlls = [
+#        # Supplied by the python runtime
+#        "python37.dll",
+#    ],
+#    zips = [
+#        "@mxebzl//runtime/python37",
+#    ],
+#)
 
 pkg_tar(
     name = "protones-bin",
