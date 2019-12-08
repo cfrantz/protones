@@ -62,6 +62,7 @@ class NES {
 
     bool LoadStateFromFile(const std::string& filename);
     bool SaveStateToFile(const std::string& filename, bool text=false);
+    bool LoadEverdriveStateFromFile(const std::string& filename);
 
     static const int frequency = 1789773;
     static constexpr double frame_counter_rate = frequency / 240.0;

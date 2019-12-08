@@ -144,6 +144,32 @@ bool NES::LoadState(const std::string& data) {
     return true;
 }
 
+bool NES::LoadEverdriveStateFromFile(const std::string& filename) {
+    FILE* fp;
+    uint8_t data[32*1024];
+    size_t len = 0;
+    if ((fp = fopen(filename.c_str(), "rb")) != nullptr) {
+        fseek(fp, 0, SEEK_END);
+        len = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+        if (len <= sizeof(data)) {
+            fread(&data, 1, len, fp);
+        }
+        fclose(fp);
+    } else {
+        //console_.AddLog("[error] Could not LoadState from %s",
+        //                filename.c_str());
+        return false;
+    }
+    if (len > sizeof(data)) {
+        return false;
+    }
+    mem_->LoadEverdriveState(data);
+    cpu_->LoadEverdriveState(data);
+    mapper_->LoadEverdriveState(data);
+    return true;
+}
+
 std::string NES::SaveState(bool text) {
     apu_->SaveState(state_.mutable_apu());
     cpu_->SaveState(state_.mutable_cpu());

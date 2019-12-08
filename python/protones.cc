@@ -32,6 +32,9 @@ PYBIND11_EMBEDDED_MODULE(protones, m) {
         .def("LoadStateFromFile", &NES::LoadStateFromFile,
              "Load an emulator state from a file",
              py::arg("filename"))
+        .def("LoadEverdriveStateFromFile", &NES::LoadEverdriveStateFromFile,
+             "Load an everdrive state from a file",
+             py::arg("filename"))
         .def("SaveStateToFile", &NES::SaveStateToFile,
              "Save an emulator state to a file",
              py::arg("filename"), py::arg("text")=false)

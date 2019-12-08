@@ -18,6 +18,7 @@ class Cpu : public EmulatedDevice {
 
     void SaveState(proto::CPU6502 *state);
     void LoadState(proto::CPU6502 *state);
+    void LoadEverdriveState(const uint8_t* state);
     void Reset();
     void Emulate() { Execute(); }
     int Execute();

@@ -44,6 +44,16 @@ void Cpu::LoadState(proto::CPU6502 *state) {
     LOAD(pc, sp, a, x, y, cycles, stall, nmi_pending, irq_pending);
 }
 
+void Cpu::LoadEverdriveState(const uint8_t* state) {
+    a_ = state[0x7120];
+    x_ = state[0x7121];
+    y_ = state[0x7122];
+    sp_ = state[0x7123];
+    pc_ = Read16(0xFFFA);
+    flags_.i = true;
+}
+
+
 void Cpu::Reset() {
     pc_ = Read16(0xFFFC);
     sp_ = 0xFD;

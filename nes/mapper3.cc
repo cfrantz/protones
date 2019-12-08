@@ -43,6 +43,9 @@ class Mapper3: public Mapper {
             fprintf(stderr, "Unhandled mapper3 write at %04x\n", addr);
         }
     }
+    void LoadEverdriveState(const uint8_t* state) override {
+        chr_bank1_ = state[0x7000];
+    }
 
   private:
     int chr_banks_, chr_bank1_;

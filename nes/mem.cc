@@ -33,6 +33,12 @@ void Mem::LoadState(proto::NES* state) {
            palette.size() <= sizeof(palette_) ? palette.size() : sizeof(palette_));
 }
 
+void Mem::LoadEverdriveState(const uint8_t* state) {
+    memcpy(ram_, state+0x6800, 0x800);
+    memcpy(ppuram_, state+0x6000, 0x800);
+    memcpy(palette_, state+0x7100, 16);
+}
+
 void Mem::SaveState(proto::NES* state) {
     auto* ram = state->mutable_ram();
     auto* ppuram = state->mutable_ppu()->mutable_ppuram();
