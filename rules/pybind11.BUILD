@@ -5,7 +5,7 @@ package(default_visibility = ["//visibility:public"])
 config_setting(
     name = "windows",
     values = {
-        "crosstool_top": "@mxebzl//tools/windows:toolchain",
+        "crosstool_top": "@mxebzl//compiler:win64",
     }
 )
 

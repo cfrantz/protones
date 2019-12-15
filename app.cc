@@ -17,7 +17,7 @@
 #include "imwidget/mem_debug.h"
 #include "imwidget/ppu_debug.h"
 #include "imwidget/error_dialog.h"
-#include "imwidget/midi_setup.h"
+//#include "imwidget/midi_setup.h"
 #include "nes/apu.h"
 #include "nes/cartridge.h"
 #include "nes/controller.h"
@@ -72,8 +72,8 @@ void ProtoNES::Init() {
     AddDrawCallback(ppu_tile_debug_);
     ppu_vram_debug_ = new PPUVramDebug(nes_.get(), ppu_tile_debug_);
     AddDrawCallback(ppu_vram_debug_);
-    midi_setup_ = new MidiSetup(nes_.get());
-    AddDrawCallback(midi_setup_);
+    //midi_setup_ = new MidiSetup(nes_.get());
+    //AddDrawCallback(midi_setup_);
 
 
     glEnable(GL_TEXTURE_2D);
@@ -318,7 +318,7 @@ save_as:
         if (ImGui::BeginMenu("Edit")) {
             ImGui::MenuItem("Debug Console", nullptr, &console_->visible());
             ImGui::MenuItem("Preferences", nullptr, &preferences_);
-            ImGui::MenuItem("Midi Setup", nullptr, &midi_setup_->visible());
+            //ImGui::MenuItem("Midi Setup", nullptr, &midi_setup_->visible());
             ImGui::MenuItem("State History", nullptr, &history_enabled_);
             hook_.attr("EditMenu")();
             ImGui::EndMenu();

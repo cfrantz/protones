@@ -1,12 +1,12 @@
 package(default_visibility=["//visibility:public"])
 
 load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
-#load("@mxebzl//tools/windows:rules.bzl", "pkg_winzip")
+load("@mxebzl//tools:rules.bzl", "pkg_winzip")
 
 config_setting(
     name = "windows",
     values = {
-        "crosstool_top": "@mxebzl//tools/windows:toolchain",
+        "crosstool_top": "@mxebzl//compiler:win64",
     }
 )
 
@@ -20,11 +20,10 @@ genrule(
 cc_library(
     name = "app",
     linkopts = [
-        "-lSDL2main",
-        "-lSDL2",
         "-lSDL2_image",
         "-lSDL2_mixer",
         "-lSDL2_gfx",
+        "-lSDL2",
     ],
     hdrs = [
         "app.h",
@@ -38,7 +37,7 @@ cc_library(
         "//imwidget:apu_debug",
         "//imwidget:controller_debug",
         "//imwidget:mem_debug",
-        "//imwidget:midi_setup",
+        #"//imwidget:midi_setup",
         "//imwidget:ppu_debug",
         "//imwidget:python_console",
         "//imwidget:error_dialog",
@@ -93,7 +92,8 @@ cc_binary(
             "-lshell32",
             "-lversion",
             "-luuid",
-
+            "-lmingw32",
+            "-lSDL2main",
         ],
         "//conditions:default": [
             "-lpthread",
@@ -121,20 +121,20 @@ cc_binary(
     })
 )
 
-#pkg_winzip(
-#    name = "protones-windows",
-#    files = [
-#        ":protones",
-#        "//content",
-#    ],
-#    skip_dlls = [
-#        # Supplied by the python runtime
-#        "python37.dll",
-#    ],
-#    zips = [
-#        "@mxebzl//runtime/python37",
-#    ],
-#)
+pkg_winzip(
+    name = "protones-windows",
+    files = [
+        ":protones",
+        "//content",
+    ],
+    skip_dlls = [
+        # Supplied by the python runtime
+        "python37.dll",
+    ],
+    zips = [
+        "@mxebzl//runtime/python37",
+    ],
+)
 
 pkg_tar(
     name = "protones-bin",

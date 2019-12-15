@@ -64,7 +64,7 @@ cc_library(
     ],
     deps = [
         ":base",
-        ":midi",
+        #":midi",
         ":nes-interface",
         ":pbmacro",
         "//util:os",
@@ -195,7 +195,7 @@ cc_library(
         ":mapper",
         ":mapper-lib",
         ":mem",
-        ":midi",
+        #":midi",
         ":nes-interface",
         ":ppu",
         "//external:imgui",

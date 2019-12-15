@@ -163,19 +163,27 @@ new_git_repository(
 ######################################################################
 # compilers for windows
 ######################################################################
-#git_repository(
+
+# Local copy for testing
+#local_repository(
 #    name = "mxebzl",
-#    remote = "https://github.com/cfrantz/mxebzl.git",
-#	tag = "20190619_RC01",
+#    path = "/home/cfrantz/src/mxebzl",
 #)
-#
-#load("@mxebzl//tools:repository.bzl", "mxe_compilers")
-#mxe_compilers(
-#    deps = [
-#        "compiler",
-#        "SDL2",
-#        "SDL2-extras",
-#        "pthreads",
-#        "python",
-#    ],
-#)
+
+git_repository(
+    name = "mxebzl",
+    remote = "https://github.com/cfrantz/mxebzl.git",
+    tag = "20191215_RC01",
+)
+
+
+load("@mxebzl//compiler:repository.bzl", "mxe_compiler")
+mxe_compiler(
+    deps = [
+        "compiler",
+        "SDL2",
+        "SDL2-extras",
+        "pthreads",
+        "python",
+    ],
+)

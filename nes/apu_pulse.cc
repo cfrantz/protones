@@ -1,6 +1,6 @@
 #include "imgui.h"
 #include "nes/apu_pulse.h"
-#include "nes/midi.h"
+//#include "nes/midi.h"
 #include "pbmacro.h"
 
 #include <cstdint>
@@ -156,7 +156,7 @@ void Pulse::StepLength() {
     if (length_enabled_ && length_value_ > 0) {
         length_value_--;
         if (length_value_ == 0) {
-            nes_->midi()->NoteOff(channel_);
+            //nes_->midi()->NoteOff(channel_);
         }
     }
 }
@@ -176,9 +176,11 @@ void Pulse::set_control(uint8_t val) {
     envelope_period_ = val & 0x0f;
     constant_volume_ = val & 0x0f;
     envelope_start_ = true;
+#if 0
     auto* m = nes_->midi();
     m->NoteOnFreq(channel_-1, m->frequency(timer_period_), 
                   envelope_enable_ ? 15*8 : constant_volume_*8);
+#endif
 }
 
 void Pulse::set_sweep(uint8_t val) {
@@ -201,8 +203,10 @@ void Pulse::set_timer_high(uint8_t val) {
     timer_period_ = (timer_period_ & 0x00FF) | (uint16_t(val & 0x07) << 8);
     envelope_start_ = true;
     duty_value_ = 0;
+#if 0
     auto* m = nes_->midi();
     m->NoteOnFreq(channel_-1, m->frequency(timer_period_), 
                   envelope_enable_ ? 15*8 : constant_volume_*8);
+#endif
 }
 }  // namespace protones

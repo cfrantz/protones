@@ -1,6 +1,6 @@
 #include "imgui.h"
 #include "nes/apu_triangle.h"
-#include "nes/midi.h"
+//#include "nes/midi.h"
 #include "nes/pbmacro.h"
 
 namespace protones {
@@ -73,7 +73,7 @@ void Triangle::StepLength() {
     if (length_enabled_ && length_value_ > 0) {
         length_value_--;
         if (length_value_ == 0) {
-            nes_->midi()->NoteOff(channel_);
+            //nes_->midi()->NoteOff(channel_);
         }
     }
 }
@@ -111,8 +111,10 @@ void Triangle::set_timer_high(uint8_t val) {
     timer_period_ = (timer_period_ & 0x00FF) | (uint16_t(val & 0x07) << 8);
     timer_value_ = timer_period_;
     counter_reload_ = true;
+#if 0
     auto* m = nes_->midi();
     m->NoteOnFreq(channel_, m->frequency(timer_period_) / 2.0, 64);
+#endif
               
 }
 }  // namespace protones
