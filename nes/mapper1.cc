@@ -187,5 +187,18 @@ void Mapper1::LoadRegister(uint16_t addr, uint8_t val) {
     }
 }
 
+uint8_t& Mapper1::RegisterValue(int reg) {
+    switch(reg) {
+        case 0: return shift_register_;
+        case 1: return control_;
+        case 2: return prg_mode_;
+        case 3: return chr_mode_;
+        case 4: return prg_bank_;
+        case 5: return chr_bank0_;
+        case 6: return chr_bank1_;
+    }
+    return Mapper::RegisterValue(reg);
+}
+
 REGISTER_MAPPER(1, Mapper1);
 }  // namespace protones

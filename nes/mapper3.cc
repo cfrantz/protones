@@ -48,7 +48,7 @@ class Mapper3: public Mapper {
     }
 
   private:
-    int chr_banks_, chr_bank1_;
+    uint8_t chr_banks_, chr_bank1_;
 };
 
 REGISTER_MAPPER(3, Mapper3);

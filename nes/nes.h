@@ -48,6 +48,7 @@ class NES {
     inline bool has_movie() { return has_movie_; }
     inline bool pause() { return pause_; }
     inline void set_pause(bool p) { pause_ = p; }
+    inline const std::map<int, int>& frame_profile() { return frame_profile_; }
 
     uint64_t cpu_cycles();
     void Stall(int s);
@@ -87,6 +88,7 @@ class NES {
     uint64_t frame_;
     double remainder_;
     std::map<int, proto::ControllerButtons> buttons_;
+    std::map<int, int> frame_profile_;
 };
 
 }  // namespace protones

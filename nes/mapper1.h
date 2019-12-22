@@ -15,6 +15,7 @@ class Mapper1: public Mapper {
 
     void LoadState(proto::Mapper* state) override;
     void SaveState(proto::Mapper* state) override;
+    uint8_t& RegisterValue(int reg) override;
 
   private:
     int PrgBankOffset(int index);

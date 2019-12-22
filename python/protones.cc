@@ -4,10 +4,12 @@
 #include "nes/cpu6502.h"
 #include "nes/ppu.h"
 #include "nes/mem.h"
+#include "nes/mapper.h"
 #include "nes/nes.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/embed.h"
 #include "pybind11/functional.h"
+#include "pybind11/stl.h"
 
 //#include "version.h"
 
@@ -38,7 +40,15 @@ PYBIND11_EMBEDDED_MODULE(protones, m) {
         .def("SaveStateToFile", &NES::SaveStateToFile,
              "Save an emulator state to a file",
              py::arg("filename"), py::arg("text")=false)
+        .def("GetMapperReg", [](NES* self, int reg) -> uint8_t {
+                return self->mapper()->RegisterValue(reg);
+            }, py::arg("register"))
+        .def("SetMapperReg", [](NES* self, int reg, uint8_t val) -> void {
+                self->mapper()->RegisterValue(reg) = val;
+            }, py::arg("register"), py::arg("value"))
         .def_property("pause", &NES::pause, &NES::set_pause)
+        .def_property_readonly("frame_profile", &NES::frame_profile,
+                               "Frame execution profile")
         .def_property_readonly("mem", &NES::mem, "NES memory")
         .def_property_readonly("cartridge", &NES::cartridge)
         .def_property_readonly("cpu", &NES::cpu)
@@ -121,5 +131,14 @@ PYBIND11_EMBEDDED_MODULE(protones, m) {
     m.attr("BUTTON_DOWN") =   0x20; //Controller::BUTTON_DOWN;
     m.attr("BUTTON_LEFT") =   0x40; //Controller::BUTTON_LEFT;
     m.attr("BUTTON_RIGHT") =  0x80; //Controller::BUTTON_RIGHT;
+
+    // Register names for MMC1
+    m.attr("MMC1_SHIFT_REGISTER") = 0;
+    m.attr("MMC1_CONTROL_REGISTER") = 1;
+    m.attr("MMC1_PRG_MODE") = 2;
+    m.attr("MMC1_CHR_MODE") = 3;
+    m.attr("MMC1_PRG_BANK") = 4;
+    m.attr("MMC1_CHR_BANK") = 5;
+    m.attr("MMC1_CHR_BANK") = 6;
 }
 }  // namespace protones

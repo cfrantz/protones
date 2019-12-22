@@ -251,9 +251,13 @@ void NES::Reset() {
 }
 
 bool NES::Emulate() {
+    // TODO(cfrantz): RegisterValue(4) is the PRG bank mapping for MMC1.
+    // This needs be abstracted into a more general solution.
+    int addr = cpu_->pc() | (mapper_->RegisterValue(4) << 16);
     const int n = cpu_->Execute();
+    frame_profile_[addr] += n;
     for(int i=0; i<n*3; i++) {
-//        if (cpu_->irq_pending()) { ppu_->set_debug_dot(0xFF00FF00); }
+        //if (cpu_->irq_pending()) { ppu_->set_debug_dot(0xFF00FF00); }
         // The PPU is clocked at 3 dots per CPU clock
         ppu_->Emulate();
         mapper_->Emulate();
@@ -272,15 +276,13 @@ bool NES::EmulateFrame() {
     }
     double count = double(frequency) / FLAGS_fps - remainder_;
     double eof = cpu_->cycles() + count;
+    frame_profile_.clear();
 
     movie_->Emulate();
     // Assume there will be lag during this frame.  If the game reads the
     // controllers on time, the controller emulation will clear the lag flag.
     lag_ = true;
     while(double(cpu_->cycles()) < eof) {
-        //for(const auto& n : nailed_)
-        //    mem_->Write(n.first, n.second);
-
         if (!Emulate())
             return false;
     }

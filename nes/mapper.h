@@ -21,6 +21,10 @@ class Mapper : public EmulatedDevice {
     virtual void LoadState(proto::Mapper *state) {}
     virtual void SaveState(proto::Mapper *state) {}
     virtual void LoadEverdriveState(const uint8_t* state) {}
+    virtual uint8_t& RegisterValue(int reg) {
+        static uint8_t bogus = 0xff;
+        return bogus;
+    }
   protected:
     NES* nes_;
 };

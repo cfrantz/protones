@@ -50,7 +50,7 @@ class Mapper2: public Mapper {
     }
 
   private:
-    int prg_banks_, prg_bank1_, prg_bank2_;
+    uint8_t prg_banks_, prg_bank1_, prg_bank2_;
 };
 
 REGISTER_MAPPER(0, Mapper2);

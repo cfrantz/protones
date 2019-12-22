@@ -7,6 +7,7 @@
 import app
 import bimpy
 from . import cheats
+from . import execution
 from . import hitbox
 from . import random
 from . import memory
@@ -27,6 +28,7 @@ class Zelda2(app.EmulatorHooks):
         self.hitbox = [hitbox.LinkHitbox(self.root)]
         self.hitbox.extend(
                 hitbox.EnemyHitbox(self.root, i) for i in range(13))
+        self.execution = execution.Execution(self.root)
 
     def z2goto(self, a, b, c, d, e, f, g):
         """Go to a sideview area in Zelda 2"""
@@ -95,6 +97,8 @@ class Zelda2(app.EmulatorHooks):
                 self.memory.visible.value = not self.memory.visible.value
             if bimpy.menu_item("RNG", selected=self.rng.visible.value):
                 self.rng.visible.value = not self.rng.visible.value
+            if bimpy.menu_item("Exec Profile", selected=self.execution.visible.value):
+                self.execution.Enable(not self.execution.visible.value)
             bimpy.end_menu()
 
     def EmulateFrame(self):
@@ -115,6 +119,7 @@ class Zelda2(app.EmulatorHooks):
     def Draw(self):
         """Called on each frame to draw your own GUIs."""
         self.cheats.Draw()
+        self.execution.Draw()
         self.memory.Draw()
         self.rng.Draw()
 

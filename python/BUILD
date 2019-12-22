@@ -6,11 +6,11 @@ cc_library(
     deps = [
         "//nes:nes",
         "//nes:nes-interface",
+        "//nes:mapper",
 ##        ":apu",
 ##        ":cartridge",
 ##        ":controller",
 ##        ":cpu6502",
-##        ":mapper",
 ##        ":mapper-lib",
 ##        ":mem",
 ##        ":ppu",

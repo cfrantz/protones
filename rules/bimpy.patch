@@ -1,5 +1,5 @@
 diff --git a/bimpy.cpp b/bimpy.cpp
-index a46fecd..9b72e32 100644
+index a46fecd..9bf1488 100644
 --- a/bimpy.cpp
 +++ b/bimpy.cpp
 @@ -3,20 +3,24 @@
@@ -233,7 +233,37 @@ index a46fecd..9b72e32 100644
  	m.def("collapsing_header", [](const char* label, ImGuiTreeNodeFlags flags){ return ImGui::CollapsingHeader(label, flags); }, py::arg("label"), py::arg("flags") = 0);
  	m.def("checkbox", [](const char* label, Bool& v){ return ImGui::Checkbox(label, &v.value); });
  	m.def("radio_button", [](const char* label, bool active){ return ImGui::RadioButton(label, active); });
-@@ -774,8 +847,8 @@ PYBIND11_MODULE(_bimpy, m) {
+@@ -768,14 +841,38 @@ PYBIND11_MODULE(_bimpy, m) {
+ 		, py::arg("graph_size")	 = ImVec2(0,0)
+ 		, py::arg("stride") = sizeof(float)
+ 		);
++
++	m.def("plot_histogram", [](
++		const char* label,
++		const std::vector<float>& values,
++		int values_offset = 0,
++		const char* overlay_text = NULL,
++		float scale_min = FLT_MAX,
++		float scale_max = FLT_MAX,
++		ImVec2 graph_size = ImVec2(0,0),
++		int stride = sizeof(float))
++		{ 
++			ImGui::PlotHistogram(label, values.data(), (int)values.size(), values_offset, overlay_text, scale_min, scale_max, graph_size, stride); 
++		}
++		, py::arg("label")
++		, py::arg("values")
++		, py::arg("values_offset") = 0
++		, py::arg("overlay_text") = nullptr
++		, py::arg("scale_min") = FLT_MAX
++		, py::arg("scale_max") = FLT_MAX
++		, py::arg("graph_size")	 = ImVec2(0,0)
++		, py::arg("stride") = sizeof(float)
++		);
++		
++	m.def("progress_bar", &ImGui::ProgressBar, py::arg("fraction"), py::arg("size_arg") = ImVec2(-1,0), py::arg("overlay") = nullptr);
+ 		
+ 	m.def("progress_bar", &ImGui::ProgressBar, py::arg("fraction"), py::arg("size_arg") = ImVec2(-1,0), py::arg("overlay") = nullptr);
+ 
  	m.def("color_button", &ImGui::ColorButton, py::arg("desc_id"), py::arg("col"), py::arg("flags") = 0, py::arg("size") = ImVec2(0,0));
  	
  	m.def("add_line", &AddLine, py::arg("a"), py::arg("b"), py::arg("col"), py::arg("thickness") = 1.0f);
@@ -244,7 +274,7 @@ index a46fecd..9b72e32 100644
  	m.def("add_rect_filled_multicolor", &AddRectFilledMultiColor, py::arg("a"), py::arg("b"), py::arg("col_upr_left"), py::arg("col_upr_right"), py::arg("col_bot_right"), py::arg("col_bot_lefs"));
  	m.def("add_quad", &AddQuad, py::arg("a"), py::arg("b"), py::arg("c"), py::arg("d"), py::arg("col"), py::arg("thickness") = 1.0f);
  	m.def("add_quad_filled", &AddQuadFilled, py::arg("a"), py::arg("b"), py::arg("c"), py::arg("d"), py::arg("col"));
-@@ -783,4 +856,6 @@ PYBIND11_MODULE(_bimpy, m) {
+@@ -783,4 +880,6 @@ PYBIND11_MODULE(_bimpy, m) {
  	m.def("add_triangle_filled", &AddTriangleFilled, py::arg("a"), py::arg("b"), py::arg("c"), py::arg("col"));
  	m.def("add_circle", &AddCircle, py::arg("centre"), py::arg("radius"), py::arg("col"), py::arg("num_segments") = 12, py::arg("thickness") = 1.0f);
  	m.def("add_circle_filled", &AddCircleFilled, py::arg("centre"), py::arg("radius"), py::arg("col"), py::arg("num_segments") = 12);
