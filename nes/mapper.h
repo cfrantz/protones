@@ -4,6 +4,7 @@
 #include <map>
 #include <cstdint>
 #include "nes/base.h"
+#include "nes/cartridge.h"
 #include "nes/nes.h"
 #include "proto/mappers.pb.h"
 namespace protones {
@@ -16,6 +17,12 @@ class Mapper : public EmulatedDevice {
         *a = Read(addr);
         *b = Read(addr + 8);
     }
+
+    // Helper function for MMC5 implementation.
+    virtual void ReadSpr2(uint16_t addr, uint8_t* a, uint8_t* b) {
+        ReadChr2(addr, a, b);
+    }
+
     virtual void Write(uint16_t addr, uint8_t val) = 0;
     virtual void Emulate() {}
     virtual void LoadState(proto::Mapper *state) {}
@@ -25,6 +32,29 @@ class Mapper : public EmulatedDevice {
         static uint8_t bogus = 0xff;
         return bogus;
     }
+
+    // Calculate addresses based on the "standard" mirror modes for the NES.
+    uint16_t MirrorAddress(uint16_t addr) {
+        static const uint16_t lookup[5][4] = {
+            { 0, 0, 1, 1, }, // Horiz
+            { 0, 1, 0, 1, }, // Vert
+            { 0, 0, 0, 0, }, // single 0
+            { 1, 1, 1, 1, }, // single 1
+            { 0, 1, 2, 3, }, // four
+        };
+        addr = (addr - 0x2000) % 0x1000;
+        int table = addr / 0x400;
+        int offset = addr % 0x400;
+        int mode = int(nes_->cartridge()->mirror());
+        return lookup[mode][table] * 0x400 + offset;
+    }
+
+    // Translate a PPU VRAM address based on the mirroring mode.
+    // Advanced mappers like MMC5 can change how they deal with vram.
+    virtual uint8_t* VramAddress(uint8_t* ppuram, uint16_t addr) {
+        return ppuram + MirrorAddress(addr);
+    }
+
   protected:
     NES* nes_;
 };

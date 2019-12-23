@@ -420,7 +420,7 @@ uint32_t PPU::FetchSpritePattern(int i, int row) {
     addr = 0x1000 * table + tile * 16 + row;
     uint8_t a = (attr & 3) << 2;
     uint8_t lo, hi;
-    nes_->mapper()->ReadChr2(addr, &lo, &hi);
+    nes_->mapper()->ReadSpr2(addr, &lo, &hi);
     uint32_t result = 0x11111111 * uint32_t(a);
 
     if (attr & 0x40) {

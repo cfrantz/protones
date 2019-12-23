@@ -37,6 +37,26 @@ message MMC3 {
     repeated uint32 chr_offset = 9;
 }
 
+message MMC5 {
+    uint32 prg_banks = 1;
+    uint32 prg_mode = 2;
+    uint32 chr_mode = 3;
+    repeated uint32 prg_ram_protect = 4;
+    uint32 ext_ram_mode = 5;
+    uint32 nt_map = 6;
+    uint32 fill_tile = 7;
+    uint32 fill_color = 8;
+    repeated uint32 prg_bank = 9;
+    repeated uint32 chr_bank = 10;
+    uint32 chr_upper = 11;
+    uint32 vsplit_mode = 12;
+    uint32 vsplit_scroll = 13;
+    uint32 vsplit_bank = 14;
+    uint32 irq_scanline = 15;
+    uint32 irq_status = 16;
+    repeated uint32 multiplier = 17;
+    bytes ext_ram = 18;
+}
 
 message Mapper {
     int32 mapper = 1000000;
@@ -46,6 +66,7 @@ message Mapper {
         XXROM unrom = 2;
         CNROM cnrom = 3;
         MMC3 mmc3 = 4;
+        MMC5 mmc5 = 5;
         XXROM axrom = 7;
     }
 }

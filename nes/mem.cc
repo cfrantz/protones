@@ -82,7 +82,7 @@ uint8_t Mem::read_byte(uint16_t addr) {
         t0 = t1;
         return 0;
 
-    } else if (addr >= 0x6000) {
+    } else if (addr >= 0x5000) {
         return nes_->mapper()->Read(addr);
     } else {
         fprintf(stderr, "Unknown read at %04x\n", addr);
@@ -116,7 +116,7 @@ void Mem::write_byte(uint16_t addr, uint8_t v) {
         fputc(v, stdout);
     } else if (addr == 0x401a) {
         printf("hexout = %02x\n", v);
-    } else if (addr >= 0x6000) {
+    } else if (addr >= 0x5000) {
         nes_->mapper()->Write(addr, v);
     } else {
         fprintf(stderr, "Unknown write at %04x = %02x\n", addr, v);
@@ -140,27 +140,12 @@ void Mem::write_word(uint16_t addr, uint16_t v) {
 void Mem::write_word_no_io(uint16_t addr, uint16_t v) {
 }
 
-uint16_t Mem::MirrorAddress(int mode, uint16_t addr) {
-    static const uint16_t lookup[5][4] = {
-        { 0, 0, 1, 1, }, // Horiz
-        { 0, 1, 0, 1, }, // Vert
-        { 0, 0, 0, 0, }, // single 0
-        { 1, 1, 1, 1, }, // single 1
-        { 0, 1, 2, 3, }, // four
-    };
-    addr = (addr - 0x2000) % 0x1000;
-    int table = addr / 0x400;
-    int offset = addr % 0x400;
-    return lookup[mode][table] * 0x400 + offset;
-}
-
 uint8_t Mem::PPURead(uint16_t addr) {
     addr %= 0x4000;
     if (addr < 0x2000) {
         return nes_->mapper()->Read(addr);
     } else if (addr < 0x3F00) {
-        int mode = int(nes_->cartridge()->mirror());
-        return ppuram_[MirrorAddress(mode, addr)];
+        return *nes_->mapper()->VramAddress(ppuram_, addr);
     } else {
         return PaletteRead(addr % 32);
     }
@@ -171,8 +156,7 @@ void Mem::PPUWrite(uint16_t addr, uint8_t val) {
     if (addr < 0x2000) {
         nes_->mapper()->Write(addr, val);
     } else if (addr < 0x3F00) {
-        int mode = int(nes_->cartridge()->mirror());
-        ppuram_[MirrorAddress(mode, addr)] = val;
+        *nes_->mapper()->VramAddress(ppuram_, addr) = val;
     } else {
         PaletteWrite(addr % 32, val);
     }

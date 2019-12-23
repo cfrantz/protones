@@ -18,7 +18,7 @@ Cartridge::Cartridge(NES* nes)
     chr_(nullptr), chrlen_(0),
     crc32_(0),
     trainer_(nullptr),
-    sram_{0,} {
+    sram_(nullptr), sramlen_(0) {
 }
 
 
@@ -76,11 +76,15 @@ void Cartridge::LoadFile(const std::string& filename) {
     crc32_ = Crc32(0, prg_, prglen_);
     crc32_ = Crc32(crc32_, chr_, chrlen_);
 
+    // For MMC5, we emulate 64k of SRAM, otherwise 8k.
+    sramlen_ = mapper() == 5 ? 65536 : 8192;
+    sram_ = new uint8_t[sramlen_]{0, };
+
     sram_filename_ = os::path::DataPath({
             File::Basename(filename) + ".sram" });
     if (FLAGS_sram_on_disk && header_.sram && !nes_->has_movie()) {
         if ((fp = fopen(sram_filename_.c_str(), "rb")) != nullptr) {;
-            if (fread(sram_, sizeof(sram_), 1, fp) == 0) {
+            if (fread(sram_, sramlen_, 1, fp) == 0) {
                 fprintf(stderr, "Couldn't read SRAM.\n");
             }
             fclose(fp);
@@ -109,19 +113,19 @@ void Cartridge::SaveSram() {
         fprintf(stderr, "Can't open %s for writing.\n", sram_filename_.c_str());
         return;
     }
-    fwrite(sram_, 1, sizeof(sram_), fp);
+    fwrite(sram_, 1, sramlen_, fp);
     fclose(fp);
 }
 
 void Cartridge::SaveState(proto::Mapper *state) {
     auto* wram = state->mutable_wram();
-    wram->assign((char*)sram_, sizeof(sram_));
+    wram->assign((char*)sram_, sramlen_);
 }
 
 void Cartridge::LoadState(proto::Mapper *state) {
     const auto& wram = state->wram();
     memcpy(sram_, wram.data(),
-           wram.size() < sizeof(sram_) ? wram.size() : sizeof(sram_));
+           wram.size() < sramlen_ ? wram.size() : sramlen_);
 }
 
 void Cartridge::PrintHeader() {

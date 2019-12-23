@@ -49,6 +49,7 @@ class Cartridge : public EmulatedDevice {
     }
     inline uint32_t prglen() const { return prglen_; }
     inline uint32_t chrlen() const { return chrlen_; }
+    inline uint32_t sramlen() const { return sramlen_; }
     inline uint32_t crc32() const { return crc32_; }
 
     inline uint8_t ReadPrg(uint32_t addr) { return prg_[addr]; }
@@ -74,7 +75,8 @@ class Cartridge : public EmulatedDevice {
     uint32_t crc32_;
     uint8_t *trainer_;
     MirrorMode mirror_;
-    uint8_t sram_[0x2000];
+    uint8_t *sram_;
+    uint32_t sramlen_;
     std::string filename_;
     std::string sram_filename_;
 };

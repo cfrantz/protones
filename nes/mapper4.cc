@@ -6,6 +6,7 @@
 namespace protones {
 
 
+// Confusingly, Mapper4 is MMC3.
 class Mapper4: public Mapper {
   public:
     Mapper4(NES* nes);

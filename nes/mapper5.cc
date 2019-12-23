@@ -1,0 +1,354 @@
+#include "nes/mapper.h"
+
+#include "nes/pbmacro.h"
+#include "nes/cartridge.h"
+#include "nes/ppu.h"
+
+namespace protones {
+
+class Mapper5: public Mapper {
+  public:
+    Mapper5(NES* nes):
+        Mapper(nes),
+        prg_banks_(nes_->cartridge()->prglen() / 0x2000),
+        prg_mode_(0),
+        chr_mode_(0),
+        prg_ram_protect_{0},
+        ext_ram_mode_(0),
+        nt_map_(0),
+        fill_tile_(0),
+        fill_color_(0),
+        prg_bank_{0,0,0,0,0xFF},
+        chr_bank_{0},
+        chr_upper_(0),
+        vsplit_mode_(0),
+        vsplit_scroll_(0),
+        vsplit_bank_(0),
+        irq_scanline_(0),
+        irq_status_(0),
+        multiplier_{0},
+        ext_ram_{0} {}
+
+    void LoadState(proto::Mapper* mstate) {
+        auto* state = mstate->mutable_mmc5();
+        LOAD(prg_banks,
+             prg_mode,
+             chr_mode,
+             ext_ram_mode,
+             nt_map,
+             fill_tile,
+             fill_color,
+             chr_upper,
+             vsplit_mode,
+             vsplit_scroll,
+             vsplit_bank,
+             irq_scanline,
+             irq_status);
+        LOAD_ARRAYS(prg_ram_protect,
+                    prg_bank,
+                    chr_bank,
+                    multiplier);
+        size_t len = std::min(sizeof(ext_ram_),
+                              state->mutable_ext_ram()->size());
+        memcpy(ext_ram_, state->mutable_ext_ram()->data(), len);
+    }
+
+    void SaveState(proto::Mapper* mstate) {
+        auto* state = mstate->mutable_mmc5();
+        SAVE(prg_banks,
+             prg_mode,
+             chr_mode,
+             ext_ram_mode,
+             nt_map,
+             fill_tile,
+             fill_color,
+             chr_upper,
+             vsplit_mode,
+             vsplit_scroll,
+             vsplit_bank,
+             irq_scanline,
+             irq_status);
+        SAVE_ARRAYS(prg_ram_protect,
+                    prg_bank,
+                    chr_bank,
+                    multiplier);
+        state->mutable_ext_ram()->assign(
+                reinterpret_cast<const char*>(ext_ram_), sizeof(ext_ram_));
+    }
+
+    inline uint8_t _prg_bank(size_t index) const {
+        return (prg_bank_[index] & 0x7f) % prg_banks_;
+    }
+
+    inline uint32_t TranslatePrg(uint16_t addr) {
+        uint32_t result;
+        uint32_t index;
+        switch(prg_mode_) {
+            case 0: // 1 x 32KiB mode
+                result = (_prg_bank(4) * 8192) & ~0x7FFF;
+                return result | (addr & 0x7FFF);
+            case 1: // 2 x 16KiB mode
+                index = (addr & 0x4000) ? 4 : 2;
+                result = (_prg_bank(index) * 8192) & ~0x3FFF;
+                return result | (addr & 0x3FFF);
+            case 2: // 16 KiB + 8+8 mode
+                if (addr & 0x4000) {
+                    // 8+8 area
+                    index = (addr & 0x2000) ? 4 : 3;
+                    result = _prg_bank(index) * 8192;
+                    result |= (addr & 0x1FFF);
+                } else {
+                    // 16KiB area
+                    result = (_prg_bank(2) * 8192) & ~0x3FFF;
+                    result |= (addr & 0x3FFF);
+                }
+                return result;
+            case 3: // 8 KiB mode
+                    index = 1 + ((addr >> 13) & 3);
+                    result = _prg_bank(index) * 8192;
+                    return result | (addr & 0x1FFF);
+            default:
+                fprintf(stderr, "Invalid MMC5 PRG mode %d\n", prg_mode_);
+        }
+        return 0;
+    }
+
+    inline uint32_t TranslateChr(uint16_t addr, bool bgbanks=false) {
+        size_t regofs = 0;
+        uint8_t mode = chr_mode_;
+        if (bgbanks) {
+            if (mode == 0) mode = 1;
+            regofs = 8;
+            addr &= 0x0FFF;
+        }
+
+        uint32_t result = chr_upper_ << 8;
+        switch(mode) {
+            case 0: // 8KiB mode
+                result |= chr_bank_[regofs + 7];
+                return (result << 13) | (addr & 0x1FFF);
+            case 1: // 4KiB mode
+                regofs |= (addr >> 12) * 4;
+                result |= chr_bank_[regofs + 3];
+                return (result << 12) | (addr & 0xFFF);
+            case 2: // 2KiB mode
+                regofs |= (addr >> 11) * 2;
+                result |= chr_bank_[regofs + 1];
+                return (result << 11) | (addr & 0x7FF);
+            case 3: // 1KiB mode
+                regofs |= (addr >> 10) * 1;
+                result |= chr_bank_[regofs + 0];
+                return (result << 10) | (addr & 0x3FF);
+            default:
+                fprintf(stderr, "Invalid MMC5 CHR mode %d\n", mode);
+        }
+        return 0;
+    }
+
+    void ReadChr2(uint16_t addr, uint8_t* a, uint8_t* b) override {
+        bool bgbanks = nes_->ppu()->control().spritesize &&
+            (nes_->ppu()->mask().showsprites || nes_->ppu()->mask().showbg);
+        uint32_t chraddr = TranslateChr(addr, bgbanks);
+        *a = nes_->cartridge()->ReadChr(chraddr);
+        *b = nes_->cartridge()->ReadChr(chraddr + 8);
+    }
+
+    void ReadSpr2(uint16_t addr, uint8_t* a, uint8_t* b) override {
+        uint32_t chraddr = TranslateChr(addr);
+        *a = nes_->cartridge()->ReadChr(chraddr);
+        *b = nes_->cartridge()->ReadChr(chraddr + 8);
+    }
+
+    virtual uint8_t* VramAddress(uint8_t* ppuram, uint16_t addr) {
+        static uint8_t junk;
+        uint16_t offset = addr & 0x3FF;
+        uint16_t table = (addr >> 10) & 3;
+        uint8_t which = (nt_map_ >> (table * 2)) & 3;
+
+        switch(which) {
+            case 0: return ppuram + offset;
+            case 1: return ppuram + 0x400 + offset;
+            case 2:
+                if (ext_ram_mode_ <= 1) {
+                    return ext_ram_ + offset;
+                }
+                junk = 0;
+                break;
+            case 3:
+                if (offset < 0x3c0) {
+                    junk = fill_tile_;
+                } else {
+                    junk = fill_tile_;
+                    junk |= junk << 2;
+                    junk |= junk << 4;
+                }
+                break;
+        }
+        return &junk;
+    }
+
+    uint8_t Read(uint16_t addr) override {
+        if (addr < 0x2000) {
+            return nes_->cartridge()->ReadChr(TranslateChr(addr));
+        } else if (addr >= 0x5000 && addr < 0x5800) {
+            return ReadRegister(addr);
+        } else if (addr >= 0x5800 && addr < 0x5c00) {
+            fprintf(stderr, "Unhandled MMC5 read at %04x\n", addr);
+            return 0xff;
+        } else if (addr >= 0x5c00 && addr < 0x6000) {
+            return (ext_ram_mode_ >= 2) ?  ext_ram_[addr - 0x5c00] : 0xFF;
+        } else if (addr >= 0x6000 && addr < 0x8000) {
+            uint32_t offset = (prg_bank_[0] * 8192) + (addr & 0x1FFF);
+            return nes_->cartridge()->ReadSram(offset);
+        } else if (addr >= 0x8000) {
+            return nes_->cartridge()->ReadPrg(TranslatePrg(addr));
+        } else {
+            fprintf(stderr, "Unhandled MMC5 read at %04x\n", addr);
+        }
+        return 0;
+    }
+
+    void Write(uint16_t addr, uint8_t val) override {
+        if (addr < 0x2000) {
+            return nes_->cartridge()->WriteChr(addr, val);
+        } else if (addr >= 0x5000 && addr < 0x5800) {
+            return WriteRegister(addr, val);
+        } else if (addr >= 0x5800 && addr < 0x5c00) {
+            fprintf(stderr, "Unhandled MMC5 write at %04x\n", addr);
+        } else if (addr >= 0x5c00 && addr < 0x6000) {
+            ext_ram_[addr - 0x5c00] = val;
+        } else if (addr >= 0x6000 && addr < 0x8000) {
+            bool enabled = prg_ram_protect_[0] == 2 &&
+                           prg_ram_protect_[1] == 1;
+            if (enabled) {
+                uint32_t offset = (prg_bank_[0] * 8192) + (addr & 0x1FFF);
+                nes_->cartridge()->WriteSram(offset, val);
+            }
+        } else if (addr >= 0x8000) {
+            // TODO: depends on prg mapping and WP value.
+            fprintf(stderr, "Unhandled MMC5 PRG write at %04x\n", addr);
+        } else {
+            fprintf(stderr, "Unhandled MMC5 write at %04x\n", addr);
+        }
+    }
+
+    uint8_t ReadRegister(uint16_t addr) {
+        uint16_t product;
+        switch(addr) {
+            case 0x5100:
+                return prg_mode_;
+            case 0x5101:
+                return chr_mode_;
+            case 0x5102 ... 0x5103:
+                return prg_ram_protect_[addr - 0x5102];
+            case 0x5104:
+                return ext_ram_mode_;
+            case 0x5105:
+                return nt_map_;
+            case 0x5106:
+                return fill_tile_;
+            case 0x5107:
+                return fill_color_;
+            case 0x5113 ... 0x5117:
+                return prg_bank_[addr - 0x5113];
+            case 0x5120 ... 0x512b:
+                return chr_bank_[addr - 0x5120];
+            case 0x5130:
+                return chr_upper_;
+            case 0x5200:
+                return vsplit_mode_;
+            case 0x5201:
+                return vsplit_scroll_;
+            case 0x5202:
+                return vsplit_bank_;
+            case 0x5203:
+                return irq_scanline_;
+            case 0x5204:
+                return irq_status_;
+            case 0x5205 ... 0x5206:
+                product = multiplier_[0] * multiplier_[1];
+                return addr == 0x5205 ? uint8_t(product)
+                                      : uint8_t(product >> 8);
+
+            default:
+                // Unhandled MMC5 register read.
+                fprintf(stderr, "Unhandled MMC5 register read at %04x\n", addr);
+                return 0xff;
+        }
+    }
+
+    void WriteRegister(uint16_t addr, uint8_t val) {
+        //printf("MMC5 Reg: %04x = %02x\n", addr, val);
+        switch(addr) {
+            case 0x5100:
+                prg_mode_ = val & 0x03; break;
+            case 0x5101:
+                chr_mode_ = val & 0x03; break;
+            case 0x5102 ... 0x5103:
+                prg_ram_protect_[addr - 0x5102] = val & 0x03;
+                break;
+            case 0x5104:
+                ext_ram_mode_ = val & 0x03; break;
+            case 0x5105:
+                nt_map_ = val; break;
+            case 0x5106:
+                fill_tile_ = val; break;
+            case 0x5107:
+                fill_color_ = val & 0x03; break;
+            case 0x5113 ... 0x5117:
+                prg_bank_[addr - 0x5113] = val;
+                break;
+            case 0x5120 ... 0x512b:
+                chr_bank_[addr - 0x5120] = val;
+                break;
+            case 0x5130:
+                chr_upper_ = val & 0x03; break;
+            case 0x5200:
+                vsplit_mode_ = val & 0xDF; break;
+            case 0x5201:
+                vsplit_scroll_ = val; break;
+            case 0x5202:
+                vsplit_bank_ = val; break;
+            case 0x5203:
+                irq_scanline_ = val; break;
+            case 0x5204:
+                irq_status_ = val & 0x80; break;
+            case 0x5205 ... 0x5206:
+                multiplier_[addr - 0x5205] = val;
+            default:
+                // Unhandled MMC5 register write.
+                fprintf(stderr,
+                        "Unhandled MMC5 register write at %04x (val=%02x)\n",
+                        addr, val);
+        }
+    }
+
+  private:
+    uint8_t prg_banks_;
+    uint8_t prg_mode_;
+    uint8_t chr_mode_;
+    uint8_t prg_ram_protect_[2];
+    uint8_t ext_ram_mode_;
+    uint8_t nt_map_;
+    uint8_t fill_tile_;
+    uint8_t fill_color_;
+    uint8_t prg_bank_[5];
+    uint8_t chr_bank_[12];
+    uint8_t chr_upper_;
+
+    uint8_t vsplit_mode_;
+    uint8_t vsplit_scroll_;
+    uint8_t vsplit_bank_;
+
+    uint8_t irq_scanline_;
+    uint8_t irq_status_;
+
+    uint8_t multiplier_[2];
+
+    // "Extended" ram.
+    uint8_t ext_ram_[1024];
+
+};
+
+REGISTER_MAPPER(5, Mapper5);
+}  // namespace protones

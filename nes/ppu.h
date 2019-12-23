@@ -19,6 +19,15 @@ class PPU : public EmulatedDevice {
         uint8_t bluetint: 1;
     };
 
+    struct Control {
+        uint8_t nametable: 2;
+        uint8_t increment: 1;
+        uint8_t spritetable: 1;
+        uint8_t bgtable: 1;
+        uint8_t spritesize: 1;
+        uint8_t master: 1;
+    };
+
     PPU(NES* nes);
     ~PPU() {}
     void Reset();
@@ -29,6 +38,7 @@ class PPU : public EmulatedDevice {
     inline uint64_t frame() const { return frame_; }
     inline int scanline() const { return scanline_; }
     inline int cycle() const { return cycle_; }
+    inline Control control() const { return control_; }
     inline Mask mask() const { return mask_; }
     void LoadState(proto::PPU* state);
     void SaveState(proto::PPU* state);
@@ -100,15 +110,7 @@ class PPU : public EmulatedDevice {
         uint8_t index[8];
     } sprite_;
 
-    struct {
-        uint8_t nametable: 2;
-        uint8_t increment: 1;
-        uint8_t spritetable: 1;
-        uint8_t bgtable: 1;
-        uint8_t spritesize: 1;
-        uint8_t master: 1;
-    } control_;
-
+    Control control_;
     Mask mask_;
 
     struct {

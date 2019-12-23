@@ -31,6 +31,7 @@ cc_library(
     srcs = ["mapper.cc"],
     deps = [
         ":base",
+        ":cartridge",
         ":nes-interface",
         "//proto:mappers",
     ],
@@ -152,6 +153,7 @@ cc_library(
         "mapper2.cc",
         "mapper3.cc",
         "mapper4.cc",
+        "mapper5.cc",
         "mapper7.cc",
     ],
     deps = [
