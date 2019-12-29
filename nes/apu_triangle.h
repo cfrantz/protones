@@ -1,15 +1,17 @@
 #ifndef PROTONES_NES_APU_TRIANGLE_H
 #define PROTONES_NES_APU_TRIANGLE_H
 #include <cstdint>
+#include "nes/base.h"
 #include "nes/nes.h"
 #include "proto/apu.pb.h"
 namespace protones {
 
-class Triangle {
+class Triangle: public APUDevice {
   public:
     Triangle(NES* nes);
 
-    uint8_t Output();
+    Type type() const override { return Type::Triangle; }
+    float Output();
     void StepTimer();
     void StepLength();
     void StepCounter();
@@ -21,6 +23,7 @@ class Triangle {
     inline uint16_t length() const { return length_value_; }
     void LoadState(proto::APUTriangle *state);
     void SaveState(proto::APUTriangle *state);
+
   private:
     uint8_t InternalOutput();
     NES* nes_;
@@ -42,9 +45,6 @@ class Triangle {
     struct {
         uint8_t control, tlo, thi;
     } reg_;
-    const static int DBGBUFSZ = 1024;
-    float dbgbuf_[DBGBUFSZ];
-    int dbgp_;
     friend class APUDebug;
 };
 

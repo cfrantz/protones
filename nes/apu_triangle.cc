@@ -16,15 +16,16 @@ static uint8_t triangle_table[32] = {
 };
 
 Triangle::Triangle(NES* nes)
-    : nes_(nes),
+    : APUDevice("Triangle", 0.25),
+    nes_(nes),
     enabled_(false),
     length_enabled_(false),
     length_value_(0),
     timer_period_(0), timer_value_(0),
     duty_value_(0),
     counter_reload_(false),
-    counter_period_(0), counter_value_(0),
-    dbgp_(0) {}
+    counter_period_(0), counter_value_(0)
+    {}
 
 void Triangle::SaveState(proto::APUTriangle *state) {
     SAVE(enabled,
@@ -52,11 +53,11 @@ uint8_t Triangle::InternalOutput() {
     return triangle_table[duty_value_];
 }
 
-uint8_t Triangle::Output() {
-    uint8_t val = InternalOutput();
+float Triangle::Output() {
+    float val = InternalOutput();
     dbgbuf_[dbgp_] = val;
     dbgp_ = (dbgp_ + 1) % DBGBUFSZ;
-    return val;
+    return output_volume_ * val / 16.0f;
 }
 
 void Triangle::StepTimer() {

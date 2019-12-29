@@ -1,15 +1,18 @@
 #ifndef PROTONES_NES_APU_NOISE_H
 #define PROTONES_NES_APU_NOISE_H
 #include <cstdint>
+#include "nes/base.h"
 #include "nes/nes.h"
 #include "proto/apu.pb.h"
 
 namespace protones {
 
-class Noise {
+class Noise: public APUDevice {
   public:
     Noise(NES* nes);
-    uint8_t Output();
+
+    Type type() const override { return Type::Noise; }
+    float Output();
     void StepTimer();
     void StepEnvelope();
     void StepLength();
@@ -21,6 +24,7 @@ class Noise {
     inline uint16_t length() const { return length_value_; }
     void SaveState(proto::APUNoise *state);
     void LoadState(proto::APUNoise *state);
+
   private:
     uint8_t InternalOutput();
     NES* nes_;
@@ -48,9 +52,6 @@ class Noise {
     struct {
         uint8_t control, period, length;
     } reg_;
-    const static int DBGBUFSZ = 1024;
-    float dbgbuf_[DBGBUFSZ];
-    int dbgp_;
     friend class APUDebug;
 };
 

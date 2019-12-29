@@ -32,8 +32,12 @@ class Mapper5: public Mapper {
         apu_divider_(0),
         cycle_(0),
 
-        pulse_({{nes, 1}, {nes, 2}})
-        {}
+        pulse_({{nes, 1}, {nes, 2}}),
+        audio_debug_{&pulse_[0], &pulse_[1]}
+        {
+        pulse_[0].set_name("MMC5 Pulse 0");
+        pulse_[1].set_name("MMC5 Pulse 1");
+    }
 
     void LoadState(proto::Mapper* mstate) {
         auto* state = mstate->mutable_mmc5();
@@ -386,10 +390,11 @@ class Mapper5: public Mapper {
     }
 
     float ExpansionAudio() override {
-        uint8_t p0 = pulse_[0].Output();
-        uint8_t p1 = pulse_[1].Output();
-        return (0.25 / 32.0) * float(p0+p1);
+        float p0 = pulse_[0].Output();
+        float p1 = pulse_[1].Output();
+        return p0 + p1;
     }
+    const APUDevices& DebugExpansionAudio() override { return audio_debug_; }
 
   private:
     uint8_t prg_banks_;
@@ -420,6 +425,7 @@ class Mapper5: public Mapper {
     uint32_t cycle_;
 
     Pulse pulse_[2];
+    APUDevices audio_debug_;
 };
 
 REGISTER_MAPPER(5, Mapper5);

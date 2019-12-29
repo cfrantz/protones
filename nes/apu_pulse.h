@@ -1,15 +1,18 @@
 #ifndef PROTONES_NES_APU_PULSE_H
 #define PROTONES_NES_APU_PULSE_H
 #include <cstdint>
+#include "nes/base.h"
 #include "nes/nes.h"
 #include "proto/apu.pb.h"
 
 namespace protones {
 
-class Pulse {
+class Pulse : public APUDevice {
   public:
     Pulse(NES* nes, uint8_t channel);
-    uint8_t Output();
+
+    Type type() const override { return Type::Pulse; }
+    float Output();
     void Sweep();
     void StepTimer();
     void StepEnvelope();
@@ -24,6 +27,7 @@ class Pulse {
     inline uint16_t length() const { return length_value_; }
     void LoadState(proto::APUPulse* state);
     void SaveState(proto::APUPulse* state);
+
   private:
     uint8_t InternalOutput();
     NES* nes_;
@@ -58,9 +62,6 @@ class Pulse {
     struct {
         uint8_t control, sweep, tlo, thi;
     } reg_;
-    const static int DBGBUFSZ = 1024;
-    float dbgbuf_[DBGBUFSZ];
-    int dbgp_;
     friend class APUDebug;
 };
 

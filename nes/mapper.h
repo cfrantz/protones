@@ -11,6 +11,8 @@ namespace protones {
 
 class Mapper : public EmulatedDevice {
   public:
+    using APUDevices = std::vector<APUDevice*>;
+
     Mapper(NES* nes) : nes_(nes) {}
     virtual uint8_t Read(uint16_t addr) = 0;
     virtual void ReadChr2(uint16_t addr, uint8_t* a, uint8_t* b) {
@@ -56,6 +58,10 @@ class Mapper : public EmulatedDevice {
     }
 
     virtual float ExpansionAudio() { return 0; }
+    virtual const APUDevices& DebugExpansionAudio() {
+        static APUDevices empty;
+        return empty;
+    }
 
   protected:
     NES* nes_;

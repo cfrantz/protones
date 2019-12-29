@@ -3,6 +3,7 @@
 
 #include "imgui.h"
 #include "nes/apu.h"
+#include "nes/mapper.h"
 
 namespace protones {
 
@@ -50,9 +51,10 @@ int APUDebug::FindFreqIndex(double f) {
 }
 
 void APUDebug::DrawPulse(Pulse* pulse) {
+    ImGui::PushID(pulse);
     ImGui::BeginGroup();
     ImGui::PlotLines("", pulse->dbgbuf_, pulse->DBGBUFSZ, pulse->dbgp_,
-                     "Pulse", 0.0f, 15.0f, ImVec2(0, 80));
+                     pulse->name(), 0.0f, 15.0f, ImVec2(0, 80));
     ImGui::SameLine();
     ImGui::BeginGroup();
     ImGui::Text("Enabled: %s", pulse->enabled_ ? "true" : "false");
@@ -61,15 +63,17 @@ void APUDebug::DrawPulse(Pulse* pulse) {
     ImGui::Text("Timer:   %02X%02X", pulse->reg_.thi, pulse->reg_.tlo);
     double f = frequency(pulse->timer_period_);
     ImGui::Text("Note:    %-3s %.2f", notes_[FindFreqIndex(f)], f);
-
     ImGui::EndGroup();
+    ImGui::SliderFloat("Volume", pulse->mutable_output_volume(), 0.0f, 1.0f);
     ImGui::EndGroup();
+    ImGui::PopID();
 }
 
 void APUDebug::DrawTriangle(Triangle* tri) {
+    ImGui::PushID(tri);
     ImGui::BeginGroup();
     ImGui::PlotLines("", tri->dbgbuf_, tri->DBGBUFSZ, tri->dbgp_,
-                     "Triangle", 0.0f, 15.0f, ImVec2(0, 80));
+                     tri->name(), 0.0f, 15.0f, ImVec2(0, 80));
     ImGui::SameLine();
     ImGui::BeginGroup();
     ImGui::Text("Enabled: %s", tri->enabled_ ? "true" : "false");
@@ -78,13 +82,16 @@ void APUDebug::DrawTriangle(Triangle* tri) {
     double f = frequency(tri->timer_period_) / 2.0;
     ImGui::Text("Note:    %-3s %.2f", notes_[FindFreqIndex(f)], f);
     ImGui::EndGroup();
+    ImGui::SliderFloat("Volume", tri->mutable_output_volume(), 0.0f, 1.0f);
     ImGui::EndGroup();
+    ImGui::PopID();
 }
 
 void APUDebug::DrawNoise(Noise* noise) {
+    ImGui::PushID(noise);
     ImGui::BeginGroup();
     ImGui::PlotLines("", noise->dbgbuf_, noise->DBGBUFSZ, noise->dbgp_,
-                     "Noise", 0.0f, 15.0f, ImVec2(0, 80));
+                     noise->name(), 0.0f, 15.0f, ImVec2(0, 80));
     ImGui::SameLine();
     ImGui::BeginGroup();
     ImGui::Text("Enabled: %s", noise->enabled_ ? "true" : "false");
@@ -92,13 +99,16 @@ void APUDebug::DrawNoise(Noise* noise) {
     ImGui::Text("Period: %02X", noise->reg_.period);
     ImGui::Text("Length: %02X", noise->reg_.length);
     ImGui::EndGroup();
+    ImGui::SliderFloat("Volume", noise->mutable_output_volume(), 0.0f, 1.0f);
     ImGui::EndGroup();
+    ImGui::PopID();
 }
 
 void APUDebug::DrawDMC(DMC* dmc) {
+    ImGui::PushID(dmc);
     ImGui::BeginGroup();
     ImGui::PlotLines("", dmc->dbgbuf_, dmc->DBGBUFSZ, dmc->dbgp_,
-                     "DMC", 0.0f, 15.0f, ImVec2(0, 80));
+                     dmc->name(), 0.0f, 15.0f, ImVec2(0, 80));
     ImGui::SameLine();
     ImGui::BeginGroup();
     ImGui::Text("Enabled: %s", dmc->enabled_ ? "true" : "false");
@@ -107,7 +117,29 @@ void APUDebug::DrawDMC(DMC* dmc) {
     ImGui::Text("Address: %02X", dmc->reg_.address);
     ImGui::Text("Length:  %02X", dmc->reg_.length);
     ImGui::EndGroup();
+    ImGui::SliderFloat("Volume", dmc->mutable_output_volume(), 0.0f, 1.0f);
     ImGui::EndGroup();
+    ImGui::PopID();
+}
+
+void APUDebug::DrawOne(APUDevice *dev) {
+    switch(dev->type()) {
+        case APUDevice::Type::Pulse:
+            DrawPulse(static_cast<Pulse*>(dev));
+            break;
+        case APUDevice::Type::Triangle:
+            DrawTriangle(static_cast<Triangle*>(dev));
+            break;
+        case APUDevice::Type::Noise:
+            DrawNoise(static_cast<Noise*>(dev));
+            break;
+        case APUDevice::Type::DMC:
+            DrawDMC(static_cast<DMC*>(dev));
+            break;
+        default:
+            // unknown
+            fprintf(stderr, "Unknown sound device %d\n", int(dev->type()));
+    }
 }
 
 bool APUDebug::Draw() {
@@ -120,6 +152,10 @@ bool APUDebug::Draw() {
     DrawTriangle(&apu_->triangle_);
     DrawNoise(&apu_->noise_);
     DrawDMC(&apu_->dmc_);
+    for(const auto& dev : apu_->nes_->mapper()->DebugExpansionAudio()) {
+        DrawOne(dev);
+    }
+
     ImGui::End();
     return false;
 }

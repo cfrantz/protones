@@ -8,15 +8,16 @@ static uint8_t dmc_table[16] = {
     214, 190, 170, 160, 143, 127, 113, 107, 95, 80, 71, 64, 53, 42, 36, 27,
 };
 
-DMC::DMC(NES* nes) :
+DMC::DMC(NES* nes)
+    : APUDevice("DMC", 0.25),
     nes_(nes),
     enabled_(0),
     value_(0),
     sample_address_(0), sample_length_(0),
     current_address_(0), current_length_(0),
     shift_register_(0), bit_count_(0), tick_value_(0), tick_period_(0),
-    loop_(0), irq_(0),
-    dbgp_(0) {}
+    loop_(0), irq_(0)
+    {}
 
 void DMC::SaveState(proto::APUDMC *state) {
     SAVE(enabled,
@@ -36,10 +37,10 @@ void DMC::LoadState(proto::APUDMC *state) {
          loop, irq);
 }
 
-uint8_t DMC::Output() {
+float DMC::Output() {
     dbgbuf_[dbgp_] = value_;
     dbgp_ = (dbgp_ + 1) % DBGBUFSZ;
-    return value_;
+    return output_volume_ * float(value_) / 128.0;
 }
 
 void DMC::StepReader() {

@@ -24,7 +24,8 @@ static uint8_t length_table[32] = {
 };
 
 Pulse::Pulse(NES* nes, uint8_t channel)
-    : nes_(nes),
+    : APUDevice(nullptr, 0.125),
+    nes_(nes),
     enabled_(false),
     channel_(channel),
     length_enabled_(false), length_value_(0),
@@ -34,8 +35,10 @@ Pulse::Pulse(NES* nes, uint8_t channel)
     sweep_shift_(0), sweep_period_(0), sweep_value_(0),
     envelope_enable_(false), envelope_start_(false), envelope_loop_(false),
     envelope_period_(0), envelope_value_(0), envelope_volume_(0),
-    constant_volume_(0),
-    dbgp_(0) {}
+    constant_volume_(0) 
+    {
+        snprintf(name_, sizeof(name_), "APU Pulse %d", channel);
+    }
 
 void Pulse::SaveState(proto::APUPulse* state) {
     SAVE(enabled,
@@ -93,11 +96,11 @@ uint8_t Pulse::InternalOutput() {
     return constant_volume_;
 }
 
-uint8_t Pulse::Output() {
-    uint8_t val = InternalOutput();
+float Pulse::Output() {
+    float val = InternalOutput();
     dbgbuf_[dbgp_] = val;
     dbgp_ = (dbgp_ + 1) % DBGBUFSZ;
-    return val;
+    return output_volume_ * val / 16.0f;
 }
 
 void Pulse::Sweep() {

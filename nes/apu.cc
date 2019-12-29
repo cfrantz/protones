@@ -122,13 +122,13 @@ void APU::StepFrameCounter() {
 }
 
 float APU::Output() {
-    uint8_t p0 = pulse_[0].Output();
-    uint8_t p1 = pulse_[1].Output();
-    uint8_t t = triangle_.Output();
-    uint8_t n = noise_.Output();
-    uint8_t d = dmc_.Output();
+    float p0 = pulse_[0].Output();
+    float p1 = pulse_[1].Output();
+    float t = triangle_.Output();
+    float n = noise_.Output();
+    float d = dmc_.Output();
     float e = nes_->mapper()->ExpansionAudio();
-    return volume_ * (e + pulse_table[p0+p1] + other_table[t*3 + n*2 + d]);
+    return volume_ * (p0 + p1 + t + n + d + e);
 }
 
 void APU::Emulate() {

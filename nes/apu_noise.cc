@@ -13,7 +13,8 @@ static uint16_t noise_table[] = {
 };
 
 Noise::Noise(NES* nes)
-    : nes_(nes),
+    : APUDevice("Noise", 0.25),
+    nes_(nes),
     enabled_(false),
     mode_(false),
     shift_register_(1),
@@ -22,8 +23,8 @@ Noise::Noise(NES* nes)
     timer_period_(0), timer_value_(0),
     envelope_enable_(false), envelope_start_(false), envelope_loop_(false),
     envelope_period_(0), envelope_value_(0), envelope_volume_(0),
-    constant_volume_(0),
-    dbgp_(0) {}
+    constant_volume_(0)
+    {}
 
 void Noise::SaveState(proto::APUNoise* state) {
     SAVE(enabled,
@@ -57,11 +58,11 @@ uint8_t Noise::InternalOutput() {
     return constant_volume_;
 }
 
-uint8_t Noise::Output() {
-    uint8_t val = InternalOutput();
+float Noise::Output() {
+    float val = InternalOutput();
     dbgbuf_[dbgp_] = val;
     dbgp_ = (dbgp_ + 1) % DBGBUFSZ;
-    return val;
+    return output_volume_ * val / 16.0f;
 }
 
 void Noise::StepTimer() {

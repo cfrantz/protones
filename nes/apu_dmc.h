@@ -1,16 +1,18 @@
 #ifndef PROTONES_NES_APU_DMC_H
 #define PROTONES_NES_APU_DMC_H
 #include <cstdint>
+#include "nes/base.h"
 #include "nes/nes.h"
 #include "proto/apu.pb.h"
 
 namespace protones {
 
-class DMC {
+class DMC: public APUDevice {
   public:
     DMC(NES* nes);
     
-    uint8_t Output();
+    Type type() const override { return Type::DMC; }
+    float Output();
     void StepReader();
     void StepShifter();
     void StepTimer();
@@ -24,6 +26,7 @@ class DMC {
     void restart();
     void LoadState(proto::APUDMC* state);
     void SaveState(proto::APUDMC* state);
+
   private:
     uint8_t InternalOutput();
     NES* nes_;
@@ -45,9 +48,6 @@ class DMC {
     struct {
         uint8_t control, value, address, length;
     } reg_;
-    const static int DBGBUFSZ = 1024;
-    float dbgbuf_[DBGBUFSZ];
-    int dbgp_;
     friend class APUDebug;
 };
 

@@ -1,5 +1,6 @@
 #ifndef PROTONES_IMWIDGET_APU_DEBUG_H
 #define PROTONES_IMWIDGET_APU_DEBUG_H
+#include "nes/base.h"
 #include "imwidget/imwidget.h"
 
 namespace protones {
@@ -24,6 +25,7 @@ class APUDebug : public ImWindowBase {
     void DrawTriangle(Triangle*);
     void DrawNoise(Noise*);
     void DrawDMC(DMC*);
+    void DrawOne(APUDevice* dev);
 
     void InitFreqTable(double a4);
     int FindFreqIndex(double f);
