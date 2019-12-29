@@ -26,6 +26,8 @@ class Mapper5: public Mapper {
         vsplit_scroll_(0),
         vsplit_bank_(0),
         irq_scanline_(0),
+        scanline_counter_(0),
+        irq_enable_(0),
         irq_status_(0),
         multiplier_{0xFF, 0xFF},
         ext_ram_{0},
@@ -53,6 +55,8 @@ class Mapper5: public Mapper {
              vsplit_scroll,
              vsplit_bank,
              irq_scanline,
+             scanline_counter,
+             irq_enable,
              irq_status,
              apu_divider,
              cycle);
@@ -81,6 +85,8 @@ class Mapper5: public Mapper {
              vsplit_scroll,
              vsplit_bank,
              irq_scanline,
+             scanline_counter,
+             irq_enable,
              irq_status,
              apu_divider,
              cycle);
@@ -256,6 +262,7 @@ class Mapper5: public Mapper {
 
     uint8_t ReadRegister(uint16_t addr) {
         uint16_t product;
+        uint8_t val;
         switch(addr) {
             case 0x5100:
                 return prg_mode_;
@@ -286,7 +293,10 @@ class Mapper5: public Mapper {
             case 0x5203:
                 return irq_scanline_;
             case 0x5204:
-                return irq_status_;
+                val = irq_status_;
+                // Clear pending flag.
+                irq_status_ &= ~0x80;
+                return val;
             case 0x5205 ... 0x5206:
                 product = multiplier_[0] * multiplier_[1];
                 return addr == 0x5205 ? uint8_t(product)
@@ -348,7 +358,7 @@ class Mapper5: public Mapper {
             case 0x5203:
                 irq_scanline_ = val; break;
             case 0x5204:
-                irq_status_ = val & 0x80; break;
+                irq_enable_ = val & 0x80; break;
             case 0x5205 ... 0x5206:
                 multiplier_[addr - 0x5205] = val;
             default:
@@ -359,7 +369,34 @@ class Mapper5: public Mapper {
         }
     }
 
+    void CheckScanline() {
+        if (!rendering_enabled() || nes_->ppu()->scanline() > 240) {
+            // Clear irq_pending and in_frame.
+            irq_status_ &= ~0xC0;
+            scanline_counter_ = 0;
+            return;
+        }
+        if (irq_status_ & 0x40) {
+            // If in_frame and the count is equal, signal an interrupt.
+            scanline_counter_ += 1;
+            if (scanline_counter_ == irq_scanline_) {
+                irq_status_ |= 0x80;
+                if (irq_enable_) {
+                    nes_->IRQ();
+                }
+            }
+        } else {
+            // Not in_frame, so become in_inframe.
+            irq_status_ = (irq_status_ | 0x40) & ~0x80;
+            scanline_counter_ = 0;
+        }
+
+    }
+
     void Emulate() override {
+        if (nes_->ppu()->cycle() == 0) {
+            CheckScanline();
+        }
         // The mapper is clocked at the PPU clock rate.
         if (apu_divider_++ == 2) {
             // Re-derive the cpu clock to clock the pulse channels.
@@ -414,6 +451,8 @@ class Mapper5: public Mapper {
     uint8_t vsplit_bank_;
 
     uint8_t irq_scanline_;
+    uint8_t scanline_counter_;
+    uint8_t irq_enable_;
     uint8_t irq_status_;
 
     uint8_t multiplier_[2];

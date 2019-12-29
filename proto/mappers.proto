@@ -54,12 +54,14 @@ message MMC5 {
     uint32 vsplit_scroll = 13;
     uint32 vsplit_bank = 14;
     uint32 irq_scanline = 15;
-    uint32 irq_status = 16;
-    repeated uint32 multiplier = 17;
-    bytes ext_ram = 18;
-    uint32 apu_divider = 19;
-    uint32 cycle = 20;
-    repeated APUPulse pulse = 21;
+    uint32 scanline_counter = 16;
+    uint32 irq_enable = 17;
+    uint32 irq_status = 18;
+    repeated uint32 multiplier = 19;
+    bytes ext_ram = 20;
+    uint32 apu_divider = 21;
+    uint32 cycle = 22;
+    repeated APUPulse pulse = 23;
 }
 
 message Mapper {
