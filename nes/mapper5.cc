@@ -3,6 +3,7 @@
 #include "nes/pbmacro.h"
 #include "nes/cartridge.h"
 #include "nes/ppu.h"
+#include "nes/apu_pulse.h"
 
 namespace protones {
 
@@ -26,8 +27,13 @@ class Mapper5: public Mapper {
         vsplit_bank_(0),
         irq_scanline_(0),
         irq_status_(0),
-        multiplier_{0},
-        ext_ram_{0} {}
+        multiplier_{0xFF, 0xFF},
+        ext_ram_{0},
+        apu_divider_(0),
+        cycle_(0),
+
+        pulse_({{nes, 1}, {nes, 2}})
+        {}
 
     void LoadState(proto::Mapper* mstate) {
         auto* state = mstate->mutable_mmc5();
@@ -43,7 +49,9 @@ class Mapper5: public Mapper {
              vsplit_scroll,
              vsplit_bank,
              irq_scanline,
-             irq_status);
+             irq_status,
+             apu_divider,
+             cycle);
         LOAD_ARRAYS(prg_ram_protect,
                     prg_bank,
                     chr_bank,
@@ -51,6 +59,8 @@ class Mapper5: public Mapper {
         size_t len = std::min(sizeof(ext_ram_),
                               state->mutable_ext_ram()->size());
         memcpy(ext_ram_, state->mutable_ext_ram()->data(), len);
+        pulse_[0].SaveState(state->mutable_pulse(0));
+        pulse_[1].SaveState(state->mutable_pulse(1));
     }
 
     void SaveState(proto::Mapper* mstate) {
@@ -67,17 +77,26 @@ class Mapper5: public Mapper {
              vsplit_scroll,
              vsplit_bank,
              irq_scanline,
-             irq_status);
+             irq_status,
+             apu_divider,
+             cycle);
         SAVE_ARRAYS(prg_ram_protect,
                     prg_bank,
                     chr_bank,
                     multiplier);
         state->mutable_ext_ram()->assign(
                 reinterpret_cast<const char*>(ext_ram_), sizeof(ext_ram_));
+
+        state->clear_pulse();
+        pulse_[0].SaveState(state->add_pulse());
+        pulse_[1].SaveState(state->add_pulse());
     }
 
     inline uint8_t _prg_bank(size_t index) const {
         return (prg_bank_[index] & 0x7f) % prg_banks_;
+    }
+    inline bool rendering_enabled() const {
+        return nes_->ppu()->mask().showsprites || nes_->ppu()->mask().showbg;
     }
 
     inline uint32_t TranslatePrg(uint16_t addr) {
@@ -146,8 +165,7 @@ class Mapper5: public Mapper {
     }
 
     void ReadChr2(uint16_t addr, uint8_t* a, uint8_t* b) override {
-        bool bgbanks = nes_->ppu()->control().spritesize &&
-            (nes_->ppu()->mask().showsprites || nes_->ppu()->mask().showbg);
+        bool bgbanks = nes_->ppu()->control().spritesize && rendering_enabled();
         uint32_t chraddr = TranslateChr(addr, bgbanks);
         *a = nes_->cartridge()->ReadChr(chraddr);
         *b = nes_->cartridge()->ReadChr(chraddr + 8);
@@ -159,7 +177,7 @@ class Mapper5: public Mapper {
         *b = nes_->cartridge()->ReadChr(chraddr + 8);
     }
 
-    virtual uint8_t* VramAddress(uint8_t* ppuram, uint16_t addr) {
+    virtual uint8_t* VramAddress(uint8_t* ppuram, uint16_t addr) override {
         static uint8_t junk;
         uint16_t offset = addr & 0x3FF;
         uint16_t table = (addr >> 10) & 3;
@@ -280,6 +298,20 @@ class Mapper5: public Mapper {
     void WriteRegister(uint16_t addr, uint8_t val) {
         //printf("MMC5 Reg: %04x = %02x\n", addr, val);
         switch(addr) {
+            case 0x5000: pulse_[0].set_control(val); break;
+            case 0x5001: break; // Do nothing.
+            case 0x5002: pulse_[0].set_timer_low(val); break;
+            case 0x5003: pulse_[0].set_timer_high(val); break;
+
+            case 0x5004: pulse_[1].set_control(val); break;
+            case 0x5005: break; // Do nothing.
+            case 0x5006: pulse_[1].set_timer_low(val); break;
+            case 0x5007: pulse_[1].set_timer_high(val); break;
+            case 0x5015:
+                pulse_[0].set_enabled(!!(val & 0x01));
+                pulse_[1].set_enabled(!!(val & 0x02));
+                break;
+
             case 0x5100:
                 prg_mode_ = val & 0x03; break;
             case 0x5101:
@@ -323,6 +355,42 @@ class Mapper5: public Mapper {
         }
     }
 
+    void Emulate() override {
+        // The mapper is clocked at the PPU clock rate.
+        if (apu_divider_++ == 2) {
+            // Re-derive the cpu clock to clock the pulse channels.
+            apu_divider_ = 0;
+            EmulateAudio();
+        }
+    }
+
+    void EmulateAudio() {
+        double c1 = double(cycle_);
+        double c2 = double(++cycle_);
+        if (cycle_ % 2 == 0) {
+            // Pulse channels are clocked at half the cpu rate.
+            pulse_[0].StepTimer();
+            pulse_[1].StepTimer();
+        }
+
+        int f1 = int(c1 / NES::frame_counter_rate);
+        int f2 = int(c2 / NES::frame_counter_rate);
+        if (f1 == f2) {
+            return;
+        }
+        // In MMC5, the pulse envelopes and lengths are clocked at 240 Hz.
+        pulse_[0].StepEnvelope();
+        pulse_[0].StepLength();
+        pulse_[1].StepEnvelope();
+        pulse_[1].StepLength();
+    }
+
+    float ExpansionAudio() override {
+        uint8_t p0 = pulse_[0].Output();
+        uint8_t p1 = pulse_[1].Output();
+        return (0.25 / 32.0) * float(p0+p1);
+    }
+
   private:
     uint8_t prg_banks_;
     uint8_t prg_mode_;
@@ -348,6 +416,10 @@ class Mapper5: public Mapper {
     // "Extended" ram.
     uint8_t ext_ram_[1024];
 
+    uint32_t apu_divider_;
+    uint32_t cycle_;
+
+    Pulse pulse_[2];
 };
 
 REGISTER_MAPPER(5, Mapper5);

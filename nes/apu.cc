@@ -6,6 +6,7 @@
 #include "util/os.h"
 #include "nes/apu.h"
 #include "nes/nes.h"
+#include "nes/mapper.h"
 
 DEFINE_double(volume, 0.2, "Sound volume");
 DEFINE_bool(lock_framerate_to_audio, true,
@@ -126,7 +127,8 @@ float APU::Output() {
     uint8_t t = triangle_.Output();
     uint8_t n = noise_.Output();
     uint8_t d = dmc_.Output();
-    return volume_* (pulse_table[p0+p1] + other_table[t*3 + n*2 + d]);
+    float e = nes_->mapper()->ExpansionAudio();
+    return volume_ * (e + pulse_table[p0+p1] + other_table[t*3 + n*2 + d]);
 }
 
 void APU::Emulate() {

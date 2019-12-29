@@ -55,6 +55,8 @@ class Mapper : public EmulatedDevice {
         return ppuram + MirrorAddress(addr);
     }
 
+    virtual float ExpansionAudio() { return 0; }
+
   protected:
     NES* nes_;
 };

@@ -38,6 +38,9 @@ proto_library(
     srcs = [
         "mappers.proto",
     ],
+    deps = [
+        ":apu_proto",
+    ],
 )
 cc_proto_library(
     name = "mappers",

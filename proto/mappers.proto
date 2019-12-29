@@ -1,5 +1,6 @@
 syntax = "proto3";
 package proto;
+import "proto/apu.proto";
 
 message MMC1 {
     uint32 shift_register = 1;
@@ -56,6 +57,9 @@ message MMC5 {
     uint32 irq_status = 16;
     repeated uint32 multiplier = 17;
     bytes ext_ram = 18;
+    uint32 apu_divider = 19;
+    uint32 cycle = 20;
+    repeated APUPulse pulse = 21;
 }
 
 message Mapper {

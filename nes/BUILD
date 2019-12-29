@@ -67,6 +67,7 @@ cc_library(
         ":base",
         #":midi",
         ":nes-interface",
+        ":mapper",
         ":pbmacro",
         "//util:os",
         "//proto:apu",
@@ -159,6 +160,7 @@ cc_library(
     deps = [
         ":mapper",
         ":cartridge",
+        ":apu",
         ":ppu",
         ":pbmacro",
         "//proto:mappers",
