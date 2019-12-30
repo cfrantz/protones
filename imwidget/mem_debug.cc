@@ -2,6 +2,7 @@
 
 #include "imgui.h"
 #include "nes/mem.h"
+#include "nes/cartridge.h"
 
 namespace protones {
 
@@ -49,6 +50,10 @@ bool MemDebug::Draw() {
     ImGui::Begin("Memory", &visible_);
     ImGui::Text("----- NES RAM -----");
     HexDump(0, 2048);
+    if (mem_->nes_->cartridge()->mapper() == 5) {
+        ImGui::Text("---- MMC5 ExtRAM ----");
+        HexDump(0x5c00, 1024);
+    }
     ImGui::Text("---- Cartridge ----");
     HexDump(0x6000, 0xA000);
     ImGui::End();

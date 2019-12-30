@@ -54,6 +54,7 @@ class Mem : public EmulatedDevice {
     uint8_t palette_[32];
 
     std::vector<std::string> custom_memdump_;
+    friend class MemDebug;
 };
 
 }  // namespace protones

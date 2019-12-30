@@ -95,6 +95,11 @@ uint8_t Mem::read_byte_no_io(uint16_t addr) {
         return ram_[addr];
     } else if (addr < 0x4000) {
         return PPURead(addr);
+    } else if (addr >= 0x5c00 && addr < 0x6000) {
+        if (nes_->cartridge()->mapper() == 5) {
+            return nes_->mapper()->Read(addr);
+        }
+        return 0;
     } else if (addr >= 0x6000) {
         return nes_->mapper()->Read(addr);
     } else {

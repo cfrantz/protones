@@ -62,6 +62,7 @@ message MMC5 {
     uint32 apu_divider = 21;
     uint32 cycle = 22;
     repeated APUPulse pulse = 23;
+    bool vsplit_region = 24;
 }
 
 message Mapper {

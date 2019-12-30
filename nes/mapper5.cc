@@ -25,6 +25,7 @@ class Mapper5: public Mapper {
         vsplit_mode_(0),
         vsplit_scroll_(0),
         vsplit_bank_(0),
+        vsplit_region_(false),
         irq_scanline_(0),
         scanline_counter_(0),
         irq_enable_(0),
@@ -54,6 +55,7 @@ class Mapper5: public Mapper {
              vsplit_mode,
              vsplit_scroll,
              vsplit_bank,
+             vsplit_region,
              irq_scanline,
              scanline_counter,
              irq_enable,
@@ -84,6 +86,7 @@ class Mapper5: public Mapper {
              vsplit_mode,
              vsplit_scroll,
              vsplit_bank,
+             vsplit_region,
              irq_scanline,
              scanline_counter,
              irq_enable,
@@ -176,7 +179,12 @@ class Mapper5: public Mapper {
 
     void ReadChr2(uint16_t addr, uint8_t* a, uint8_t* b) override {
         bool bgbanks = nes_->ppu()->control().spritesize && rendering_enabled();
-        uint32_t chraddr = TranslateChr(addr, bgbanks);
+        uint32_t chraddr;
+        if (vsplit_region_) {
+            chraddr = (vsplit_bank_ * 4096) + (addr & 0x0FFF);
+        } else {
+            chraddr = TranslateChr(addr, bgbanks);
+        }
         *a = nes_->cartridge()->ReadChr(chraddr);
         *b = nes_->cartridge()->ReadChr(chraddr + 8);
     }
@@ -193,6 +201,40 @@ class Mapper5: public Mapper {
         uint16_t table = (addr >> 10) & 3;
         uint8_t which = (nt_map_ >> (table * 2)) & 3;
 
+        // Is vsplit enabled?
+        if (vsplit_mode_ & 0x80) {
+            uint16_t tile = vsplit_mode_ & 0x1f;
+            // Re-compute PPU position from scanline/cycle data.
+            int scanline = nes_->ppu()->scanline();
+            int pputile = nes_->ppu()->cycle() + 15;
+            // PPU fetches the next line's first two tiles during Hblank
+            if (pputile >= 336) {
+                pputile -= 336;
+                scanline += 1;
+            }
+            pputile /= 8;
+            int sofs = (scanline / 8) * 32 + pputile;
+            if (offset >= 0x3c0) {
+                // Attribute fetch.
+                sofs = 0x3c0 | ((sofs >> 4) & 0x38) | ((sofs >> 2) & 7);
+            }
+            if (vsplit_mode_ & 0x40) {
+                // Right side.
+                if (pputile >= tile) {
+                    vsplit_region_ = true;
+                    return ext_ram_ + sofs;
+                }
+            } else {
+                // Left side.
+                if (pputile < tile) {
+                    vsplit_region_ = true;
+                    //return ext_ram_ + (noscroll & 0x3FF);
+                    return ext_ram_ + sofs;
+                }
+            }
+            vsplit_region_ = false;
+        }
+
         switch(which) {
             case 0: return ppuram + offset;
             case 1: return ppuram + 0x400 + offset;
@@ -206,7 +248,7 @@ class Mapper5: public Mapper {
                 if (offset < 0x3c0) {
                     junk = fill_tile_;
                 } else {
-                    junk = fill_tile_;
+                    junk = fill_color_;
                     junk |= junk << 2;
                     junk |= junk << 4;
                 }
@@ -224,7 +266,8 @@ class Mapper5: public Mapper {
             fprintf(stderr, "Unhandled MMC5 read at %04x\n", addr);
             return 0xff;
         } else if (addr >= 0x5c00 && addr < 0x6000) {
-            return (ext_ram_mode_ >= 2) ?  ext_ram_[addr - 0x5c00] : 0xFF;
+            //return (ext_ram_mode_ >= 2) ?  ext_ram_[addr - 0x5c00] : 0xFF;
+            return ext_ram_[addr - 0x5c00];
         } else if (addr >= 0x6000 && addr < 0x8000) {
             uint32_t offset = (prg_bank_[0] * 8192) + (addr & 0x1FFF);
             return nes_->cartridge()->ReadSram(offset);
@@ -350,7 +393,9 @@ class Mapper5: public Mapper {
             case 0x5130:
                 chr_upper_ = val & 0x03; break;
             case 0x5200:
-                vsplit_mode_ = val & 0xDF; break;
+                vsplit_mode_ = val & 0xDF;
+                vsplit_region_ = false;
+                break;
             case 0x5201:
                 vsplit_scroll_ = val; break;
             case 0x5202:
@@ -449,6 +494,7 @@ class Mapper5: public Mapper {
     uint8_t vsplit_mode_;
     uint8_t vsplit_scroll_;
     uint8_t vsplit_bank_;
+    bool vsplit_region_;
 
     uint8_t irq_scanline_;
     uint8_t scanline_counter_;
