@@ -5,6 +5,11 @@
 #include "nes/ppu.h"
 #include "nes/apu_pulse.h"
 
+// This MMC5 implementation was developed from studying the nesdev MMC5
+// document and studying the fceux MMC5 implementation.
+//
+// https://wiki.nesdev.com/w/index.php/MMC5
+
 namespace protones {
 
 class Mapper5: public Mapper {
@@ -356,12 +361,12 @@ class Mapper5: public Mapper {
         //printf("MMC5 Reg: %04x = %02x\n", addr, val);
         switch(addr) {
             case 0x5000: pulse_[0].set_control(val); break;
-            case 0x5001: break; // Do nothing.
+            case 0x5001: break; // MMC5 pulse channels have no sweep unit.
             case 0x5002: pulse_[0].set_timer_low(val); break;
             case 0x5003: pulse_[0].set_timer_high(val); break;
 
             case 0x5004: pulse_[1].set_control(val); break;
-            case 0x5005: break; // Do nothing.
+            case 0x5005: break; // MMC5 pulse channels have no sweep unit.
             case 0x5006: pulse_[1].set_timer_low(val); break;
             case 0x5007: pulse_[1].set_timer_high(val); break;
             case 0x5015:
@@ -439,6 +444,8 @@ class Mapper5: public Mapper {
     }
 
     void Emulate() override {
+        // According to the nesdev MMC5 document, the IRQ should happen
+        // at ppu cycle 260.
         if (nes_->ppu()->cycle() == 0) {
             CheckScanline();
         }
