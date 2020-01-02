@@ -108,7 +108,7 @@ void APUDebug::DrawDMC(DMC* dmc) {
     ImGui::PushID(dmc);
     ImGui::BeginGroup();
     ImGui::PlotLines("", dmc->dbgbuf_, dmc->DBGBUFSZ, dmc->dbgp_,
-                     dmc->name(), 0.0f, 15.0f, ImVec2(0, 80));
+                     dmc->name(), 0.0f, 127.0f, ImVec2(0, 80));
     ImGui::SameLine();
     ImGui::BeginGroup();
     ImGui::Text("Enabled: %s", dmc->enabled_ ? "true" : "false");
