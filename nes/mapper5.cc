@@ -411,6 +411,7 @@ class Mapper5: public Mapper {
                 irq_enable_ = val & 0x80; break;
             case 0x5205 ... 0x5206:
                 multiplier_[addr - 0x5205] = val;
+                break;
             default:
                 // Unhandled MMC5 register write.
                 fprintf(stderr,
