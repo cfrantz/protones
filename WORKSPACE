@@ -2,20 +2,23 @@
 # gflags
 ######################################################################
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-load("//rules:patched_http_archive.bzl",
-     "patched_http_archive",
-     "new_patched_http_archive")
-load("@bazel_tools//tools/build_defs/repo:git.bzl",
-     "git_repository",
-     "new_git_repository",
+load(
+    "//rules:patched_http_archive.bzl",
+    "new_patched_http_archive",
+    "patched_http_archive",
+)
+load(
+    "@bazel_tools//tools/build_defs/repo:git.bzl",
+    "git_repository",
+    "new_git_repository",
 )
 
 patched_http_archive(
     name = "com_github_gflags_gflags",
-    urls = ["https://github.com/gflags/gflags/archive/77592648e3f3be87d6c7123eb81cbad75f9aef5a.zip"],
-    strip_prefix = "gflags-77592648e3f3be87d6c7123eb81cbad75f9aef5a",
-    sha256 = "94ad0467a0de3331de86216cbc05636051be274bf2160f6e86f07345213ba45b",
     patch = "//rules:gflags.patch",
+    sha256 = "94ad0467a0de3331de86216cbc05636051be274bf2160f6e86f07345213ba45b",
+    strip_prefix = "gflags-77592648e3f3be87d6c7123eb81cbad75f9aef5a",
+    urls = ["https://github.com/gflags/gflags/archive/77592648e3f3be87d6c7123eb81cbad75f9aef5a.zip"],
 )
 
 bind(
@@ -28,15 +31,16 @@ bind(
 ######################################################################
 new_git_repository(
     name = "imgui_git",
-    tag = "v1.60",
-    remote = "https://github.com/ocornut/imgui.git",
     build_file = "//rules:imgui.BUILD",
+    remote = "https://github.com/ocornut/imgui.git",
+    tag = "v1.60",
 )
 
 bind(
     name = "imgui",
     actual = "@imgui_git//:imgui",
 )
+
 bind(
     name = "imgui_sdl_opengl",
     actual = "@imgui_git//:imgui_sdl_opengl",
@@ -47,22 +51,23 @@ bind(
 ######################################################################
 new_patched_http_archive(
     name = "com_github_bimpy",
-    urls = ["https://github.com/podgorskiy/bimpy/archive/54fa78cec38b48770a486ac41404e08465c789e0.zip"],
-    strip_prefix = "bimpy-54fa78cec38b48770a486ac41404e08465c789e0",
-    sha256 = "f691eaf43ece6b5e7b85b0419c12753ad2512a860a5abe88f70a3ebdd3871b20",
-    patch = "//rules:bimpy.patch",
     build_file = "//rules:bimpy.BUILD",
+    patch = "//rules:bimpy.patch",
+    sha256 = "f691eaf43ece6b5e7b85b0419c12753ad2512a860a5abe88f70a3ebdd3871b20",
+    strip_prefix = "bimpy-54fa78cec38b48770a486ac41404e08465c789e0",
+    urls = ["https://github.com/podgorskiy/bimpy/archive/54fa78cec38b48770a486ac41404e08465c789e0.zip"],
 )
 
 ######################################################################
 # IconFontCppHeaders
 ######################################################################
 new_git_repository(
-	name = "iconfonts",
-	remote = "https://github.com/juliettef/IconFontCppHeaders.git",
-    commit = "fda5f470b767f7b413e4a3995fa8cfe47f78b586",
+    name = "iconfonts",
     build_file = "//rules:iconfonts.BUILD",
+    commit = "fda5f470b767f7b413e4a3995fa8cfe47f78b586",
+    remote = "https://github.com/juliettef/IconFontCppHeaders.git",
 )
+
 bind(
     name = "fontawesome",
     actual = "@iconfonts//:fontawesome",
@@ -72,9 +77,9 @@ bind(
 # protobuf
 ######################################################################
 git_repository(
-	name = "com_google_protobuf",
-	remote = "https://github.com/google/protobuf.git",
-	tag = "v3.11.1"
+    name = "com_google_protobuf",
+    remote = "https://github.com/google/protobuf.git",
+    tag = "v3.11.1",
 )
 
 # rules_cc defines rules for generating C++ code from Protocol Buffers.
@@ -98,31 +103,31 @@ http_archive(
         "https://github.com/bazelbuild/rules_proto/archive/9cd4f8f1ede19d81c6d48910429fe96776e567b1.tar.gz",
     ],
 )
+
 load("@rules_cc//cc:repositories.bzl", "rules_cc_dependencies")
+
 rules_cc_dependencies()
 
 load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
+
 rules_proto_dependencies()
+
 rules_proto_toolchains()
-
-
-
-
 
 ######################################################################
 # pybind11
 ######################################################################
 new_local_repository(
     name = "system_python",
-    path = "/usr/include/python3.8",
     build_file = "//rules:system_python.BUILD",
+    path = "/usr/include/python3.8",
 )
 
 new_git_repository(
-	name = "pybind11_git",
-	remote = "https://github.com/pybind/pybind11.git",
-	tag = "v2.4.3",
+    name = "pybind11_git",
     build_file = "//rules:pybind11.BUILD",
+    remote = "https://github.com/pybind/pybind11.git",
+    tag = "v2.4.3",
 )
 
 ######################################################################
@@ -130,18 +135,18 @@ new_git_repository(
 ######################################################################
 git_repository(
     name = "com_google_absl",
-    remote = "https://github.com/abseil/abseil-cpp.git",
     commit = "ecc56367b8836a552b3716c643da99537c128a13",
+    remote = "https://github.com/abseil/abseil-cpp.git",
 )
 
 ######################################################################
 # native file dialog
 ######################################################################
 new_git_repository(
-	name = "nativefiledialog_git",
-	remote = "https://github.com/mlabbe/nativefiledialog.git",
-    commit = "5cfe5002eb0fac1e49777a17dec70134147931e2",
+    name = "nativefiledialog_git",
     build_file = "//rules:nfd.BUILD",
+    commit = "5cfe5002eb0fac1e49777a17dec70134147931e2",
+    remote = "https://github.com/mlabbe/nativefiledialog.git",
 )
 
 bind(
@@ -154,11 +159,10 @@ bind(
 ######################################################################
 new_git_repository(
     name = "rtmidi_git",
-    tag = "2.1.1",
-    remote = "https://github.com/thestk/rtmidi.git",
     build_file = "//rules:rtmidi.BUILD",
+    remote = "https://github.com/thestk/rtmidi.git",
+    tag = "2.1.1",
 )
-
 
 ######################################################################
 # compilers for windows
@@ -176,13 +180,13 @@ git_repository(
     tag = "20191215_RC01",
 )
 
-
 load("@mxebzl//compiler:repository.bzl", "mxe_compiler")
+
 mxe_compiler(
     deps = [
-        "compiler",
         "SDL2",
         "SDL2-extras",
+        "compiler",
         "pthreads",
         "python",
     ],

@@ -1,4 +1,4 @@
-package(default_visibility=["//visibility:public"])
+package(default_visibility = ["//visibility:public"])
 
 load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
 load("@mxebzl//tools:rules.bzl", "pkg_winzip")
@@ -7,7 +7,7 @@ config_setting(
     name = "windows",
     values = {
         "crosstool_top": "@mxebzl//compiler:win64",
-    }
+    },
 )
 
 genrule(
@@ -19,18 +19,18 @@ genrule(
 
 cc_library(
     name = "app",
-    linkopts = [
-        "-lSDL2_image",
-        "-lSDL2_mixer",
-        "-lSDL2_gfx",
-        "-lSDL2",
+    srcs = [
+        "app.cc",
     ],
     hdrs = [
         "app.h",
         "version.h",
     ],
-    srcs = [
-        "app.cc",
+    linkopts = [
+        "-lSDL2_image",
+        "-lSDL2_mixer",
+        "-lSDL2_gfx",
+        "-lSDL2",
     ],
     deps = [
         "//imwidget:base",
@@ -41,7 +41,7 @@ cc_library(
         "//imwidget:ppu_debug",
         "//imwidget:python_console",
         "//imwidget:error_dialog",
-        "//nes:nes",
+        "//nes",
         "//python:protones",
         "//util:browser",
         "//util:config",
@@ -75,6 +75,14 @@ genrule(
 
 cc_binary(
     name = "protones",
+    srcs = [
+        "main.cc",
+        "protones_config.h",
+    ],
+    data = ["//content"] + select({
+        ":windows": ["@mxebzl//runtime/python37"],
+        "//conditions:default": [],
+    }),
     linkopts = select({
         ":windows": [
             "-lpthread",
@@ -101,24 +109,16 @@ cc_binary(
             "-lGL",
         ],
     }),
-    srcs = [
-        "protones_config.h",
-        "main.cc",
-    ],
     deps = [
         ":app",
+        "//external:gflags",
+        "//proto:config",
         "//util:config",
         "//util:file",
         "//util:os",
-        "//proto:config",
-        "//external:gflags",
-        "@pybind11_git//:pybind11",
         "@com_github_bimpy//:bimpy",
+        "@pybind11_git//:pybind11",
     ],
-    data = ["//content"] + select({
-        ":windows": ["@mxebzl//runtime/python37"],
-        "//conditions:default": [],
-    })
 )
 
 pkg_winzip(
@@ -141,8 +141,8 @@ pkg_tar(
     srcs = [
         ":protones",
     ],
-    package_dir = "/usr/local/bin",
     mode = "0755",
+    package_dir = "/usr/local/bin",
 )
 
 pkg_tar(
@@ -150,10 +150,10 @@ pkg_tar(
     srcs = [
         "//content",
     ],
+    mode = "0644",
+    package_dir = "/usr/local/share/protones",
     # BUG: https://github.com/bazelbuild/bazel/issues/2176
     strip_prefix = ".",
-    package_dir = "/usr/local/share/protones",
-    mode = "0644",
 )
 
 pkg_tar(

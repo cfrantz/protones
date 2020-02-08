@@ -1,4 +1,4 @@
-package(default_visibility=["//visibility:public"])
+package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "base",
@@ -16,19 +16,19 @@ cc_library(
 cc_library(
     name = "nes-interface",
     hdrs = [
+        "mem.h",
         "nes.h",
-        "mem.h"
     ],
     deps = [
-        "//proto:nes",
         "//proto:config",
+        "//proto:nes",
     ],
 )
 
 cc_library(
     name = "mapper",
-    hdrs = ["mapper.h"],
     srcs = ["mapper.cc"],
+    hdrs = ["mapper.h"],
     deps = [
         ":base",
         ":cartridge",
@@ -39,8 +39,8 @@ cc_library(
 
 cc_library(
     name = "midi",
-    hdrs = ["midi.h"],
     srcs = ["midi.cc"],
+    hdrs = ["midi.h"],
     deps = [
         ":base",
         "@rtmidi_git//:rtmidi",
@@ -49,19 +49,19 @@ cc_library(
 
 cc_library(
     name = "apu",
-    hdrs = [
-        "apu.h",
-        "apu_dmc.h",
-        "apu_noise.h",
-        "apu_pulse.h",
-        "apu_triangle.h",
-    ],
     srcs = [
         "apu.cc",
         "apu_dmc.cc",
         "apu_noise.cc",
         "apu_pulse.cc",
         "apu_triangle.cc",
+    ],
+    hdrs = [
+        "apu.h",
+        "apu_dmc.h",
+        "apu_noise.h",
+        "apu_pulse.h",
+        "apu_triangle.h",
     ],
     deps = [
         ":base",
@@ -78,56 +78,56 @@ cc_library(
 
 cc_library(
     name = "cartridge",
-    hdrs = ["cartridge.h"],
     srcs = ["cartridge.cc"],
+    hdrs = ["cartridge.h"],
     deps = [
         ":base",
         ":nes-interface",
+        "//external:gflags",
         "//proto:mappers",
         "//util:crc",
         "//util:file",
         "//util:os",
-        "//external:gflags",
     ],
 )
 
 cc_library(
     name = "controller",
-    hdrs = ["controller.h"],
     srcs = ["controller.cc"],
+    hdrs = ["controller.h"],
     deps = [
         ":base",
         ":nes-interface",
+        "//external:imgui",
         "//proto:config",
         "//util:config",
-        "//external:imgui",
     ],
 )
 
 cc_library(
     name = "cpu6502",
-    hdrs = ["cpu6502.h"],
     srcs = ["cpu6502.cc"],
+    hdrs = ["cpu6502.h"],
     deps = [
         ":base",
-        ":pbmacro",
         ":nes-interface",
-        "//proto:cpu6502",
+        ":pbmacro",
         "//external:gflags",
+        "//proto:cpu6502",
     ],
 )
 
 cc_binary(
     name = "cpu_test",
     srcs = ["cpu_test.cc"],
-    deps = [
-        ":cpu6502",
-        ":nes",
-        ":mem",
-        "//external:gflags",
-    ],
     linkopts = [
         "-lSDL2",
+    ],
+    deps = [
+        ":cpu6502",
+        ":mem",
+        ":nes",
+        "//external:gflags",
     ],
 )
 
@@ -143,12 +143,8 @@ cc_library(
     ],
 )
 
-
 cc_library(
     name = "mapper-lib",
-    hdrs = [
-        "mapper1.h"
-    ],
     srcs = [
         "mapper1.cc",
         "mapper2.cc",
@@ -157,12 +153,15 @@ cc_library(
         "mapper5.cc",
         "mapper7.cc",
     ],
+    hdrs = [
+        "mapper1.h",
+    ],
     deps = [
-        ":mapper",
-        ":cartridge",
         ":apu",
-        ":ppu",
+        ":cartridge",
+        ":mapper",
         ":pbmacro",
+        ":ppu",
         "//proto:mappers",
     ],
     alwayslink = 1,
@@ -172,17 +171,17 @@ cc_library(
     name = "mem",
     srcs = ["mem.cc"],
     deps = [
-        ":base",
         ":apu",
+        ":base",
         ":cartridge",
         ":controller",
         ":cpu6502",
         ":mapper",
         ":nes-interface",
         ":ppu",
-        "//proto:nes",
-        "//proto:cpu6502",
         "//external:imgui",
+        "//proto:cpu6502",
+        "//proto:nes",
     ],
 )
 
@@ -220,7 +219,7 @@ cc_library(
         ":mapper",
         ":nes-interface",
         ":pbmacro",
-        "//proto:ppu",
         "//external:imgui",
+        "//proto:ppu",
     ],
 )
