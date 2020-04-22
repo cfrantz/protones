@@ -14,7 +14,7 @@ class Cpu : public EmulatedDevice {
     typedef std::function<uint16_t(Cpu*)> ExecCb;
     Cpu() : Cpu(nullptr) {}
     Cpu(Mem* mem);
-    ~Cpu() {}
+    ~Cpu() { }
 
     void SaveState(proto::CPU6502 *state);
     void LoadState(proto::CPU6502 *state);
@@ -104,6 +104,14 @@ class Cpu : public EmulatedDevice {
         ZeroPageY,
     };
 
+    enum RWLog {
+        LogRead = 1,
+        LogWrite = 2,
+        LogWriteZero = 4,
+        LogStack = 8,
+        LogExec = 16,
+    };
+
     inline void set_read_cb(uint16_t addr, const MemoryCb& cb) {
         read_cb_[addr] = cb;
     }
@@ -113,16 +121,22 @@ class Cpu : public EmulatedDevice {
     inline void set_exec_cb(uint16_t addr, const ExecCb& cb) {
         exec_cb_[addr] = cb;
     }
+    void SaveRwLog();
 
   private:
-    uint8_t inline Read(uint16_t addr) {
+    uint8_t inline Read(uint16_t addr, RWLog how=LogExec) {
         uint8_t val = mem_->read_byte(addr);
         if (read_cb_[addr]) val = read_cb_[addr](this, addr, val);
+        rwlog_[addr] |= how;
         return val;
     }
-    void inline Write(uint16_t addr, uint8_t val) {
+    void inline Write(uint16_t addr, uint8_t val, RWLog how=LogWrite) {
         if (write_cb_[addr]) val = write_cb_[addr](this, addr, val);
         mem_->write_byte(addr, val);
+        if (how == LogWrite && val == 0) {
+            how = LogWriteZero;
+        }
+        rwlog_[addr] |= how;
     }
     uint16_t inline Read16(uint16_t addr) {
         return Read(addr) | Read(addr+1) << 8;
@@ -136,8 +150,8 @@ class Cpu : public EmulatedDevice {
         return ret;
     }
 
-    inline void Push(uint8_t val) { Write(sp_-- | 0x100, val); }
-    inline uint8_t Pull() { return Read(++sp_ | 0x100); }
+    inline void Push(uint8_t val) { Write(sp_-- | 0x100, val, LogStack); }
+    inline uint8_t Pull() { return Read(++sp_ | 0x100, LogStack); }
 
     inline void Push16(uint16_t val) { Push(val>>8); Push(val); }
     inline uint16_t Pull16() { return Pull() | Pull() << 8; }
@@ -153,14 +167,7 @@ class Cpu : public EmulatedDevice {
         return (a & 0xFF00) != (b & 0xFF00);
     }
     void Branch(uint16_t addr);
-    /*
-    inline void Branch(uint16_t addr) {
-        if (PagesDiffer(pc_, addr))
-            cycles_++;
-        pc_ = addr;
-        cycles_++;
-    }
-    */
+
 
     Mem* mem_;
     CpuFlags flags_;
@@ -188,6 +195,8 @@ class Cpu : public EmulatedDevice {
     std::map<uint16_t, MemoryCb> read_cb_;
     std::map<uint16_t, MemoryCb> write_cb_;
     std::map<uint16_t, ExecCb> exec_cb_;
+
+    uint8_t rwlog_[65536];
 };
 
 }  // namespace protones

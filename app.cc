@@ -412,6 +412,7 @@ void ProtoNES::Run() {
             break;
         }
     }
+    nes_->Shutdown();
 }
 
 void ProtoNES::Load(const std::string& filename) {

@@ -121,7 +121,9 @@ PYBIND11_EMBEDDED_MODULE(protones, m) {
             for(const char& v : val) {
                 self->write_byte(addr++, (uint8_t)v);
             }
-        }, py::arg("addr"), py::arg("value_str"));
+        }, py::arg("addr"), py::arg("value_str"))
+        .def("PPURead", &Mem::PPURead)
+        .def("PPUWrite", &Mem::PPUWrite);
 
     m.attr("BUTTON_A") =      0x01; //Controller::BUTTON_A;
     m.attr("BUTTON_B") =      0x02; //Controller::BUTTON_B;

@@ -24,7 +24,7 @@ def WritePrgBank(bank, addr, val):
         app.root().nes.cartridge.WritePrg(
                 (0x4000 * bank) + ((addr+i) & 0x3FFF), v)
 
-def db(addr=None, length=None, b=None):
+def db(addr=None, length=None, b=None, ppu=False):
     global _addr, _length, _bank
     if addr is not None:
         _addr = addr
@@ -43,7 +43,9 @@ def db(addr=None, length=None, b=None):
             else:
                 print('  %s\n%04x:' % (''.join(buf), _addr), end='')
             buf = ['.' for _ in range(16)]
-        if (_addr < 0x8000):
+        if (ppu):
+            val = mem.PPURead(_addr)
+        elif (_addr < 0x8000):
             val = mem[_addr]
         else:
             val = ReadPrgBank(_bank, _addr)
@@ -93,9 +95,14 @@ def PrintExecCb(cpu):
 def ReadWatch(addr, on=True):
     app.root().nes.cpu.SetReadCallback(addr, PrintMemCb if on else None)
 
+def ReadWatchRange(start, end, on=True):
+    for a in range(start, end):
+        ReadWatch(a, on)
+
 def WriteWatch(addr, on=True):
     app.root().nes.cpu.SetWriteCallback(addr, PrintMemCb if on else None)
 
 def ExecWatch(addr, on=True):
     app.root().nes.cpu.SetExecCallback(addr, PrintExecCb if on else None)
+
 

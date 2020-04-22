@@ -1,7 +1,7 @@
 ######################################################################
 # Simple cheats script for Zelda 2
 #
-# This script serves as an example of how to hook into ProtoNES 
+# This script serves as an example of how to hook into ProtoNES
 # with python.
 ######################################################################
 import app
@@ -55,35 +55,39 @@ class Zelda2(app.EmulatorHooks):
         """Hook into the menubar and some menus."""
         if bimpy.begin_menu("Goto"):
             if bimpy.menu_item("Palace 1"):
-                self.z2goto(4, 0, 3, 4, 0, 52, 0);                               
+                self.z2goto(4, 0, 3, 4, 0, 52, 0)
             elif bimpy.menu_item("Palace 2"):
-                self.z2goto(4, 0, 3, 4, 1, 53, 0xe);                             
+                self.z2goto(4, 0, 3, 4, 1, 53, 0xe)
             elif bimpy.menu_item("Palace 3"):
-                self.z2goto(4, 0, 4, 5, 2, 54, 0);                               
+                self.z2goto(4, 0, 4, 5, 2, 54, 0)
             elif bimpy.menu_item("Palace 4"):
-                self.z2goto(4, 1, 4, 8, 0, 52, 0xf);                             
+                self.z2goto(4, 1, 4, 8, 0, 52, 0xf)
             elif bimpy.menu_item("Palace 5"):
-                self.z2goto(4, 2, 3, 8, 0, 52, 0x23);                            
+                self.z2goto(4, 2, 3, 8, 0, 52, 0x23)
             elif bimpy.menu_item("Palace 6"):
-                self.z2goto(4, 2, 4, 8, 1, 53, 0x24);                            
+                self.z2goto(4, 2, 4, 8, 1, 53, 0x24)
             elif bimpy.menu_item("Palace 7"):
-                self.z2goto(5, 2, 5, 9, 2, 54, 0);                               
+                self.z2goto(5, 2, 5, 9, 2, 54, 0)
             elif bimpy.menu_item("Rauru"):
-                self.z2goto(3, 0, 1, 0, 0xf8, 45, 2);                            
+                self.z2goto(3, 0, 1, 0, 0xf8, 45, 2)
             elif bimpy.menu_item("Ruto"):
-                self.z2goto(3, 0, 1, 1, 0xf8, 47, 5);                            
+                self.z2goto(3, 0, 1, 1, 0xf8, 47, 5)
             elif bimpy.menu_item("Saria"):
-                self.z2goto(3, 0, 1, 2, 0xf8, 49, 8);                            
+                self.z2goto(3, 0, 1, 2, 0xf8, 49, 8)
             elif bimpy.menu_item("Mido"):
-                self.z2goto(3, 0, 1, 3, 0xf8, 51, 11);                           
+                self.z2goto(3, 0, 1, 3, 0xf8, 51, 11)
             elif bimpy.menu_item("Nabooru"):
-                self.z2goto(3, 2, 2, 4, 0xf8, 45, 14);                           
+                self.z2goto(3, 2, 2, 4, 0xf8, 45, 14)
             elif bimpy.menu_item("Darunia"):
-                self.z2goto(3, 2, 2, 5, 0xf8, 47, 17);                           
+                self.z2goto(3, 2, 2, 5, 0xf8, 47, 17)
             elif bimpy.menu_item("New Kasuto"):
-                self.z2goto(3, 2, 2, 6, 0xf8, 49, 20);                           
+                self.z2goto(3, 2, 2, 6, 0xf8, 49, 20)
             elif bimpy.menu_item("Old Kasuto"):
-                self.z2goto(3, 2, 2, 7, 0xf8, 51, 23); 
+                self.z2goto(3, 2, 2, 7, 0xf8, 51, 23)
+            elif bimpy.menu_item("T-Bird Fight"):
+                self.z2goto(5, 2, 5, 9, 2, 54, 53)
+            elif bimpy.menu_item("Dark Link Fight"):
+                self.z2goto(5, 2, 5, 9, 2, 54, 54)
             bimpy.end_menu()
         if bimpy.begin_menu("Cheats"):
             if bimpy.menu_item("Cheats", selected=self.cheats.visible.value):

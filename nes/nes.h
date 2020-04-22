@@ -28,6 +28,7 @@ class NES {
     void LoadFile(const std::string& filename);
     void IRQ();
     void NMI();
+    void Shutdown();
 
     inline int controller_size() const {
         return int(sizeof(controller_) / sizeof(controller_[0]));

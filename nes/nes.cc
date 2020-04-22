@@ -99,6 +99,10 @@ NES::NES() :
 
 }
 
+void NES::Shutdown() {
+    cpu_->SaveRwLog();
+}
+
 void NES::LoadFile(const std::string& filename) {
     if (!FLAGS_fm2.empty()) {
         movie_->Load(FLAGS_fm2);

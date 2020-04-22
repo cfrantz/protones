@@ -7,6 +7,8 @@
 #include "nes/pbmacro.h"
 
 DEFINE_bool(trace, false, "Enable per cycle CPU tracing");
+DEFINE_string(rwlog, "", "Save memory access info to a file");
+
 namespace protones {
 
 void Cpu::Branch(uint16_t addr) {
@@ -20,6 +22,13 @@ void Cpu::Branch(uint16_t addr) {
     cycles_++;
 }
 
+void Cpu::SaveRwLog() {
+    if (FLAGS_rwlog.empty())
+        return;
+    FILE* fp = fopen(FLAGS_rwlog.c_str(), "wb");
+    fwrite(rwlog_, 1, sizeof(rwlog_), fp);
+    fclose(fp);
+}
 
 Cpu::Cpu(Mem* mem) :
     mem_(mem),
@@ -325,7 +334,7 @@ int Cpu::Execute(void) {
     case 0x19:
     /* ORA nnnn,X */
     case 0x1D:
-        a_ = a_ | Read(addr);
+        a_ = a_ | Read(addr, LogRead);
         SetZN(a_);
         break;
     /* ASL nn */
@@ -336,7 +345,7 @@ int Cpu::Execute(void) {
     case 0x16:
     /* ASL nnnn,X */
     case 0x1E:
-        val = Read(addr);
+        val = Read(addr, LogRead);
         flags_.c = val >> 7;
         val <<= 1;
         Write(addr, val);
@@ -382,14 +391,14 @@ int Cpu::Execute(void) {
     case 0x39:
     /* AND nnnn,X */
     case 0x3D:
-        a_ = a_ & Read(addr);
+        a_ = a_ & Read(addr, LogRead);
         SetZN(a_);
         break;
     /* BIT nn */
     case 0x24:
     /* BIT nnnn */
     case 0x2C:
-        val = Read(addr);
+        val = Read(addr, LogRead);
         flags_.v = val >> 6;
         SetZ(val & a_);
         SetN(val);
@@ -402,7 +411,7 @@ int Cpu::Execute(void) {
     case 0x36:
     /* ROL nnnn,X */
     case 0x3E:
-        r = Read(addr);
+        r = Read(addr, LogRead);
         r = (r << 1) | flags_.c;
         flags_.c = r >> 8;
         Write(addr, r);
@@ -449,7 +458,7 @@ int Cpu::Execute(void) {
     case 0x59:
     /* EOR nnnn,X */
     case 0x5D:
-        a_ = a_ ^ Read(addr);
+        a_ = a_ ^ Read(addr, LogRead);
         SetZN(a_);
         break;
     /* LSR nn */
@@ -460,7 +469,7 @@ int Cpu::Execute(void) {
     case 0x56:
     /* LSR nnnn,X */
     case 0x5E:
-        val = Read(addr);
+        val = Read(addr, LogRead);
         flags_.c = val & 1;
         val >>= 1;
         Write(addr, val);
@@ -512,7 +521,7 @@ int Cpu::Execute(void) {
     /* ADC nnnn,X */
     case 0x7D:
         a = a_;
-        b = Read(addr);
+        b = Read(addr, LogRead);
         r = a + b + flags_.c;
         a_ = r;
         flags_.c = (r > 0xff);
@@ -527,7 +536,7 @@ int Cpu::Execute(void) {
     case 0x76:
     /* ROR nnnn,X */
     case 0x7E:
-        val = Read(addr);
+        val = Read(addr, LogRead);
         a = (val >> 1) | (flags_.c << 7);
         flags_.c = val & 1;
         Write(addr, a);
@@ -619,7 +628,7 @@ int Cpu::Execute(void) {
     case 0xB4:
     /* LDY nnnn,X */
     case 0xBC:
-        y_ = Read(addr);
+        y_ = Read(addr, LogRead);
         SetZN(y_);
         break;
     /* LDA (nn,X) */
@@ -638,7 +647,7 @@ int Cpu::Execute(void) {
     case 0xB9:
     /* LDA nnnn,X */
     case 0xBD:
-        a_ = Read(addr);
+        a_ = Read(addr, LogRead);
         SetZN(a_);
         break;
     /* LDX #nn */
@@ -651,7 +660,7 @@ int Cpu::Execute(void) {
     case 0xB6:
     /* LDX nnnn,Y */
     case 0xBE:
-        x_ = Read(addr);
+        x_ = Read(addr, LogRead);
         SetZN(x_);
         break;
     /* TAY */
@@ -684,7 +693,7 @@ int Cpu::Execute(void) {
     case 0xC4:
     /* CPY nnnn */
     case 0xCC:
-        Compare(y_, Read(addr));
+        Compare(y_, Read(addr, LogRead));
         break;
     /* CMP (nn,X) */
     case 0xC1:
@@ -702,7 +711,7 @@ int Cpu::Execute(void) {
     case 0xD9:
     /* CMP nnnn,X */
     case 0xDD:
-        Compare(a_, Read(addr));
+        Compare(a_, Read(addr, LogRead));
         break;
     /* DEC nn */
     case 0xC6:
@@ -712,7 +721,7 @@ int Cpu::Execute(void) {
     case 0xD6:
     /* DEC nnnn,X */
     case 0xDE:
-        val = Read(addr) - 1;
+        val = Read(addr, LogRead) - 1;
         Write(addr, val);
         SetZN(val);
         break;
@@ -739,7 +748,7 @@ int Cpu::Execute(void) {
     case 0xE4:
     /* CPX nnnn */
     case 0xEC:
-        Compare(x_, Read(addr));
+        Compare(x_, Read(addr, LogRead));
         break;
     /* SBC (nn,X) */
     case 0xE1:
@@ -758,7 +767,7 @@ int Cpu::Execute(void) {
     /* SBC nnnn,X */
     case 0xFD:
         a = a_;
-        b = Read(addr);
+        b = Read(addr, LogRead);
         r = a - b - (1- flags_.c);
         a_ = r;
         flags_.c = (r >= 0);
@@ -773,7 +782,7 @@ int Cpu::Execute(void) {
     case 0xF6:
     /* INC nnnn,X */
     case 0xFE:
-        val = Read(addr) + 1;
+        val = Read(addr, LogRead) + 1;
         Write(addr, val);
         SetZN(val);
         break;
