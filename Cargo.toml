@@ -1,0 +1,18 @@
+[package]
+name = "protones"
+version = "0.0.0"
+edition = "2018"
+authors = ["Chris Frantz"]
+publish = false
+
+[dependencies]
+bitflags = "1.2.1"
+byteorder = "1"
+#clipboard = "0.5"
+#glium = { version = "0.25", default-features = true }
+#imgui = { version = "0.3.0-pre", path = "imgui-rs" }
+#imgui-glium-renderer = { version = "0.3.0-pre", path = "imgui-rs/imgui-glium-renderer" }
+#imgui-winit-support = { version = "0.3.0-pre", path = "imgui-rs/imgui-winit-support" }
+ron = "*"
+serde = { version = "1", features = ["serde_derive"] }
+lazy_static = "1.4.0"

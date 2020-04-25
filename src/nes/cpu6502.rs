@@ -1,0 +1,1073 @@
+//#[macro_use]
+//extern crate bitflags;
+use std::default::Default;
+
+#[derive(Clone, Copy, Debug)]
+enum AddressingMode {
+    Absolute,
+    AbsoluteX,
+    AbsoluteY,
+    Accumulator,
+    Immediate,
+    Implied,
+    IndexedIndirect,
+    Indirect,
+    IndirectIndexed,
+    Relative,
+    ZeroPage,
+    ZeroPageX,
+    ZeroPageY,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct InstructionInfo {
+    size: u8,
+    cycles: u8,
+    page: u8,
+    mode: AddressingMode,
+}
+
+const INFO: [InstructionInfo; 256] = [
+    InstructionInfo { size: 1, cycles: 7, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 2, cycles: 6, page: 0, mode: AddressingMode::IndexedIndirect },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 8, page: 0, mode: AddressingMode::IndexedIndirect },
+    InstructionInfo { size: 2, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 2, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 2, cycles: 5, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 0, cycles: 5, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 1, cycles: 3, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 2, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Accumulator },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 3, cycles: 4, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 3, cycles: 4, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 3, cycles: 6, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 0, cycles: 6, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 2, cycles: 2, page: 1, mode: AddressingMode::Relative },
+    InstructionInfo { size: 2, cycles: 5, page: 1, mode: AddressingMode::IndirectIndexed },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 8, page: 0, mode: AddressingMode::IndirectIndexed },
+    InstructionInfo { size: 2, cycles: 4, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 2, cycles: 4, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 2, cycles: 6, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 0, cycles: 6, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 7, page: 0, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 3, cycles: 7, page: 0, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 0, cycles: 7, page: 0, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 3, cycles: 6, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 2, cycles: 6, page: 0, mode: AddressingMode::IndexedIndirect },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 8, page: 0, mode: AddressingMode::IndexedIndirect },
+    InstructionInfo { size: 2, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 2, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 2, cycles: 5, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 0, cycles: 5, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 1, cycles: 4, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 2, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Accumulator },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 3, cycles: 4, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 3, cycles: 4, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 3, cycles: 6, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 0, cycles: 6, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 2, cycles: 2, page: 1, mode: AddressingMode::Relative },
+    InstructionInfo { size: 2, cycles: 5, page: 1, mode: AddressingMode::IndirectIndexed },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 8, page: 0, mode: AddressingMode::IndirectIndexed },
+    InstructionInfo { size: 2, cycles: 4, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 2, cycles: 4, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 2, cycles: 6, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 0, cycles: 6, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 7, page: 0, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 3, cycles: 7, page: 0, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 0, cycles: 7, page: 0, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 1, cycles: 6, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 2, cycles: 6, page: 0, mode: AddressingMode::IndexedIndirect },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 8, page: 0, mode: AddressingMode::IndexedIndirect },
+    InstructionInfo { size: 2, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 2, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 2, cycles: 5, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 0, cycles: 5, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 1, cycles: 3, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 2, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Accumulator },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 3, cycles: 3, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 3, cycles: 4, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 3, cycles: 6, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 0, cycles: 6, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 2, cycles: 2, page: 1, mode: AddressingMode::Relative },
+    InstructionInfo { size: 2, cycles: 5, page: 1, mode: AddressingMode::IndirectIndexed },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 8, page: 0, mode: AddressingMode::IndirectIndexed },
+    InstructionInfo { size: 2, cycles: 4, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 2, cycles: 4, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 2, cycles: 6, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 0, cycles: 6, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 7, page: 0, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 3, cycles: 7, page: 0, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 0, cycles: 7, page: 0, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 1, cycles: 6, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 2, cycles: 6, page: 0, mode: AddressingMode::IndexedIndirect },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 8, page: 0, mode: AddressingMode::IndexedIndirect },
+    InstructionInfo { size: 2, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 2, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 2, cycles: 5, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 0, cycles: 5, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 1, cycles: 4, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 2, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Accumulator },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 3, cycles: 5, page: 0, mode: AddressingMode::Indirect },
+    InstructionInfo { size: 3, cycles: 4, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 3, cycles: 6, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 0, cycles: 6, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 2, cycles: 2, page: 1, mode: AddressingMode::Relative },
+    InstructionInfo { size: 2, cycles: 5, page: 1, mode: AddressingMode::IndirectIndexed },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 8, page: 0, mode: AddressingMode::IndirectIndexed },
+    InstructionInfo { size: 2, cycles: 4, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 2, cycles: 4, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 2, cycles: 6, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 0, cycles: 6, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 7, page: 0, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 3, cycles: 7, page: 0, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 0, cycles: 7, page: 0, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 2, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 2, cycles: 6, page: 0, mode: AddressingMode::IndexedIndirect },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 0, cycles: 6, page: 0, mode: AddressingMode::IndexedIndirect },
+    InstructionInfo { size: 2, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 2, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 2, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 0, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 3, cycles: 4, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 3, cycles: 4, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 3, cycles: 4, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 0, cycles: 4, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 2, cycles: 2, page: 1, mode: AddressingMode::Relative },
+    InstructionInfo { size: 2, cycles: 6, page: 0, mode: AddressingMode::IndirectIndexed },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 6, page: 0, mode: AddressingMode::IndirectIndexed },
+    InstructionInfo { size: 2, cycles: 4, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 2, cycles: 4, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 2, cycles: 4, page: 0, mode: AddressingMode::ZeroPageY },
+    InstructionInfo { size: 0, cycles: 4, page: 0, mode: AddressingMode::ZeroPageY },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 3, cycles: 5, page: 0, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 5, page: 0, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 0, cycles: 5, page: 0, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 3, cycles: 5, page: 0, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 0, cycles: 5, page: 0, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 0, cycles: 5, page: 0, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 2, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 2, cycles: 6, page: 0, mode: AddressingMode::IndexedIndirect },
+    InstructionInfo { size: 2, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 0, cycles: 6, page: 0, mode: AddressingMode::IndexedIndirect },
+    InstructionInfo { size: 2, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 2, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 2, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 0, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 2, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 3, cycles: 4, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 3, cycles: 4, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 3, cycles: 4, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 0, cycles: 4, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 2, cycles: 2, page: 1, mode: AddressingMode::Relative },
+    InstructionInfo { size: 2, cycles: 5, page: 1, mode: AddressingMode::IndirectIndexed },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 5, page: 1, mode: AddressingMode::IndirectIndexed },
+    InstructionInfo { size: 2, cycles: 4, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 2, cycles: 4, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 2, cycles: 4, page: 0, mode: AddressingMode::ZeroPageY },
+    InstructionInfo { size: 0, cycles: 4, page: 0, mode: AddressingMode::ZeroPageY },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 4, page: 1, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 0, cycles: 4, page: 1, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 2, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 2, cycles: 6, page: 0, mode: AddressingMode::IndexedIndirect },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 0, cycles: 8, page: 0, mode: AddressingMode::IndexedIndirect },
+    InstructionInfo { size: 2, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 2, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 2, cycles: 5, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 0, cycles: 5, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 2, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 3, cycles: 4, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 3, cycles: 4, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 3, cycles: 6, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 0, cycles: 6, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 2, cycles: 2, page: 1, mode: AddressingMode::Relative },
+    InstructionInfo { size: 2, cycles: 5, page: 1, mode: AddressingMode::IndirectIndexed },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 8, page: 0, mode: AddressingMode::IndirectIndexed },
+    InstructionInfo { size: 2, cycles: 4, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 2, cycles: 4, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 2, cycles: 6, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 0, cycles: 6, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 7, page: 0, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 3, cycles: 7, page: 0, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 0, cycles: 7, page: 0, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 2, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 2, cycles: 6, page: 0, mode: AddressingMode::IndexedIndirect },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 0, cycles: 8, page: 0, mode: AddressingMode::IndexedIndirect },
+    InstructionInfo { size: 2, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 2, cycles: 3, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 2, cycles: 5, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 0, cycles: 5, page: 0, mode: AddressingMode::ZeroPage },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 2, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Immediate },
+    InstructionInfo { size: 3, cycles: 4, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 3, cycles: 4, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 3, cycles: 6, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 0, cycles: 6, page: 0, mode: AddressingMode::Absolute },
+    InstructionInfo { size: 2, cycles: 2, page: 1, mode: AddressingMode::Relative },
+    InstructionInfo { size: 2, cycles: 5, page: 1, mode: AddressingMode::IndirectIndexed },
+    InstructionInfo { size: 0, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 8, page: 0, mode: AddressingMode::IndirectIndexed },
+    InstructionInfo { size: 2, cycles: 4, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 2, cycles: 4, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 2, cycles: 6, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 0, cycles: 6, page: 0, mode: AddressingMode::ZeroPageX },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 1, cycles: 2, page: 0, mode: AddressingMode::Implied },
+    InstructionInfo { size: 0, cycles: 7, page: 0, mode: AddressingMode::AbsoluteY },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 3, cycles: 4, page: 1, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 3, cycles: 7, page: 0, mode: AddressingMode::AbsoluteX },
+    InstructionInfo { size: 0, cycles: 7, page: 0, mode: AddressingMode::AbsoluteX },
+];
+
+const NAMES: [&str; 256] = [
+    "BRK",
+    "ORA ($@,X)",
+    "illop_02",
+    "illop_03",
+    "illop_04",
+    "ORA $@",
+    "ASL $@",
+    "illop_07",
+    "PHP",
+    "ORA #$@",
+    "ASL A",
+    "illop_0b",
+    "illop_0c",
+    "ORA $@",
+    "ASL $@",
+    "illop_0f",
+    "BPL $@",
+    "ORA ($@,Y)",
+    "illop_12",
+    "illop_13",
+    "illop_14",
+    "ORA $@,X",
+    "ASL $@,X",
+    "illop_17",
+    "CLC",
+    "ORA $@,Y",
+    "illop_1a",
+    "illop_1b",
+    "illop_1c",
+    "ORA $@,X",
+    "ASL $@,X",
+    "illop_1f",
+    "JSR $@",
+    "AND ($@,X)",
+    "illop_22",
+    "illop_23",
+    "BIT $@",
+    "AND $@",
+    "ROL $@",
+    "illop_27",
+    "PLP",
+    "AND #$@",
+    "ROL A",
+    "illop_2b",
+    "BIT $@",
+    "AND $@",
+    "ROL $@",
+    "illop_2f",
+    "BMI $@",
+    "AND ($@,Y)",
+    "illop_32",
+    "illop_33",
+    "illop_34",
+    "AND $@,X",
+    "ROL $@,X",
+    "illop_37",
+    "SEC",
+    "AND $@,Y",
+    "illop_3a",
+    "illop_3b",
+    "illop_3c",
+    "AND $@,X",
+    "ROL $@,X",
+    "illop_3f",
+    "RTI",
+    "EOR ($@,X)",
+    "illop_42",
+    "illop_43",
+    "illop_44",
+    "EOR $@",
+    "LSR $@",
+    "illop_47",
+    "PHA",
+    "EOR #$@",
+    "LSR A",
+    "illop_4b",
+    "JMP $@",
+    "EOR $@",
+    "LSR $@",
+    "illop_4f",
+    "BVC",
+    "EOR ($@,Y)",
+    "illop_52",
+    "illop_53",
+    "illop_54",
+    "EOR $@,X",
+    "LSR $@,X",
+    "illop_57",
+    "CLI",
+    "EOR $@,Y",
+    "illop_5a",
+    "illop_5b",
+    "illop_5c",
+    "EOR $@,X",
+    "LSR $@,X",
+    "illop_5f",
+    "RTS",
+    "ADC ($@,X)",
+    "illop_62",
+    "illop_63",
+    "illop_64",
+    "ADC $@",
+    "ROR $@",
+    "illop_67",
+    "PLA",
+    "ADC #$@",
+    "ROR A",
+    "illop_6b",
+    "JMP ($@)",
+    "ADC $@",
+    "ROR $@",
+    "illop_6f",
+    "BVS",
+    "ADC ($@,Y)",
+    "illop_72",
+    "illop_73",
+    "illop_74",
+    "ADC $@,X",
+    "ROR $@,X",
+    "illop_77",
+    "SEI",
+    "ADC $@,Y",
+    "illop_7a",
+    "illop_7b",
+    "illop_7c",
+    "ADC $@,X",
+    "ROR $@,X",
+    "illop_7f",
+    "illop_80",
+    "STA ($@,X)",
+    "illop_82",
+    "illop_83",
+    "STY $@",
+    "STA $@",
+    "STX $@",
+    "illop_87",
+    "DEY",
+    "illop_89",
+    "TXA",
+    "illop_8b",
+    "STY $@",
+    "STA $@",
+    "STX $@",
+    "illop_8f",
+    "BCC $@",
+    "STA ($@,Y)",
+    "illop_92",
+    "illop_93",
+    "STY $@,X",
+    "STA $@,X",
+    "STX $@,Y",
+    "illop_97",
+    "TYA",
+    "STA $@,Y",
+    "TXS",
+    "illop_9b",
+    "illop_9c",
+    "STA $@,X",
+    "illop_9e",
+    "illop_9f",
+    "LDY #$@",
+    "LDA ($@,X)",
+    "LDX #$@",
+    "illop_a3",
+    "LDY $@",
+    "LDA $@",
+    "LDX $@",
+    "illop_a7",
+    "TAY",
+    "LDA #$@",
+    "TAX",
+    "illop_ab",
+    "LDY $@",
+    "LDA $@",
+    "LDX $@",
+    "illop_af",
+    "BCS $@",
+    "LDA ($@,Y)",
+    "illop_b2",
+    "illop_b3",
+    "LDY $@,X",
+    "LDA $@,X",
+    "LDX $@,Y",
+    "illop_b7",
+    "CLV",
+    "LDA $@,Y",
+    "TSX",
+    "illop_bb",
+    "LDY $@,X",
+    "LDA $@,X",
+    "LDX $@,Y",
+    "illop_bf",
+    "CPY #$@",
+    "CMP ($@,X)",
+    "illop_c2",
+    "illop_c3",
+    "CPY $@",
+    "CMP $@",
+    "DEC $@",
+    "illop_c7",
+    "INY",
+    "CMP #$@",
+    "DEX",
+    "illop_cb",
+    "CPY $@",
+    "CMP $@",
+    "DEC $@",
+    "illop_cf",
+    "BNE $@",
+    "CMP ($@,Y)",
+    "illop_d2",
+    "illop_d3",
+    "illop_d4",
+    "CMP $@,X",
+    "DEC $@,X",
+    "illop_d7",
+    "CLD",
+    "CMP $@,Y",
+    "illop_da",
+    "illop_db",
+    "illop_dc",
+    "CMP $@,X",
+    "DEC $@,X",
+    "illop_df",
+    "CPX #$@",
+    "SBC ($@,X)",
+    "illop_e2",
+    "illop_e3",
+    "CPX $@",
+    "SBC $@",
+    "INC $@",
+    "illop_e7",
+    "INX",
+    "SBC #$@",
+    "NOP",
+    "illop_eb",
+    "CPX $@",
+    "SBC $@",
+    "INC $@",
+    "illop_ef",
+    "BEQ $@",
+    "SBC ($@,Y)",
+    "illop_f2",
+    "illop_f3",
+    "illop_f4",
+    "SBC $@,X",
+    "INC $@,X",
+    "illop_f7",
+    "SED",
+    "SBC $@,Y",
+    "illop_fa",
+    "illop_fb",
+    "illop_fc",
+    "SBC $@,X",
+    "INC $@,X",
+    "illop_ff",
+];
+
+pub trait Memory {
+    fn read(&mut self, address: u16) -> u8;
+    fn write(&mut self, address: u16, value: u8);
+}
+
+bitflags! {
+    #[derive(Default)]
+    struct CpuFlags: u8 {
+        const C = 0b00000001;
+        const Z = 0b00000010;
+        const I = 0b00000100;
+        const D = 0b00001000;
+        const B = 0b00010000;
+        const U = 0b00100000;
+        const V = 0b01000000;
+        const N = 0b10000000;
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Cpu6502 {
+    a: u8,
+    x: u8,
+    y: u8,
+    p: CpuFlags,
+    sp: u8,
+    pc: u16,
+    reset_pending: bool,
+    nmi_pending: bool,
+    irq_pending: bool,
+    halted: bool,
+    cycles: u64,
+    stall: u32,
+}
+
+impl Cpu6502 {
+    fn read16(mem: &mut dyn Memory, address: u16) -> u16 {
+        mem.read(address) as u16 | (mem.read(address+1) as u16) << 8
+    }
+
+    fn read16bug(mem: &mut dyn Memory, address: u16) -> u16 {
+        // When reading the high byte of a word, the address increments,
+        // but doesn't carry from low address byte to the high address byte.
+        mem.read(address) as u16 | (
+            mem.read((address & 0xFF00) | ((address+1) & 0x00FF)) as u16
+        ) << 8
+    }
+
+    fn push(&mut self, mem: &mut dyn Memory, value: u8) {
+        mem.write(0x100u16 | self.sp as u16, value);
+        self.sp = self.sp.wrapping_sub(1);
+    }
+    fn push16(&mut self, mem: &mut dyn Memory, value: u16) {
+        self.push(mem, (value >> 8) as u8);
+        self.push(mem, (value & 255) as u8);
+    }
+
+    fn pull(&mut self, mem: &mut dyn Memory) -> u8 {
+        self.sp = self.sp.wrapping_add(1);
+        mem.read(0x100u16 | self.sp as u16)
+    }
+    fn pull16(&mut self, mem: &mut dyn Memory) -> u16 {
+        self.pull(mem) as u16 | (self.pull(mem) as u16) << 8
+    }
+
+    fn pages_differ(a: u16, b: u16, vtrue: u8, vfalse: u8) -> u64 {
+        if (a & 0xFF00) != (b & 0xFF00) {
+            vtrue as u64
+        } else {
+            vfalse as u64
+        }
+    }
+
+    pub fn cpustate(&self) -> String {
+        let c = if self.p.contains(CpuFlags::C) { "C" } else { "c" };
+        let z = if self.p.contains(CpuFlags::Z) { "Z" } else { "z" };
+        let i = if self.p.contains(CpuFlags::I) { "I" } else { "i" };
+        let d = if self.p.contains(CpuFlags::D) { "D" } else { "d" };
+        let b = if self.p.contains(CpuFlags::B) { "B" } else { "b" };
+        let u = if self.p.contains(CpuFlags::U) { "U" } else { "u" };
+        let v = if self.p.contains(CpuFlags::V) { "V" } else { "v" };
+        let n = if self.p.contains(CpuFlags::N) { "N" } else { "n" };
+        format!("A={:02x} X={:02x} Y={:02x} P={}{}{}{}{}{}{}{} SP=1{:02x} PC={:04x}",
+                self.a, self.x, self.y, n,v,u,b,d,i,z,c,
+                self.sp, self.pc)
+    }
+
+    pub fn disassemble(mem: &mut dyn Memory, addr: u16) -> (String, u16) {
+        let opcode = mem.read(addr);
+        let info = INFO[opcode as usize];
+        let name = NAMES[opcode as usize];
+        match info.size {
+            2 => {
+                let operand = mem.read(addr.wrapping_add(1));
+                (format!("{:04x}: {:02x}{:02x}    {}", addr, opcode, operand,
+                         name.replace("@", format!("{:02x}", operand).as_str())),
+                addr.wrapping_add(2))
+            },
+            3 => {
+                let op1 = mem.read(addr.wrapping_add(1));
+                let op2 = mem.read(addr.wrapping_add(2));
+                (format!("{:04x}: {:02x}{:02x}{:02x}  {}", addr, opcode, op1, op2,
+                         name.replace("@", format!("{:02x}{:02x}", op2, op1).as_str())),
+                addr.wrapping_add(3))
+            },
+            0 | 1 | _ => {
+                (format!("{:04x}: {:02x}      {}", addr, opcode, name),
+                addr.wrapping_add(1))
+            },
+
+        }
+    }
+
+    fn branch(&mut self, target: u16, cond: bool) {
+        if cond {
+            self.cycles += Cpu6502::pages_differ(self.pc, target, 2, 1);
+            self.pc = target;
+        }
+    }
+
+    fn set_z(&mut self, val: u8) {
+        if val == 0 {
+            self.p.insert(CpuFlags::Z);
+        } else {
+            self.p.remove(CpuFlags::Z);
+        }
+    }
+    fn set_n(&mut self, val: u8) {
+        if val & 0x80 == 0x80 {
+            self.p.insert(CpuFlags::N);
+        } else {
+            self.p.remove(CpuFlags::N);
+        }
+    }
+    fn set_c(&mut self, val: bool) {
+        if val {
+            self.p.insert(CpuFlags::C);
+        } else {
+            self.p.remove(CpuFlags::C);
+        }
+    }
+    fn set_v(&mut self, val: bool) {
+        if val {
+            self.p.insert(CpuFlags::V);
+        } else {
+            self.p.remove(CpuFlags::V);
+        }
+    }
+
+    fn set_zn(&mut self, val: u8) {
+        self.set_z(val);
+        self.set_n(val);
+    }
+    fn compare(&mut self, a: u8, b: u8) {
+        self.set_zn(a.wrapping_sub(b));
+        self.set_c(a >= b);
+    }
+
+    pub fn get_pc(&self) -> u16 {
+        self.pc
+    }
+    pub fn get_cycles(&self) -> u64 {
+        self.cycles
+    }
+
+    pub fn reset(&mut self) {
+        self.reset_pending = true;
+        self.halted = false;
+    }
+
+    pub fn trace(&mut self, mem: &mut dyn Memory) -> String {
+        let (s, _next) = Cpu6502::disassemble(mem, self.pc);
+        self.execute(mem);
+        s
+    }
+    pub fn execute(&mut self, mem: &mut dyn Memory) -> u32 {
+        if self.halted {
+            0
+        } else {
+            self.execute1(mem)
+        }
+    }
+
+    fn execute1(&mut self, mem: &mut dyn Memory) -> u32 {
+        let c = self.cycles;
+
+        if self.reset_pending {
+            self.reset_pending = false;
+            self.p = CpuFlags::U | CpuFlags::B | CpuFlags::I;
+            self.sp = 0xFD;
+            self.a = 0;
+            self.x = 0;
+            self.y = 0;
+            self.pc = Cpu6502::read16(mem, 0xFFFCu16);
+        } else if self.nmi_pending {
+            self.nmi_pending = false;
+            self.push16(mem, self.pc);
+            self.push(mem, (self.p | CpuFlags::B).bits);
+            self.p.insert(CpuFlags::I);
+            self.pc = Cpu6502::read16(mem, 0xFFFAu16);
+            self.cycles += 7;
+        } else if self.irq_pending && self.p.contains(CpuFlags::I) {
+            self.irq_pending = false;
+            self.push16(mem, self.pc);
+            self.push(mem, (self.p | CpuFlags::B).bits);
+            self.p.insert(CpuFlags::I);
+            self.pc = Cpu6502::read16(mem, 0xFFFEu16);
+            self.cycles += 7;
+        }
+
+        // Read opcode from memory, then copute the opaddr address,
+        // next PC and cycles consumed.
+        let opcode = mem.read(self.pc);
+        let info = INFO[opcode as usize];
+        let pc1 = self.pc.wrapping_add(1);
+        self.pc = self.pc.wrapping_add(info.size as u16);
+        self.cycles += info.cycles as u64;
+        let opaddr = match info.mode {
+            AddressingMode::Absolute => Cpu6502::read16(mem, pc1),
+            AddressingMode::AbsoluteX => {
+                let addr = Cpu6502::read16(mem, pc1);
+                let newaddr = addr.wrapping_add(self.x as u16);
+                self.cycles += Cpu6502::pages_differ(addr, newaddr, info.page, 0);
+                newaddr
+
+            },
+            AddressingMode::AbsoluteY => {
+                let addr = Cpu6502::read16(mem, pc1);
+                let newaddr = addr.wrapping_add(self.y as u16);
+                self.cycles += Cpu6502::pages_differ(addr, newaddr, info.page, 0);
+                newaddr
+            },
+            AddressingMode::IndexedIndirect => {
+                let operand = mem.read(pc1);
+                Cpu6502::read16(mem, operand.wrapping_add(self.x) as u16)
+            },
+            AddressingMode::Indirect => {
+                let operand = Cpu6502::read16(mem, pc1);
+                Cpu6502::read16bug(mem, operand)
+            },
+            AddressingMode::IndirectIndexed => {
+                let operand = mem.read(pc1);
+                let addr = Cpu6502::read16(mem, operand as u16);
+                let newaddr = addr.wrapping_add(self.y as u16);
+                self.cycles += Cpu6502::pages_differ(addr, newaddr, info.page, 0);
+                newaddr
+            },
+            AddressingMode::ZeroPage => mem.read(pc1) as u16,
+            AddressingMode::ZeroPageX => (mem.read(pc1).wrapping_add(self.x)) as u16,
+            AddressingMode::ZeroPageY => (mem.read(pc1).wrapping_add(self.y)) as u16,
+            AddressingMode::Immediate => pc1,
+            AddressingMode::Accumulator => 0,
+            AddressingMode::Implied => 0,
+            AddressingMode::Relative => {
+                let mut disp = mem.read(pc1) as u16;
+                if disp & 0x80 == 0x80 { disp |= 0xFF00; }
+                self.pc.wrapping_add(disp)
+            },
+        };
+
+        // Match the opcode and execute.
+        match opcode {
+            // BRK
+            0x00 => {
+                self.push16(mem, self.pc.wrapping_add(1));
+                self.push(mem, (self.p | CpuFlags::B).bits);
+                self.p.insert(CpuFlags::I);
+                self.pc = Cpu6502::read16(mem, 0xFFFEu16);
+            },
+
+            // ORA <mem> opcodes
+            0x01 | 0x05 | 0x09 | 0x0d | 0x11 | 0x15 | 0x19 | 0x1d => {
+                self.a |= mem.read(opaddr);
+                self.set_zn(self.a);
+            },
+            // ASL <mem>
+            0x06 | 0x0e | 0x16 | 0x1e => {
+                let val = mem.read(opaddr);
+                self.set_c(val & 0x80 != 0);
+                self.set_zn(val << 1);
+                mem.write(opaddr, val << 1);
+            },
+
+            // ASL A
+            0x0a => {
+                self.set_c(self.a & 0x80 != 0);
+                self.a <<= 1;
+                self.set_zn(self.a);
+            },
+
+            // PHP
+            0x08 =>  self.push(mem, (self.p | CpuFlags::B).bits),
+            // BPL nn
+            0x10 => self.branch(opaddr, !self.p.contains(CpuFlags::N)),
+            // CLC
+            0x18 => self.p.remove(CpuFlags::C),
+            // JSR
+            0x20 => {
+                self.push16(mem, self.pc.wrapping_sub(1));
+                self.pc = opaddr;
+            },
+            // AND <mem> opcodes
+            0x21 | 0x25 | 0x29 | 0x2d | 0x31 | 0x35 | 0x39 | 0x3d => {
+                self.a &= mem.read(opaddr);
+                self.set_zn(self.a);
+            },
+            // BIT <mem> opcodes
+            0x24 | 0x2c => {
+                let val = mem.read(opaddr);
+                self.set_v(val & 0x40 == 0x40);
+                self.set_z(val & self.a);
+                self.set_n(val);
+            },
+            // ROL <mem> opaddrs
+            0x26 | 0x2e | 0x36 | 0x3e => {
+                let r = mem.read(opaddr) as u16;
+                let carry = if self.p.contains(CpuFlags::C) { 1u16 } else { 0u16};
+                let r = (r << 1) | carry;
+                self.set_c(r >= 0x100);
+                self.set_zn(r as u8);
+                mem.write(opaddr, r as u8);
+            },
+            // PLP
+            0x28 => self.p.bits = (self.pull(mem) & 0xEF) | 0x20,
+            // ROL A
+            0x2a => {
+                let r = self.a as u16;
+                let carry = if self.p.contains(CpuFlags::C) { 1u16 } else { 0u16};
+                let r = (r << 1) | carry;
+                self.set_c(r >= 0x100);
+                self.set_zn(r as u8);
+                self.a = r as u8;
+            }
+            // BMI nn
+            0x30 => self.branch(opaddr, self.p.contains(CpuFlags::N)),
+            // SEC
+            0x38 => self.p.insert(CpuFlags::C),
+            // RTI
+            0x40 => {
+                self.p.bits = (self.pull(mem) & 0xEF) | 0x20;
+                self.pc = self.pull16(mem);
+            },
+
+            // EOR <mem> opcodes
+            0x41 | 0x45 | 0x49 | 0x4d | 0x51 | 0x55 | 0x59 | 0x5d => {
+                self.a ^= mem.read(opaddr);
+                self.set_zn(self.a);
+            },
+            // LSR <mem>
+            0x46 | 0x4e | 0x56 | 0x5e => {
+                let val = mem.read(opaddr);
+                self.set_c(val & 0x01 != 0);
+                self.set_zn(val >> 1);
+                mem.write(opaddr, val >> 1);
+            },
+
+            // PHA
+            0x48 => self.push(mem, self.a),
+            // BVC nn
+            0x50 => self.branch(opaddr, !self.p.contains(CpuFlags::V)),
+            // JMP nnnn, JMP (nnnn)
+            0x4c | 0x6c => self.pc = opaddr,
+
+            // LSR A
+            0x4a => {
+                self.set_c(self.a & 0x01 != 0);
+                self.a >>= 1;
+                self.set_zn(self.a);
+            },
+            // CLI
+            0x58 => self.p.remove(CpuFlags::I),
+            // RTS
+            0x60 => self.pc = self.pull16(mem).wrapping_add(1),
+
+            // ADC <mem> opcodes
+            0x61 | 0x65 | 0x69 | 0x6d | 0x71 | 0x75 | 0x79 | 0x7d => {
+                let a = self.a;
+                let b = mem.read(opaddr);
+                let carry = if self.p.contains(CpuFlags::C) { 1u16 } else { 0u16};
+                let r = (a as u16) + (b as u16) + carry;
+                self.a = r as u8;
+                self.set_c(r >= 0x100);
+                self.set_v(((a ^ b) & 0x80) == 0 && (a ^ self.a) & 0x80 != 0);
+                self.set_zn(self.a);
+            },
+
+            // ROR <mem>
+            0x66 | 0x6e | 0x76 | 0x7e => {
+                let val = mem.read(opaddr);
+                let carry = if self.p.contains(CpuFlags::C) { 1u8 } else { 0u8};
+                let a = (val >> 1) | (carry << 7);
+                self.set_c(val & 0x01 != 0);
+                self.set_zn(a);
+                mem.write(opaddr, a);
+            },
+            // PLA
+            0x68 =>  {
+                self.a = self.pull(mem);
+                self.set_zn(self.a);
+            },
+            // ROR A
+            0x6a => {
+                let val = self.a;
+                let carry = if self.p.contains(CpuFlags::C) { 1u8 } else { 0u8};
+                self.a = (val >> 1) | (carry << 7);
+                self.set_c(val & 0x01 != 0);
+                self.set_zn(self.a);
+            },
+            // BVC nn
+            0x70 => self.branch(opaddr, self.p.contains(CpuFlags::V)),
+            // SEI
+            0x78 => self.p.insert(CpuFlags::I),
+
+            // STA <mem> opcodes
+            0x81 | 0x85 | 0x8d | 0x91 | 0x95 | 0x99 | 0x9d => {
+                mem.write(opaddr, self.a);
+            },
+
+            // STY <mem> opcodes
+            0x84 | 0x8c | 0x94 => mem.write(opaddr, self.y),
+            // STX <mem> opcodes
+            0x86 | 0x8e | 0x96 => mem.write(opaddr, self.x),
+
+            // DEY
+            0x88 => { self.y = self.y.wrapping_sub(1); self.set_zn(self.y); },
+            // TXA
+            0x8a => { self.a = self.x; self.set_zn(self.a); },
+            
+            // BCC nn
+            0x90 => self.branch(opaddr, !self.p.contains(CpuFlags::C)),
+
+            // TYA
+            0x98 => { self.a = self.y; self.set_zn(self.a); },
+            // TXS
+            0x9a => self.sp = self.x,
+
+            // LDY <mem> opcodes
+            0xa0 | 0xa4 | 0xac | 0xb4 | 0xbc => {
+                self.y = mem.read(opaddr);
+                self.set_zn(self.y);
+            },
+            // LDX <mem> opcodes
+            0xa2 | 0xa6 | 0xae | 0xb6 | 0xbe => {
+                self.x = mem.read(opaddr);
+                self.set_zn(self.x);
+            },
+            // LDA <mem> opcodes
+            0xA1 | 0xA5 | 0xA9 | 0xAd | 0xB1 | 0xB5 | 0xB9 | 0xBd => {
+                self.a = mem.read(opaddr);
+                self.set_zn(self.a);
+            },
+
+            // TAY
+            0xa8 => { self.y = self.a; self.set_zn(self.y); },
+            // TAX
+            0xaa => { self.x = self.a; self.set_zn(self.x); },
+
+            // BCS nn
+            0xb0 => self.branch(opaddr, self.p.contains(CpuFlags::C)),
+            // CLV
+            0xB8 => self.p.remove(CpuFlags::V),
+            // TSX
+            0xba => { self.x = self.sp; self.set_zn(self.x); },
+
+            // CPY opcodes
+            0xc0 | 0xc4 | 0xcc => self.compare(self.y, mem.read(opaddr)),
+            // CMP opcodes
+            0xc1 | 0xc5 | 0xc9 | 0xcd | 0xd1 | 0xd5 | 0xd9 | 0xdd =>
+                self.compare(self.a, mem.read(opaddr)),
+            // DEC <mem> opcodes
+            0xc6 | 0xce | 0xd6 | 0xde => {
+                let val = mem.read(opaddr).wrapping_sub(1);
+                mem.write(opaddr, val);
+                self.set_zn(val);
+            },
+            // INY
+            0xc8 => { self.y = self.y.wrapping_add(1); self.set_zn(self.y); },
+            // DEX
+            0xca => { self.x = self.x.wrapping_sub(1); self.set_zn(self.x); },
+            // BNE nn
+            0xd0 => self.branch(opaddr, !self.p.contains(CpuFlags::Z)),
+
+            // CLD
+            0xd8 => self.p.remove(CpuFlags::D),
+            // CPX opcodes
+            0xe0 | 0xe4 | 0xec => self.compare(self.x, mem.read(opaddr)),
+
+
+            // SBC <mem> opcodes
+            0xe1 | 0xe5 | 0xe9 | 0xed | 0xf1 | 0xf5 | 0xf9 | 0xfd => {
+                let a = self.a;
+                let b = mem.read(opaddr);
+                let ncarry = if self.p.contains(CpuFlags::C) { 0i16 } else { 1i16};
+                let r = (a as i16) - (b as i16) - ncarry;
+                self.a = r as u8;
+                self.set_c(r >= 0);
+                self.set_v(((a ^ b) & 0x80) != 0 && (a ^ self.a) & 0x80 != 0);
+                self.set_zn(self.a);
+            },
+
+            // INC <mem> opcodes
+            0xe6 | 0xee | 0xf6 | 0xfe => {
+                let val = mem.read(opaddr).wrapping_add(1);
+                mem.write(opaddr, val);
+                self.set_zn(val);
+            },
+
+            // INX
+            0xe8 => { self.x = self.x.wrapping_add(1); self.set_zn(self.x); },
+            // NOP
+            0xea => {},
+            // BEQ nn
+            0xf0 => self.branch(opaddr, self.p.contains(CpuFlags::Z)),
+            //SED
+            0xf8 => self.p.insert(CpuFlags::D),
+
+            _ => {
+                // Illegal opcode.
+                self.halted = true;
+            },
+        };
+            
+        // Return the number of cycles actually used executing this instruction.
+        (self.cycles - c) as u32
+    }
+}
