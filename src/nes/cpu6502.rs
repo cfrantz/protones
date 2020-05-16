@@ -709,7 +709,16 @@ impl Cpu6502 {
     pub fn get_cycles(&self) -> u64 {
         self.cycles
     }
+    pub fn add_stall(&mut self, cycles: u32) {
+        self.stall += cycles;
+    }
 
+    pub fn signal_irq(&mut self) {
+        self.irq_pending = true;
+    }
+    pub fn signal_nmi(&mut self) {
+        self.nmi_pending = true;
+    }
     pub fn reset(&mut self) {
         self.reset_pending = true;
         self.halted = false;
@@ -723,6 +732,10 @@ impl Cpu6502 {
     pub fn execute(&mut self, mem: &mut dyn Memory) -> u32 {
         if self.halted {
             0
+        } else if self.stall > 0 {
+            self.stall -= 1;
+            self.cycles += 1;
+            1
         } else {
             self.execute1(mem)
         }
