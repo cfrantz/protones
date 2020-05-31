@@ -1,19 +1,18 @@
-use std::time::Duration;
 use std::time::Instant;
 use imgui;
 use imgui::im_str;
 use imgui::MenuItem;
 use imgui_sdl2::ImguiSdl2;
 use imgui_opengl_renderer::Renderer;
-use std::thread;
 use sdl2;
 use sdl2::event::Event;
 use sdl2::controller::GameController;
 use sdl2::keyboard::Keycode;
-use sdl2::audio::{AudioQueue, AudioSpecDesired};
+use sdl2::audio::{AudioCallback, AudioDevice, AudioSpecDesired};
 use nfd;
 use log::{info, error};
 use std::io;
+use std::sync::mpsc;
 
 use crate::nes::nes::Nes;
 use crate::gui::glhelper;
@@ -22,12 +21,37 @@ use crate::gui::input::SdlInput;
 use crate::gui::ppu::PpuDebug;
 use crate::gui::apu::ApuDebug;
 
+struct Playback {
+    queue: mpsc::Receiver<Vec<f32>>,
+}
+
+impl AudioCallback for Playback {
+    type Channel = f32;
+    fn callback(&mut self, output: &mut [f32]) {
+        match self.queue.try_recv() {
+            Ok(values) => {
+                for (sample, value) in output.iter_mut().zip(values) {
+                    *sample = value;
+                }
+            },
+            Err(_) => {
+                info!("audio underrun!");
+                for sample in output.iter_mut() {
+                    *sample = 0.0;
+                }
+            },
+        }
+    }
+}
+
 pub struct App {
     #[allow(dead_code)]  // keep SDL context.
     sdl_context: sdl2::Sdl,
     video: sdl2::VideoSubsystem,
     #[allow(dead_code)]  // keep audio context.
     audio: sdl2::AudioSubsystem,
+    #[allow(dead_code)]  // keep audio playback device.
+    playback: AudioDevice<Playback>,
     #[allow(dead_code)]  // keep gamecontroller context.
     gamecontoller: sdl2::GameControllerSubsystem,
     window: sdl2::video::Window,
@@ -36,7 +60,7 @@ pub struct App {
     event_pump: sdl2::EventPump,
     #[allow(dead_code)]  // keep list of open controllers.
     controllers: Vec<GameController>,
-    queue: AudioQueue<f32>,
+    queue: mpsc::SyncSender<Vec<f32>>,
     background: [f32; 3],
     running: bool,
     palette_editor: bool,
@@ -77,22 +101,28 @@ impl App {
         let want_spec = AudioSpecDesired {
             freq: Some(48000),
             channels: Some(1),
-            samples: Some(2048),
+            samples: Some(1024),
         };
-        let queue = audio.open_queue(None, &want_spec)?;
-        queue.resume();
+        let (sender, receiver) = mpsc::sync_channel(2);
+        let playback = audio.open_playback(
+            None, &want_spec, |_spec| Playback { queue: receiver, })?;
+        playback.resume();
         let controllers = App::open_controllers(&gcss)?;
+
+        // FIXME(cfrantz): Does this do anything?
+        //video.gl_set_swap_interval(1)?;
 
         Ok(App {
             sdl_context: sdl_context,
             video: video,
             audio: audio,
+            playback: playback,
             gamecontoller: gcss,
             window: window,
             gl_context: gl_context,
             event_pump: event_pump,
             controllers: controllers,
-            queue: queue,
+            queue: sender,
             background: [0f32, 0f32, 0.42f32],
             running: true,
             palette_editor: false,
@@ -124,11 +154,6 @@ impl App {
         Ok(controllers)
     }
 
-    pub fn play_sample(&self, sample: f32) {
-        let sample = [sample];
-        self.queue.queue(&sample);
-    }
-
     pub fn load(&mut self, filename: &str) -> io::Result<()> {
         info!("Loading {}", filename);
         let mut nes = Box::new(Nes::from_file(filename)?);
@@ -152,15 +177,23 @@ impl App {
         imgui::Window::new(im_str!("Preferences"))
             .opened(pref)
             .build(&ui, || {
-                imgui::ColorPicker::new(im_str!("background"), bg).build(&ui);
+                ui.text(format!("FPS: {:.1}", 1.0 / ui.io().delta_time));
+                imgui::ColorEdit::new(im_str!("background"), bg)
+                    .alpha(false)
+                    .inputs(false)
+                    .picker(true)
+                    .build(&ui);
         });
     }
 
     fn draw_nes(&mut self, ui: &imgui::Ui) {
         if let Some(nes) = &mut self.nes {
             nes.emulate_frame();
-            self.queue.queue(&nes.audio.borrow());
-            nes.audio.borrow_mut().clear();
+            let mut audio = nes.audio.borrow_mut();
+            if audio.len() >= 1024 {
+                let frag: Vec<_> = audio.drain(0..1024).collect();
+                self.queue.send(frag).unwrap();
+            }
         }
         if let Some(nes) = &self.nes {
             glhelper::update_image(self.nes_image,
@@ -260,9 +293,9 @@ impl App {
             let delta = (frame_end - frame_start).as_secs_f64();
             let leftover = (1.0/Nes::FPS) - delta;
             if leftover > 0.0 {
-                thread::sleep(Duration::from_secs_f64(leftover));
+                //thread::sleep(Duration::from_secs_f64(leftover));
             } else {
-                info!("Timing underrun: {:.03}us", leftover * 1e6);
+                //info!("Timing underrun: {:.03}us", leftover * 1e6);
             }
         }
     }
