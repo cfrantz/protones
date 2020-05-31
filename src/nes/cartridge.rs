@@ -137,6 +137,7 @@ impl Cartridge {
         Ok(())
     }
     pub fn mirror_address(&self, address: u16) -> u16 {
+        let address = address & 0xFFF;
         if self.header.fourscreen {
             address
         } else if self.header.mirror {
