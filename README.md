@@ -1,8 +1,11 @@
 # ProtoNES in Rust
 
-A NES emulator based on Fogelman's NES.
+This is a work-in-progress port of my *ProtoNES* emulator from C++ to Rust.
 
-Includes an ImGui-based user interface.
+The C++ codebase owes it's basic structure to
+[Fogelman's NES](https://github.com/fogleman/nes), which is a wonderfully
+easy to understand NES emulator in Golang.  The Rust port keeps the same
+basic structure.
 
 ## TODO
 
