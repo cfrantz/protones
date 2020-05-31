@@ -20,8 +20,10 @@ use crate::gui::hwpalette::hwpalette_editor;
 use crate::gui::input::SdlInput;
 use crate::gui::ppu::PpuDebug;
 use crate::gui::apu::ApuDebug;
+use crate::gui::preferences::Preferences;
 
 struct Playback {
+    volume: f32,
     queue: mpsc::Receiver<Vec<f32>>,
 }
 
@@ -31,7 +33,7 @@ impl AudioCallback for Playback {
         match self.queue.try_recv() {
             Ok(values) => {
                 for (sample, value) in output.iter_mut().zip(values) {
-                    *sample = value;
+                    *sample = value * self.volume;
                 }
             },
             Err(_) => {
@@ -61,15 +63,14 @@ pub struct App {
     #[allow(dead_code)]  // keep list of open controllers.
     controllers: Vec<GameController>,
     queue: mpsc::SyncSender<Vec<f32>>,
-    background: [f32; 3],
     running: bool,
     palette_editor: bool,
-    preferences: bool,
 
     nes: Option<Box<Nes>>,
     nes_image: imgui::TextureId,
     pub trace: bool,
 
+    pub preferences: Preferences,
     ppu_debug: PpuDebug,
     apu_debug: ApuDebug,
 }
@@ -105,7 +106,10 @@ impl App {
         };
         let (sender, receiver) = mpsc::sync_channel(2);
         let playback = audio.open_playback(
-            None, &want_spec, |_spec| Playback { queue: receiver, })?;
+            None, &want_spec, |_spec| Playback {
+                volume: 1.0,
+                queue: receiver,
+            })?;
         playback.resume();
         let controllers = App::open_controllers(&gcss)?;
 
@@ -123,13 +127,12 @@ impl App {
             event_pump: event_pump,
             controllers: controllers,
             queue: sender,
-            background: [0f32, 0f32, 0.42f32],
             running: true,
             palette_editor: false,
-            preferences: false,
             nes: None,
             nes_image: glhelper::new_blank_image(256, 240),
             trace: false,
+            preferences: Preferences::new(),
             ppu_debug: PpuDebug::new(),
             apu_debug: ApuDebug::new(),
         })
@@ -171,21 +174,6 @@ impl App {
         }
     }
 
-    fn draw_preferences(&mut self, ui: &imgui::Ui) {
-        let pref = &mut self.preferences;
-        let bg = &mut self.background;
-        imgui::Window::new(im_str!("Preferences"))
-            .opened(pref)
-            .build(&ui, || {
-                ui.text(format!("FPS: {:.1}", 1.0 / ui.io().delta_time));
-                imgui::ColorEdit::new(im_str!("background"), bg)
-                    .alpha(false)
-                    .inputs(false)
-                    .picker(true)
-                    .build(&ui);
-        });
-    }
-
     fn draw_nes(&mut self, ui: &imgui::Ui) {
         if let Some(nes) = &mut self.nes {
             nes.emulate_frame();
@@ -198,9 +186,28 @@ impl App {
         if let Some(nes) = &self.nes {
             glhelper::update_image(self.nes_image,
                               0, 0, 256, 240, &nes.ppu.borrow().picture);
-            imgui::Window::new(im_str!("NES")).build(ui, || {
-                imgui::Image::new(self.nes_image, [256.0*4.0, 240.0*4.0]).build(ui);
+            let size = [256.0 * self.preferences.scale * self.preferences.aspect,
+                        240.0 * self.preferences.scale];
+            let style = ui.push_style_vars(&[
+                imgui::StyleVar::WindowPadding([0.0, 0.0]),
+                imgui::StyleVar::WindowRounding(0.0),
+                imgui::StyleVar::WindowBorderSize(0.0),
+            ]);
+            imgui::Window::new(im_str!("NES"))
+                .position([0.0, 20.0], imgui::Condition::Always)
+                .size(size, imgui::Condition::Always)
+                .flags(imgui::WindowFlags::NO_TITLE_BAR
+                     | imgui::WindowFlags::NO_MOVE
+                     | imgui::WindowFlags::NO_SCROLLBAR
+                     | imgui::WindowFlags::NO_BRING_TO_FRONT_ON_FOCUS
+                     // Imgui-rs 0.4.0
+                     //| imgui::WindowFlags::NO_SROLL_WITH_MOUSE
+                     | imgui::WindowFlags::NO_RESIZE)
+                .build(ui, || {
+                imgui::Image::new(self.nes_image, size)
+                    .build(ui);
             });
+            style.pop(&ui);
         }
     }
 
@@ -218,7 +225,7 @@ impl App {
             });
             ui.menu(im_str!("Edit"), true, || {
                 MenuItem::new(im_str!("Hardware Palette")).build_with_ref(ui, &mut self.palette_editor);
-                MenuItem::new(im_str!("Preferences")).build_with_ref(ui, &mut self.preferences);
+                MenuItem::new(im_str!("Preferences")).build_with_ref(ui, &mut self.preferences.visible);
             });
             ui.menu(im_str!("View"), true, || {
                 MenuItem::new(im_str!("Audio Debug")).build_with_ref(ui, &mut self.apu_debug.visible);
@@ -227,9 +234,7 @@ impl App {
             })
         });
         
-        if self.preferences {
-            self.draw_preferences(ui);
-        }
+        self.preferences.draw(ui);
         if let Some(nes) = &self.nes {
             self.apu_debug.draw(nes, ui);
             self.ppu_debug.draw_chr(nes, ui);
@@ -244,6 +249,10 @@ impl App {
 
         }
         self.draw_nes(ui);
+        {
+            let mut playback = self.playback.lock();
+            playback.volume = self.preferences.volume;
+        }
     }
 
     pub fn run(&mut self) {
@@ -285,12 +294,14 @@ impl App {
             let ui = imgui.frame();
             self.draw(&ui);
 
-            glhelper::clear_screen(&self.background);
+            glhelper::clear_screen(&self.preferences.background);
             imgui_sdl2.prepare_render(&ui, &self.window);
             renderer.render(ui);
             self.window.gl_swap_window();
             let frame_end = Instant::now();
             let delta = (frame_end - frame_start).as_secs_f64();
+            self.preferences.set_frame_time(delta as f32);
+
             let leftover = (1.0/Nes::FPS) - delta;
             if leftover > 0.0 {
                 //thread::sleep(Duration::from_secs_f64(leftover));

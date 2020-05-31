@@ -61,6 +61,7 @@ impl PpuDebug {
             .build(&ui, || {
                 for i in 0..2 {
                     self.update_chr_image(nes, i);
+                    ui.text(format!("Pattern Table {}", i));
                     imgui::Image::new(self.chr_image[i],
                                       [128.0*4.0, 128.0*4.0]).build(ui);
                 }
@@ -105,7 +106,7 @@ impl PpuDebug {
                 ui.group(|| self.hexdump_vram(nes, ui, 0x2000));
                 ui.same_line(0.0);
                 ui.group(|| self.hexdump_vram(nes, ui, 0x2400));
-                ui.text(im_str!(""));
+                ui.text("");
                 ui.group(|| self.hexdump_vram(nes, ui, 0x2800));
                 ui.same_line(0.0);
                 ui.group(|| self.hexdump_vram(nes, ui, 0x2c00));

@@ -5,13 +5,13 @@ use crate::gui::glhelper;
 use crate::nes::nes::Nes;
 
 #[derive(Clone, Debug)]
-pub struct APUDebug {
+pub struct FooDebug {
     pub visible: bool,
 }
 
-impl APUDebug {
+impl FooDebug {
     pub fn new() -> Self {
-        APUDebug {
+        FooDebug {
             visible: false,
         }
     }
@@ -21,7 +21,7 @@ impl APUDebug {
             return;
         }
         let mut visible =  self.visible;
-        imgui::Window::new(im_str!("Audio"))
+        imgui::Window::new(im_str!("Foo"))
             .opened(&mut visible)
             .build(&ui, || {
             });

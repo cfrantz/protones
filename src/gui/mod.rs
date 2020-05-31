@@ -4,3 +4,4 @@ pub mod hwpalette;
 pub mod input;
 pub mod apu;
 pub mod ppu;
+pub mod preferences;
