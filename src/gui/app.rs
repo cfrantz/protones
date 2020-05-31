@@ -18,6 +18,7 @@ use crate::nes::nes::Nes;
 use crate::gui::glhelper;
 use crate::gui::hwpalette::hwpalette_editor;
 use crate::gui::input::SdlInput;
+use crate::gui::controller::ControllerDebug;
 use crate::gui::ppu::PpuDebug;
 use crate::gui::apu::ApuDebug;
 use crate::gui::preferences::Preferences;
@@ -71,6 +72,7 @@ pub struct App {
     pub trace: bool,
 
     pub preferences: Preferences,
+    controller_debug: ControllerDebug,
     ppu_debug: PpuDebug,
     apu_debug: ApuDebug,
 }
@@ -133,6 +135,7 @@ impl App {
             nes_image: glhelper::new_blank_image(256, 240),
             trace: false,
             preferences: Preferences::new(),
+            controller_debug: ControllerDebug::new(),
             ppu_debug: PpuDebug::new(),
             apu_debug: ApuDebug::new(),
         })
@@ -228,7 +231,8 @@ impl App {
                 MenuItem::new(im_str!("Preferences")).build_with_ref(ui, &mut self.preferences.visible);
             });
             ui.menu(im_str!("View"), true, || {
-                MenuItem::new(im_str!("Audio Debug")).build_with_ref(ui, &mut self.apu_debug.visible);
+                MenuItem::new(im_str!("Audio")).build_with_ref(ui, &mut self.apu_debug.visible);
+                MenuItem::new(im_str!("Controllers")).build_with_ref(ui, &mut self.controller_debug.visible);
                 MenuItem::new(im_str!("CHR Viewer")).build_with_ref(ui, &mut self.ppu_debug.chr_visible);
                 MenuItem::new(im_str!("VRAM Viewer")).build_with_ref(ui, &mut self.ppu_debug.vram_visible);
             })
@@ -237,6 +241,7 @@ impl App {
         self.preferences.draw(ui);
         if let Some(nes) = &self.nes {
             self.apu_debug.draw(nes, ui);
+            self.controller_debug.draw(nes, ui);
             self.ppu_debug.draw_chr(nes, ui);
             self.ppu_debug.draw_vram(nes, ui);
         }
