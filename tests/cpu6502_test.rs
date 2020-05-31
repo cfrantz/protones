@@ -1,16 +1,17 @@
 use protones::nes::cpu6502::Cpu6502;
 use protones::nes::cpu6502::Memory;
+use std::cell::RefCell;
 
 struct Ram {
-    mem: Vec<u8>,
+    mem: RefCell<Vec<u8>>,
 }
 
 impl Memory for Ram {
-    fn read(&mut self, address: u16) -> u8 {
-        self.mem[address as usize]
+    fn read(&self, address: u16) -> u8 {
+        self.mem.borrow()[address as usize]
     }
-    fn write(&mut self, address: u16, value: u8) {
-        self.mem[address as usize] = value;
+    fn write(&self, address: u16, value: u8) {
+        self.mem.borrow_mut()[address as usize] = value;
     }
 }
 
@@ -27,7 +28,7 @@ fn self_test_program() {
     mem[0xFFFC] = 0x00;
     mem[0xFFFD] = 0x04;
 
-    let mut ram = Ram { mem: mem };
+    let mut ram = Ram { mem: RefCell::new(mem) };
     let mut cpu = Cpu6502::default();
     cpu.reset();
 

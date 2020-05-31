@@ -12,14 +12,14 @@ const TRIANGLE: [u8; 32] = [
 
 #[derive(Clone, Debug, Default)]
 pub struct Registers {
-    control: u8,
-    timer_lo: u8,
-    timer_hi: u8,
+    pub control: u8,
+    pub timer_lo: u8,
+    pub timer_hi: u8,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct ApuTriangle {
-    output_volume: f32,
+    pub output_volume: f32,
 
     enabled: bool,
     length_enabled: bool,
@@ -35,7 +35,9 @@ pub struct ApuTriangle {
     counter_period: u8,
     counter_value: u8,
 
-    reg: Registers,
+    pub reg: Registers,
+    pub dbg_offset: usize,
+    pub dbg_buf: Vec<f32>,
 }
 
 
@@ -43,6 +45,7 @@ impl ApuTriangle {
     pub fn new(volume: f32) -> Self {
         ApuTriangle {
             output_volume: volume,
+            dbg_buf: vec![0f32; 1024],
             ..Default::default()
         }
     }
@@ -73,9 +76,11 @@ impl ApuTriangle {
         self.counter_reload = true;
     }
 
-    pub fn output(&self) -> f32 {
-        let val = self.internal_output();
-        self.output_volume * (val as f32) / 16.0f32
+    pub fn output(&mut self) -> f32 {
+        let val = (self.internal_output() as f32) / 15.0;
+        self.dbg_buf[self.dbg_offset] = val;
+        self.dbg_offset = (self.dbg_offset + 1) % self.dbg_buf.len();
+        self.output_volume * val
     }
 
     fn internal_output(&self) -> u8 {

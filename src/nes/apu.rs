@@ -11,19 +11,19 @@ pub struct Apu {
     frame_period: u8,
     frame_value: u8,
     frame_irq: bool,
-    volume: f32,
+    pub volume: f32,
 
-    pulse0: ApuPulse,
-    pulse1: ApuPulse,
-    triangle: ApuTriangle,
-    noise: ApuNoise,
-    dmc: ApuDmc,
+    pub pulse0: ApuPulse,
+    pub pulse1: ApuPulse,
+    pub triangle: ApuTriangle,
+    pub noise: ApuNoise,
+    pub dmc: ApuDmc,
 }
 
 impl Apu {
     pub fn new() -> Self {
         Apu {
-            volume: 0.1,
+            volume: 1.0,
             pulse0: ApuPulse::new(0, 0.25),
             pulse1: ApuPulse::new(1, 0.25),
             triangle: ApuTriangle::new(0.25),
@@ -32,7 +32,7 @@ impl Apu {
             ..Default::default()
         }
     }
-    fn step_timer(&mut self, nes: &mut Nes) {
+    fn step_timer(&mut self, nes: &Nes) {
         if self.cycle % 2 == 0 {
             self.pulse0.step_timer();
             self.pulse1.step_timer();
@@ -57,7 +57,7 @@ impl Apu {
         self.triangle.step_length();
         self.noise.step_length();
     }
-    fn step_frame_counter(&mut self, nes: &mut Nes) {
+    fn step_frame_counter(&mut self, nes: &Nes) {
         if self.frame_period == 4 {
             self.frame_value = (self.frame_value + 1) % 4;
             self.step_envelope();
@@ -88,7 +88,7 @@ impl Apu {
             + self.dmc.output()
         )
     }
-    pub fn emulate(&mut self, nes: &mut Nes) {
+    pub fn emulate(&mut self, nes: &Nes) -> Option<f32> {
         let c1 = self.cycle as f64;
         self.cycle += 1;
         let c2 = self.cycle as f64;
@@ -104,7 +104,9 @@ impl Apu {
         let s1 = (c1 / Nes::SAMPLE_RATE) as usize;
         let s2 = (c2 / Nes::SAMPLE_RATE) as usize;
         if s1 != s2 {
-            let _sample = self.output();
+            Some(self.output())
+        } else {
+            None
         }
     }
 
@@ -155,7 +157,7 @@ impl Apu {
     }
 
     fn set_frame_counter(&mut self, val: u8) {
-        self.frame_period = 4 + val >> 7;
+        self.frame_period = 4 + (val >> 7);
         self.frame_irq = (val & 0x40) == 0;
     }
     fn set_control(&mut self, val: u8) {

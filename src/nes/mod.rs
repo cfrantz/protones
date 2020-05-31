@@ -7,5 +7,6 @@ pub mod apu_triangle;
 pub mod apu_noise;
 pub mod apu_dmc;
 pub mod ppu;
+pub mod ppu_helper;
 pub mod mapper;
 pub mod nes;

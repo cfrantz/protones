@@ -5,6 +5,7 @@ use std::io::{Error, ErrorKind};
 use std::io::{Read, Write};
 use std::vec::Vec;
 use std::fmt;
+use log::info;
 
 #[derive(Debug, Clone, Default)]
 pub struct InesHeader {
@@ -92,16 +93,24 @@ impl InesHeader {
 
 impl Cartridge {
     pub fn from_reader(mut r: impl Read) -> io::Result<Self> {
-        let header = InesHeader::from_reader(&mut r)?;
+        let mut header = InesHeader::from_reader(&mut r)?;
         let mut prg = vec![0; header.prgsz as usize * 16384];
         r.read_exact(&mut prg)?;
 
+
+        let load_chr = header.chrsz != 0;
+        if !load_chr {
+            header.chrsz = 1;
+        }
         let mut chr = vec![0; header.chrsz as usize * 8192];
-        r.read_exact(&mut chr)?;
+        if load_chr {
+            r.read_exact(&mut chr)?;
+        }
 
         let sramsize = if header.sram { 8192 } else { 0 };
         let sram = vec![0; sramsize];
 
+        info!("iNES header = {:?}", header);
         Ok(Cartridge {
             header,
             prg,
@@ -126,6 +135,18 @@ impl Cartridge {
         let mut file = File::create(filename)?;
         self.write(&mut file)?;
         Ok(())
+    }
+    pub fn mirror_address(&self, address: u16) -> u16 {
+        if self.header.fourscreen {
+            address
+        } else if self.header.mirror {
+            // Vertical mirroring
+            address & !0x800
+        } else {
+            // Horizontal mirroring
+            let a11 = address & 0x800;
+            (address & !0xc00) | (a11 >> 1)
+        }
     }
 
 }

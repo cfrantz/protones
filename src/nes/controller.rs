@@ -2,7 +2,7 @@ use std::default::Default;
 
 #[derive(Clone, Debug, Default)]
 pub struct Controller {
-    buttons: u8,
+    pub buttons: u8,
     index: u8,
     strobe: u8,
 }

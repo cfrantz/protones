@@ -14,16 +14,16 @@ const LENGTH_TABLE: [u8; 32] = [
 
 #[derive(Clone, Debug, Default)]
 pub struct Registers {
-    control: u8,
-    sweep: u8,
-    timer_lo: u8,
-    timer_hi: u8,
+    pub control: u8,
+    pub sweep: u8,
+    pub timer_lo: u8,
+    pub timer_hi: u8,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct ApuPulse {
-    channel: u8,
-    output_volume: f32,
+    pub channel: u8,
+    pub output_volume: f32,
 
     enabled: bool,
     length_enabled: bool,
@@ -50,7 +50,9 @@ pub struct ApuPulse {
     envelope_volume: u8,
 
     constant_volume: u8,
-    reg: Registers,
+    pub reg: Registers,
+    pub dbg_offset: usize,
+    pub dbg_buf: Vec<f32>,
 }
 
 
@@ -59,6 +61,7 @@ impl ApuPulse {
         ApuPulse {
             channel: channel,
             output_volume: volume,
+            dbg_buf: vec![0f32; 1024],
             ..Default::default()
         }
     }
@@ -102,9 +105,11 @@ impl ApuPulse {
         self.duty_value = 0;
     }
 
-    pub fn output(&self) -> f32 {
-        let val = self.internal_output();
-        self.output_volume * (val as f32) / 16.0f32
+    pub fn output(&mut self) -> f32 {
+        let val = (self.internal_output() as f32) / 15.0;
+        self.dbg_buf[self.dbg_offset] = val;
+        self.dbg_offset = (self.dbg_offset + 1) % self.dbg_buf.len();
+        self.output_volume * val
     }
 
     fn internal_output(&self) -> u8 {

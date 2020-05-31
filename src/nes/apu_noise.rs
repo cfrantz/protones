@@ -12,14 +12,14 @@ const LENGTH_TABLE: [u8; 32] = [
 
 #[derive(Clone, Debug, Default)]
 pub struct Registers {
-    control: u8,
-    period: u8,
-    length: u8,
+    pub control: u8,
+    pub period: u8,
+    pub length: u8,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct ApuNoise {
-    output_volume: f32,
+    pub output_volume: f32,
 
     enabled: bool,
     mode: bool,
@@ -39,7 +39,9 @@ pub struct ApuNoise {
     envelope_volume: u8,
 
     constant_volume: u8,
-    reg: Registers,
+    pub reg: Registers,
+    pub dbg_offset: usize,
+    pub dbg_buf: Vec<f32>,
 }
 
 
@@ -47,6 +49,8 @@ impl ApuNoise {
     pub fn new(volume: f32) -> Self {
         ApuNoise {
             output_volume: volume,
+            shift_register: 1,
+            dbg_buf: vec![0f32; 1024],
             ..Default::default()
         }
     }
@@ -64,8 +68,8 @@ impl ApuNoise {
         self.length_enabled = (val & 0x20) == 0;
         self.envelope_loop = (val & 0x20) != 0;
         self.envelope_enable = (val & 0x10) == 0;
-        self.envelope_period = val & 0x0F;
-        self.constant_volume = val & 0x0F;
+        self.envelope_period = val & 0x0f;
+        self.constant_volume = val & 0x0f;
         self.envelope_start = true;
     }
     pub fn set_period(&mut self, val: u8) {
@@ -79,9 +83,11 @@ impl ApuNoise {
         self.envelope_start = true;
     }
 
-    pub fn output(&self) -> f32 {
-        let val = self.internal_output();
-        self.output_volume * (val as f32) / 16.0f32
+    pub fn output(&mut self) -> f32 {
+        let val = (self.internal_output() as f32) / 15.0;
+        self.dbg_buf[self.dbg_offset] = val;
+        self.dbg_offset = (self.dbg_offset + 1) % self.dbg_buf.len();
+        self.output_volume * val
     }
 
     fn internal_output(&self) -> u8 {

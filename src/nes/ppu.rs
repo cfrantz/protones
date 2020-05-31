@@ -1,79 +1,29 @@
 use crate::nes::nes::Nes;
 use crate::nes::cpu6502::Memory;
 use std::vec::Vec;
+use crate::nes::ppu_helper::{EXPAND_L, EXPAND_R};
 
+pub const CTRL_NAMETABLE: u8      = 0x03u8;
+pub const CTRL_INCREMENT: u8      = 0x04u8;
+pub const CTRL_SPRITETABLE: u8    = 0x08u8;
+pub const CTRL_BGTABLE: u8        = 0x10u8;
+pub const CTRL_SPRITESIZE: u8     = 0x20u8;
+pub const CTRL_MASTER: u8         = 0x40u8;
+pub const CTRL_NMI: u8            = 0x80u8;
 
-/*
- * Loops and Conditionals are not yet allowed in const functions.
- *
-const fn expander(n: usize, left: bool) -> u32 {
-    let mut data = 0u32;
-    let mut val = n as u8;
-    for _ in 0..8 {
-        let newbit = if left { val >> 7 } else { val & 1 };
-        data = (data << 4) | newbit as u32;
-        if left {
-            val <<= 1;
-        } else {
-            val >>= 1;
-        }
-    }
-    data
-}
-*/
+pub const MASK_GRAYSCALE: u8      = 0x01u8;
+pub const MASK_SHOWLEFTBG: u8     = 0x02u8;
+pub const MASK_SHOWLEFTSPRITE: u8 = 0x04u8;
+pub const MASK_SHOWBG: u8         = 0x08u8;
+pub const MASK_SHOWSPRITES: u8    = 0x10u8;
+pub const MASK_REDTINT: u8        = 0x20u8;
+pub const MASK_GREENTINT: u8      = 0x40u8;
+pub const MASK_BLUETINT: u8       = 0x80u8;
 
-const fn expander_left(n: usize) -> u32 {
-    let mut data = 0u32;
-    let val = n as u32;
-    data = (data << 4) | (val >> 7) & 1;
-    data = (data << 4) | (val >> 6) & 1;
-    data = (data << 4) | (val >> 5) & 1;
-    data = (data << 4) | (val >> 4) & 1;
-    data = (data << 4) | (val >> 3) & 1;
-    data = (data << 4) | (val >> 2) & 1;
-    data = (data << 4) | (val >> 1) & 1;
-    data = (data << 4) | (val >> 0) & 1;
-    data
-}
+pub const SPRITE_OVERFLOW: u8     = 0x20u8;
+pub const SPRITE_ZEROHIT: u8      = 0x40u8;
 
-const fn expander_right(n: usize) -> u32 {
-    let mut data = 0u32;
-    let val = n as u32;
-    data = (data << 4) | (val >> 0) & 1;
-    data = (data << 4) | (val >> 1) & 1;
-    data = (data << 4) | (val >> 2) & 1;
-    data = (data << 4) | (val >> 3) & 1;
-    data = (data << 4) | (val >> 4) & 1;
-    data = (data << 4) | (val >> 5) & 1;
-    data = (data << 4) | (val >> 6) & 1;
-    data = (data << 4) | (val >> 7) & 1;
-    data
-}
-
-lazy_static! {
-    static ref EXPAND_L: Vec<u32> = (0..256).map(expander_left).collect();
-    static ref EXPAND_R: Vec<u32> = (0..256).map(expander_right).collect();
-}
-
-const CTRL_NAMETABLE: u8      = 0x03u8;
-const CTRL_INCREMENT: u8      = 0x04u8;
-const CTRL_SPRITETABLE: u8    = 0x08u8;
-const CTRL_BGTABLE: u8        = 0x10u8;
-const CTRL_SPRITESIZE: u8     = 0x20u8;
-const CTRL_MASTER: u8         = 0x40u8;
-
-const MASK_GRAYSCALE: u8      = 0x01u8;
-const MASK_SHOWLEFTBG: u8     = 0x02u8;
-const MASK_SHOWLEFTSPRITE: u8 = 0x04u8;
-const MASK_SHOWBG: u8         = 0x08u8;
-const MASK_SHOWSPRITES: u8    = 0x10u8;
-const MASK_REDTINT: u8        = 0x20u8;
-const MASK_GREENTINT: u8      = 0x40u8;
-const MASK_BLUETINT: u8       = 0x80u8;
-
-const SPRITE_ZEROHIT: u8      = 0x01u8;
-const SPRITE_OVERFLOW: u8     = 0x02u8;
-
+#[derive(Clone, Debug, Default)]
 struct Nmi {
     delay: u32,
     occurred: bool,
@@ -81,6 +31,7 @@ struct Nmi {
     previous: bool,
 }
 
+#[derive(Clone, Debug, Default)]
 struct Sprite {
     pattern: u32,
     position: isize,
@@ -88,6 +39,7 @@ struct Sprite {
     index: u8,
 }
 
+#[derive(Clone, Debug, Default)]
 pub struct Ppu {
     cycle: isize,
     scanline: isize,
@@ -117,10 +69,18 @@ pub struct Ppu {
     oam_addr: u8,
     sprite: Vec<Sprite>,
     sprite_count: usize,
-    picture: Vec<u32>,
+    pub picture: Vec<u32>,
 }
 
 impl Ppu {
+    pub fn new() -> Self {
+        Ppu {
+            oam: vec![0u8; 256],
+            sprite: vec![Sprite::default(); 8],
+            picture: vec![0u32; 256*240],
+            ..Default::default()
+        }
+    }
     pub fn reset(&mut self) {
         self.dead = 2 * 262 * 341;
         self.cycle = 341 - 18;
@@ -133,16 +93,16 @@ impl Ppu {
 
     fn set_control(&mut self, val: u8) {
         self.control = val;
-        self.nmi.output = val & 0x80 != 0;
+        self.nmi.output = (val & CTRL_NMI) != 0;
         self.nmi_change();
-        let tmp = (val & CTRL_NAMETABLE) as u16;
-        self.t = (self.t & 0xF3FF) | (tmp << 10);
+        let nt = (val & CTRL_NAMETABLE) as u16;
+        self.t = (self.t & 0xF3FF) | (nt << 10);
     }
 
     fn read_status(&mut self) -> u8 {
-        let result = (self.last_regval & 0x1F) |
-                     (self.status << 5) |
-                     if self.nmi.occurred { 0x80 } else { 0x00 };
+        let result = (self.last_regval & 0x1F)
+                     | self.status
+                     | if self.nmi.occurred { 0x80 } else { 0x00 };
         self.nmi.occurred = false;
         self.nmi_change();
         self.w = false;
@@ -156,8 +116,8 @@ impl Ppu {
             self.x = (val & 7) as u8;
             self.w = true;
         } else {
-            self.t = (self.t & 0x8FFF) | (val & 0x07) << 12;
-            self.t = (self.t & 0xFC1F) | (val & 0xF8) << 2;
+            self.t = (self.t & 0x8FFF) | ((val & 0x07) << 12);
+            self.t = (self.t & 0xFC1F) | ((val & 0xF8) << 2);
             self.w = false;
         }
     }
@@ -174,34 +134,33 @@ impl Ppu {
         }
     }
 
-    fn set_data(&mut self, nes: &mut Nes, val: u8) {
+    fn set_data(&mut self, nes: &Nes, val: u8) {
         nes.ppu_write(self.v, val);
-        self.v += if self.control & CTRL_INCREMENT != 0 { 32 } else { 1 };
+        self.v += if (self.control & CTRL_INCREMENT) != 0 { 32 } else { 1 };
     }
 
-    fn read_data(&mut self, nes: &mut Nes) -> u8 {
+    fn read_data(&mut self, nes: &Nes) -> u8 {
         let mut val = nes.ppu_read(self.v);
         if self.v % 0x4000 < 0x3F00 {
             std::mem::swap(&mut self.last_data, &mut val);
         } else {
             self.last_data = nes.ppu_read(self.v - 0x1000);
         }
-        self.v += if self.control & CTRL_INCREMENT != 0 { 32 } else { 1 };
+        self.v += if (self.control & CTRL_INCREMENT) != 0 { 32 } else { 1 };
         val
     }
 
-    fn set_dma(&mut self, nes: &mut Nes, val: u8) {
+    fn set_dma(&mut self, nes: &Nes, val: u8) {
         let mut addr = (val as u16) << 8;
         for _ in 0..256 {
             self.oam[self.oam_addr as usize] = nes.read(addr);
-            self.oam_addr += 1;
-            addr += 1;
+            self.oam_addr = self.oam_addr.wrapping_add(1);
+            addr = addr.wrapping_add(1);
         }
-        let odd = (nes.cpu.borrow().get_cycles() % 2) as u32;
-        nes.cpu.borrow_mut().add_stall(513 + odd);
+        nes.add_stall(513, true);
     }
 
-    pub fn write(&mut self, nes: &mut Nes, addr: u16, val: u8) {
+    pub fn write(&mut self, nes: &Nes, addr: u16, val: u8) {
         self.last_regval = val;
         match addr {
             0x2000 => self.set_control(val),
@@ -209,7 +168,7 @@ impl Ppu {
             0x2003 => self.oam_addr = val,
             0x2004 => {
                 self.oam[self.oam_addr as usize] = val;
-                self.oam_addr += 1;
+                self.oam_addr = self.oam_addr.wrapping_add(1);
             },
             0x2005 => self.set_scroll(val),
             0x2006 => self.set_address(val),
@@ -219,7 +178,7 @@ impl Ppu {
         }
     }
 
-    pub fn read(&mut self, nes: &mut Nes, addr: u16) -> u8 {
+    pub fn read(&mut self, nes: &Nes, addr: u16) -> u8 {
         match addr {
             0x2002 => self.read_status(),
             0x2004 => self.oam[self.oam_addr as usize],
@@ -247,14 +206,14 @@ impl Ppu {
         self.v = (self.v & 0x841F) | (self.t & 0x7BE0);
     }
     fn increment_x(&mut self) {
-        if self.v & 0x001F == 0x001F {
+        if (self.v & 0x001F) == 0x001F {
             self.v = (self.v & 0xFFE0) ^ 0x0400;
         } else {
             self.v += 1;
         }
     }
     fn increment_y(&mut self) {
-        if self.v & 0x7000 != 0x7000 {
+        if (self.v & 0x7000) != 0x7000 {
             self.v += 0x1000;
         } else {
             self.v &= 0x8FFF;
@@ -278,7 +237,7 @@ impl Ppu {
         self.tiledata |= (data | aa) as u64;
     }
     fn background_pixel(&self) -> u8 {
-        if self.mask & MASK_SHOWBG != 0 {
+        if (self.mask & MASK_SHOWBG) != 0 {
             let data = (self.tiledata >> 32) as u32;
             let data = (data >> ((7 - self.x) * 4)) & 0x0F;
             data as u8
@@ -287,32 +246,31 @@ impl Ppu {
         }
     }
 
-
-    fn fetch_nametable_byte(&mut self, nes: &mut Nes) {
+    fn fetch_nametable_byte(&mut self, nes: &Nes) {
         self.nametable = nes.ppu_read(0x2000 | (self.v & 0x0FFF));
     }
-    fn fetch_attribute_byte(&mut self, nes: &mut Nes) {
+    fn fetch_attribute_byte(&mut self, nes: &Nes) {
         let a = 0x23C0 | (self.v & 0x0C00)
                        | ((self.v >> 4) & 0x38)
                        | ((self.v >> 2) & 7);
         let shift = ((self.v >> 4) & 4) | (self.v & 2);
         self.attrtable = (nes.ppu_read(a) >> shift) & 3;
     }
-    fn fetch_low_tile_byte(&mut self, nes: &mut Nes) {
-        let bgtable = if self.control & CTRL_BGTABLE != 0 { 1u16 } else { 0u16 };
-        let a = (0x1000 * bgtable) + (16 * self.nametable as u16)
-                                   + ((self.v >> 12) & 7);
+    fn fetch_low_tile_byte(&mut self, nes: &Nes) {
+        let bgtable = if (self.control & CTRL_BGTABLE) != 0 { 0x1000u16 } else { 0u16 };
+        let a = bgtable + (16 * self.nametable as u16)
+                        + ((self.v >> 12) & 7);
         self.low_tile = nes.ppu_read(a);
     }
-    fn fetch_high_tile_byte(&mut self, nes: &mut Nes) {
-        let bgtable = if self.control & CTRL_BGTABLE != 0 { 1u16 } else { 0u16 };
-        let a = (0x1000 * bgtable) + (16 * self.nametable as u16)
-                                   + ((self.v >> 12) & 7);
+    fn fetch_high_tile_byte(&mut self, nes: &Nes) {
+        let bgtable = if (self.control & CTRL_BGTABLE) != 0 { 0x1000u16 } else { 0u16 };
+        let a = bgtable + (16 * self.nametable as u16)
+                        + ((self.v >> 12) & 7);
         self.high_tile = nes.ppu_read(a + 8);
     }
 
     fn sprite_pixel(&self) -> (usize, u8) {
-        if self.mask & MASK_SHOWSPRITES != 0 {
+        if (self.mask & MASK_SHOWSPRITES) != 0 {
             for i in 0..self.sprite_count {
                 let offset = self.cycle - 1 - self.sprite[i].position;
                 if offset < 0 || offset > 7 {
@@ -329,7 +287,27 @@ impl Ppu {
         (0, 0)
     }
 
-    fn render_pixel(&mut self, nes: &mut Nes) {
+    pub fn chr_bank_as_image(&self, nes: &Nes, offset: usize) -> Vec::<u32> {
+        let pal = [0xFF000000u32, 0xFF666666u32, 0xFFAAAAAAu32, 0xFFFFFFFFu32];
+        let mut pixels = vec![0u32; 128*128];
+        for y in 0..16 {
+            for x in 0..16 {
+                let tile = y * 16 + x;
+                for row in 0..8 {
+                    let mut a = nes.ppu_read((offset+16*tile+row) as u16);
+                    let mut b = nes.ppu_read((offset+16*tile+row+8) as u16);
+                    for col in 0..8 {
+                        let color = ((a & 0x80) >> 7) | ((b & 0x80) >> 6);
+                        pixels[128*(8*y+row) + 8*x+col] = pal[color as usize];
+                        a <<= 1; b <<= 1;
+                    }
+                }
+            }
+        }
+        pixels
+    }
+
+    fn render_pixel(&mut self, nes: &Nes) {
         let x = (self.cycle - 1) as usize;
         let y = self.scanline as usize;
         let mut background = self.background_pixel();
@@ -337,8 +315,8 @@ impl Ppu {
         let color;
 
         if x < 8 {
-            if self.mask & MASK_SHOWLEFTBG == 0 { background = 0; }
-            if self.mask & MASK_SHOWLEFTSPRITE == 0 { sprite = 0; }
+            if (self.mask & MASK_SHOWLEFTBG) == 0 { background = 0; }
+            if (self.mask & MASK_SHOWLEFTSPRITE) == 0 { sprite = 0; }
         }
 
         let b = background % 4 != 0;
@@ -361,43 +339,43 @@ impl Ppu {
         self.picture[y * 256 + x] = nes.palette_lookup(color);
     }
 
-    fn fetch_sprite_pattern(&mut self, nes: &mut Nes, n: usize, row: isize) -> u32 {
+    fn fetch_sprite_pattern(&mut self, nes: &Nes, n: usize, row: isize) -> u32 {
         let mut tile = self.oam[n*4 + 1] as u16;
         let attr = self.oam[n*4 + 2];
         let table;
         let mut row = row;
 
-        if self.control & CTRL_SPRITESIZE == 0 {
-            if attr & 0x80 != 0 {
+        if (self.control & CTRL_SPRITESIZE) == 0 {
+            if (attr & 0x80) != 0 {
                 row = 7 - row;
             }
-            table = if self.control & CTRL_SPRITETABLE == 0 { 0 } else { 0x1000 };
+            table = if (self.control & CTRL_SPRITETABLE) == 0 { 0 } else { 0x1000 };
         } else {
-            if attr & 0x80 != 0 {
+            if (attr & 0x80) != 0 {
                 row = 15 - row;
             }
-            table = if tile & 1 == 0 { 0 } else { 0x1000 };
-            tile &= !0xFE;
+            table = if (tile & 1) == 0 { 0 } else { 0x1000 };
+            tile &= 0xFE;
             if row > 7 {
                 tile += 1;
                 row -= 8;
             }
         }
 
-        let addr = table + tile * 16 + row as u16;
+        let addr = table + tile * 16 + (row as u16);
         let a = (attr & 3) as u32;
         let lo = nes.ppu_read(addr) as usize;
         let hi = nes.ppu_read(addr + 8) as usize;
-        let result = 0x44444444u32 * a;
-        if attr & 0x40 != 0 {
+        let result = 0x11111111u32 * (a << 2);
+        if (attr & 0x40) != 0 {
             result | EXPAND_R[lo] | EXPAND_R[hi] << 1
         } else {
             result | EXPAND_L[lo] | EXPAND_L[hi] << 1
         }
     }
 
-    fn evaluate_sprites(&mut self, nes: &mut Nes) {
-        let height = if self.control & CTRL_SPRITESIZE != 0 { 16isize } else { 8isize };
+    fn evaluate_sprites(&mut self, nes: &Nes) {
+        let height = if (self.control & CTRL_SPRITESIZE) != 0 { 16isize } else { 8isize };
         let mut count = 0usize;
         for i in 0..64 {
             let y = self.oam[i*4 + 0] as isize;
@@ -413,7 +391,7 @@ impl Ppu {
                                                                        i,
                                                                        row);
                 self.sprite[count].position = x;
-                self.sprite[count].priority = a & 0x20 != 0;
+                self.sprite[count].priority = (a & 0x20) != 0;
                 self.sprite[count].index = i as u8;
             }
             count += 1;
@@ -425,7 +403,7 @@ impl Ppu {
         self.sprite_count = count;
     } 
 
-    fn tick(&mut self, nes: &mut Nes) -> bool {
+    fn tick(&mut self, nes: &Nes) -> bool {
         if self.dead > 0 {
             self.dead -= 1;
             return false;
@@ -437,7 +415,7 @@ impl Ppu {
                 nes.signal_nmi();
             }
         }
-        if self.mask & (MASK_SHOWBG | MASK_SHOWSPRITES) != 0 {
+        if (self.mask & (MASK_SHOWBG | MASK_SHOWSPRITES)) != 0 {
             if self.f && self.scanline == 261 && self.cycle == 339 {
                 self.scanline = 0;
                 self.cycle = 0;
@@ -459,7 +437,7 @@ impl Ppu {
         }
         true
     }
-    pub fn emulate(&mut self, nes: &mut Nes) {
+    pub fn emulate(&mut self, nes: &Nes) {
         if self.tick(nes) {
             let pre_line = self.scanline == 261;
             let visible_line = self.scanline < 240;
@@ -471,7 +449,7 @@ impl Ppu {
             if visible_line && visible_cycle {
                 self.render_pixel(nes);
             }
-            if self.mask & (MASK_SHOWBG | MASK_SHOWSPRITES) != 0 {
+            if (self.mask & (MASK_SHOWBG | MASK_SHOWSPRITES)) != 0 {
                 if render_line && fetch_cycle {
                     self.tiledata <<= 4;
                     match self.cycle % 8 {
@@ -501,9 +479,9 @@ impl Ppu {
                 if self.cycle == 257 {
                     if visible_line {
                         self.evaluate_sprites(nes);
-                    } //else {
-                        // sprite_count = 0;
-                    //}
+                    } else {
+                        self.sprite_count = 0;
+                    }
                 }
             }
             if self.scanline == 241 && self.cycle == 1 {
@@ -511,6 +489,7 @@ impl Ppu {
             }
             if pre_line && self.cycle == 1 {
                 self.set_vertical_blank(false);
+                self.status = 0;
 
             }
 

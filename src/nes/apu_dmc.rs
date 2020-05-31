@@ -9,15 +9,15 @@ const DMC_TABLE: [u8; 16] = [
 
 #[derive(Clone, Debug, Default)]
 pub struct Registers {
-    control: u8,
-    value: u8,
-    address: u8,
-    length: u8,
+    pub control: u8,
+    pub value: u8,
+    pub address: u8,
+    pub length: u8,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct ApuDmc {
-    output_volume: f32,
+    pub output_volume: f32,
 
     enabled: bool,
     value: u8,
@@ -35,7 +35,9 @@ pub struct ApuDmc {
     loopit: bool,
     irq: bool,
 
-    reg: Registers,
+    pub reg: Registers,
+    pub dbg_offset: usize,
+    pub dbg_buf: Vec<f32>,
 }
 
 
@@ -43,6 +45,7 @@ impl ApuDmc {
     pub fn new(volume: f32) -> Self {
         ApuDmc {
             output_volume: volume,
+            dbg_buf: vec![0f32; 1024],
             ..Default::default()
         }
     }
@@ -76,12 +79,14 @@ impl ApuDmc {
         self.sample_length = 1u16 | (val as u16) << 4;
     }
 
-    pub fn output(&self) -> f32 {
-        let val = self.value;
-        self.output_volume * (val as f32) / 128.0f32
+    pub fn output(&mut self) -> f32 {
+        let val = (self.value as f32) / 127.0;
+        self.dbg_buf[self.dbg_offset] = val;
+        self.dbg_offset = (self.dbg_offset + 1) % self.dbg_buf.len();
+        self.output_volume * val
     }
 
-    pub fn step_timer(&mut self, nes: &mut Nes) {
+    pub fn step_timer(&mut self, nes: &Nes) {
         if self.enabled {
             self.step_reader(nes);
             if self.tick_value == 0 {
@@ -92,9 +97,9 @@ impl ApuDmc {
             }
         }
     }
-    pub fn step_reader(&mut self, nes: &mut Nes) {
+    pub fn step_reader(&mut self, nes: &Nes) {
         if self.current_length > 0 && self.bit_count == 0 {
-            nes.cpu.borrow_mut().add_stall(4);
+            nes.add_stall(4, false);
             self.shift_register = nes.read(self.current_address);
             self.bit_count = 8;
             self.current_address = self.current_address.wrapping_add(1);

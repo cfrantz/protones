@@ -1,6 +1,7 @@
 //#[macro_use]
 //extern crate bitflags;
 use std::default::Default;
+use log::error;
 
 #[derive(Clone, Copy, Debug)]
 enum AddressingMode {
@@ -546,13 +547,13 @@ const NAMES: [&str; 256] = [
 ];
 
 pub trait Memory {
-    fn read(&mut self, address: u16) -> u8;
-    fn write(&mut self, address: u16, value: u8);
+    fn read(&self, address: u16) -> u8;
+    fn write(&self, address: u16, value: u8);
 }
 
 bitflags! {
     #[derive(Default)]
-    struct CpuFlags: u8 {
+    pub struct CpuFlags: u8 {
         const C = 0b00000001;
         const Z = 0b00000010;
         const I = 0b00000100;
@@ -566,26 +567,26 @@ bitflags! {
 
 #[derive(Debug, Default)]
 pub struct Cpu6502 {
-    a: u8,
-    x: u8,
-    y: u8,
-    p: CpuFlags,
-    sp: u8,
-    pc: u16,
-    reset_pending: bool,
-    nmi_pending: bool,
-    irq_pending: bool,
-    halted: bool,
-    cycles: u64,
-    stall: u32,
+    pub a: u8,
+    pub x: u8,
+    pub y: u8,
+    pub p: CpuFlags,
+    pub sp: u8,
+    pub pc: u16,
+    pub reset_pending: bool,
+    pub nmi_pending: bool,
+    pub irq_pending: bool,
+    pub halted: bool,
+    pub cycles: u64,
+    pub stall: u32,
 }
 
 impl Cpu6502 {
-    fn read16(mem: &mut dyn Memory, address: u16) -> u16 {
+    fn read16(mem: &dyn Memory, address: u16) -> u16 {
         mem.read(address) as u16 | (mem.read(address+1) as u16) << 8
     }
 
-    fn read16bug(mem: &mut dyn Memory, address: u16) -> u16 {
+    fn read16bug(mem: &dyn Memory, address: u16) -> u16 {
         // When reading the high byte of a word, the address increments,
         // but doesn't carry from low address byte to the high address byte.
         mem.read(address) as u16 | (
@@ -593,20 +594,20 @@ impl Cpu6502 {
         ) << 8
     }
 
-    fn push(&mut self, mem: &mut dyn Memory, value: u8) {
+    fn push(&mut self, mem: &dyn Memory, value: u8) {
         mem.write(0x100u16 | self.sp as u16, value);
         self.sp = self.sp.wrapping_sub(1);
     }
-    fn push16(&mut self, mem: &mut dyn Memory, value: u16) {
+    fn push16(&mut self, mem: &dyn Memory, value: u16) {
         self.push(mem, (value >> 8) as u8);
         self.push(mem, (value & 255) as u8);
     }
 
-    fn pull(&mut self, mem: &mut dyn Memory) -> u8 {
+    fn pull(&mut self, mem: &dyn Memory) -> u8 {
         self.sp = self.sp.wrapping_add(1);
         mem.read(0x100u16 | self.sp as u16)
     }
-    fn pull16(&mut self, mem: &mut dyn Memory) -> u16 {
+    fn pull16(&mut self, mem: &dyn Memory) -> u16 {
         self.pull(mem) as u16 | (self.pull(mem) as u16) << 8
     }
 
@@ -627,31 +628,31 @@ impl Cpu6502 {
         let u = if self.p.contains(CpuFlags::U) { "U" } else { "u" };
         let v = if self.p.contains(CpuFlags::V) { "V" } else { "v" };
         let n = if self.p.contains(CpuFlags::N) { "N" } else { "n" };
-        format!("A={:02x} X={:02x} Y={:02x} P={}{}{}{}{}{}{}{} SP=1{:02x} PC={:04x}",
-                self.a, self.x, self.y, n,v,u,b,d,i,z,c,
-                self.sp, self.pc)
+        format!("PC={:04x} A={:02x} X={:02x} Y={:02x} SP=1{:02x} {}{}{}{}{}{}{}{}",
+                self.pc, self.a, self.x, self.y, self.sp,
+                n,v,u,b,d,i,z,c)
     }
 
-    pub fn disassemble(mem: &mut dyn Memory, addr: u16) -> (String, u16) {
+    pub fn disassemble(mem: &dyn Memory, addr: u16) -> (String, u16) {
         let opcode = mem.read(addr);
         let info = INFO[opcode as usize];
         let name = NAMES[opcode as usize];
         match info.size {
             2 => {
                 let operand = mem.read(addr.wrapping_add(1));
-                (format!("{:04x}: {:02x}{:02x}    {}", addr, opcode, operand,
+                (format!("{:04x}: {:02x}{:02x}          {}", addr, opcode, operand,
                          name.replace("@", format!("{:02x}", operand).as_str())),
                 addr.wrapping_add(2))
             },
             3 => {
                 let op1 = mem.read(addr.wrapping_add(1));
                 let op2 = mem.read(addr.wrapping_add(2));
-                (format!("{:04x}: {:02x}{:02x}{:02x}  {}", addr, opcode, op1, op2,
+                (format!("{:04x}: {:02x}{:02x}{:02x}        {}", addr, opcode, op1, op2,
                          name.replace("@", format!("{:02x}{:02x}", op2, op1).as_str())),
                 addr.wrapping_add(3))
             },
             0 | 1 | _ => {
-                (format!("{:04x}: {:02x}      {}", addr, opcode, name),
+                (format!("{:04x}: {:02x}            {}", addr, opcode, name),
                 addr.wrapping_add(1))
             },
 
@@ -724,12 +725,12 @@ impl Cpu6502 {
         self.halted = false;
     }
 
-    pub fn trace(&mut self, mem: &mut dyn Memory) -> String {
+    pub fn trace(&mut self, mem: &dyn Memory) -> String {
         let (s, _next) = Cpu6502::disassemble(mem, self.pc);
         self.execute(mem);
         s
     }
-    pub fn execute(&mut self, mem: &mut dyn Memory) -> u32 {
+    pub fn execute(&mut self, mem: &dyn Memory) -> u32 {
         if self.halted {
             0
         } else if self.stall > 0 {
@@ -741,7 +742,7 @@ impl Cpu6502 {
         }
     }
 
-    fn execute1(&mut self, mem: &mut dyn Memory) -> u32 {
+    fn execute1(&mut self, mem: &dyn Memory) -> u32 {
         let c = self.cycles;
 
         if self.reset_pending {
@@ -770,7 +771,8 @@ impl Cpu6502 {
 
         // Read opcode from memory, then copute the opaddr address,
         // next PC and cycles consumed.
-        let opcode = mem.read(self.pc);
+        let iaddr = self.pc;
+        let opcode = mem.read(iaddr);
         let info = INFO[opcode as usize];
         let pc1 = self.pc.wrapping_add(1);
         self.pc = self.pc.wrapping_add(info.size as u16);
@@ -1077,6 +1079,7 @@ impl Cpu6502 {
             _ => {
                 // Illegal opcode.
                 self.halted = true;
+                error!("Illegal opcode at ${:4x} = {:2x}", iaddr, opcode);
             },
         };
             

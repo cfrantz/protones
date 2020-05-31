@@ -46,4 +46,7 @@ impl Mapper for CNROM {
                   address, value);
         }
     }
+    fn mirror_address(&self, address: u16) -> u16 {
+        self.cartridge.mirror_address(address)
+    }
 }
