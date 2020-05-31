@@ -297,27 +297,6 @@ impl Ppu {
         (0, 0)
     }
 
-    pub fn chr_bank_as_image(&self, nes: &Nes, offset: usize) -> Vec<u32> {
-        let pal = [0xFF000000u32, 0xFF666666u32, 0xFFAAAAAAu32, 0xFFFFFFFFu32];
-        let mut pixels = vec![0u32; 128 * 128];
-        for y in 0..16 {
-            for x in 0..16 {
-                let tile = y * 16 + x;
-                for row in 0..8 {
-                    let mut a = nes.ppu_read((offset + 16 * tile + row) as u16);
-                    let mut b = nes.ppu_read((offset + 16 * tile + row + 8) as u16);
-                    for col in 0..8 {
-                        let color = ((a & 0x80) >> 7) | ((b & 0x80) >> 6);
-                        pixels[128 * (8 * y + row) + 8 * x + col] = pal[color as usize];
-                        a <<= 1;
-                        b <<= 1;
-                    }
-                }
-            }
-        }
-        pixels
-    }
-
     fn render_pixel(&mut self, nes: &Nes) {
         let x = (self.cycle - 1) as usize;
         let y = self.scanline as usize;
