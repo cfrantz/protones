@@ -2,8 +2,8 @@ use imgui;
 use imgui::im_str;
 
 use crate::gui::glhelper;
-use crate::nes::nes::Nes;
 use crate::nes::controller::Controller;
+use crate::nes::nes::Nes;
 
 #[derive(Clone, Debug)]
 pub struct ControllerDebug {
@@ -23,9 +23,7 @@ fn color(active: u8) -> [f32; 4] {
 
 impl ControllerDebug {
     pub fn new() -> Self {
-        ControllerDebug {
-            visible: false,
-        }
+        ControllerDebug { visible: false }
     }
 
     fn draw_controller(&self, num: usize, c: &Controller, ui: &imgui::Ui) {
@@ -51,7 +49,7 @@ impl ControllerDebug {
         if !self.visible {
             return;
         }
-        let mut visible =  self.visible;
+        let mut visible = self.visible;
         imgui::Window::new(im_str!("Controller"))
             .opened(&mut visible)
             .build(&ui, || {

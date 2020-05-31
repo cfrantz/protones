@@ -1,27 +1,27 @@
-use std::time::Instant;
 use imgui;
 use imgui::im_str;
 use imgui::MenuItem;
-use imgui_sdl2::ImguiSdl2;
 use imgui_opengl_renderer::Renderer;
-use sdl2;
-use sdl2::event::Event;
-use sdl2::controller::GameController;
-use sdl2::keyboard::Keycode;
-use sdl2::audio::{AudioCallback, AudioDevice, AudioSpecDesired};
+use imgui_sdl2::ImguiSdl2;
+use log::{error, info};
 use nfd;
-use log::{info, error};
+use sdl2;
+use sdl2::audio::{AudioCallback, AudioDevice, AudioSpecDesired};
+use sdl2::controller::GameController;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
 use std::io;
 use std::sync::mpsc;
+use std::time::Instant;
 
-use crate::nes::nes::Nes;
+use crate::gui::apu::ApuDebug;
+use crate::gui::controller::ControllerDebug;
 use crate::gui::glhelper;
 use crate::gui::hwpalette::hwpalette_editor;
 use crate::gui::input::SdlInput;
-use crate::gui::controller::ControllerDebug;
 use crate::gui::ppu::PpuDebug;
-use crate::gui::apu::ApuDebug;
 use crate::gui::preferences::Preferences;
+use crate::nes::nes::Nes;
 
 struct Playback {
     volume: f32,
@@ -36,32 +36,32 @@ impl AudioCallback for Playback {
                 for (sample, value) in output.iter_mut().zip(values) {
                     *sample = value * self.volume;
                 }
-            },
+            }
             Err(_) => {
                 info!("audio underrun!");
                 for sample in output.iter_mut() {
                     *sample = 0.0;
                 }
-            },
+            }
         }
     }
 }
 
 pub struct App {
-    #[allow(dead_code)]  // keep SDL context.
+    #[allow(dead_code)] // keep SDL context.
     sdl_context: sdl2::Sdl,
     video: sdl2::VideoSubsystem,
-    #[allow(dead_code)]  // keep audio context.
+    #[allow(dead_code)] // keep audio context.
     audio: sdl2::AudioSubsystem,
-    #[allow(dead_code)]  // keep audio playback device.
+    #[allow(dead_code)] // keep audio playback device.
     playback: AudioDevice<Playback>,
-    #[allow(dead_code)]  // keep gamecontroller context.
+    #[allow(dead_code)] // keep gamecontroller context.
     gamecontoller: sdl2::GameControllerSubsystem,
     window: sdl2::video::Window,
-    #[allow(dead_code)]  // keep GL context.
+    #[allow(dead_code)] // keep GL context.
     gl_context: sdl2::video::GLContext,
     event_pump: sdl2::EventPump,
-    #[allow(dead_code)]  // keep list of open controllers.
+    #[allow(dead_code)] // keep list of open controllers.
     controllers: Vec<GameController>,
     queue: mpsc::SyncSender<Vec<f32>>,
     running: bool,
@@ -83,15 +83,17 @@ impl App {
         let video = sdl_context.video()?;
         {
             let gl_attr = video.gl_attr();
-            gl_attr.set_context_profile(sdl2::video::GLProfile::Core);                   
-            gl_attr.set_context_version(3, 0);             
+            gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
+            gl_attr.set_context_version(3, 0);
         }
-        let window = video.window(name, width, height)
+        let window = video
+            .window(name, width, height)
             .position_centered()
             .resizable()
             .opengl()
             .allow_highdpi()
-            .build().unwrap();
+            .build()
+            .unwrap();
 
         let gcss = sdl_context.game_controller()?;
 
@@ -107,11 +109,10 @@ impl App {
             samples: Some(1024),
         };
         let (sender, receiver) = mpsc::sync_channel(2);
-        let playback = audio.open_playback(
-            None, &want_spec, |_spec| Playback {
-                volume: 1.0,
-                queue: receiver,
-            })?;
+        let playback = audio.open_playback(None, &want_spec, |_spec| Playback {
+            volume: 1.0,
+            queue: receiver,
+        })?;
         playback.resume();
         let controllers = App::open_controllers(&gcss)?;
 
@@ -141,7 +142,9 @@ impl App {
         })
     }
 
-    fn open_controllers(gcss: &sdl2::GameControllerSubsystem) -> Result<Vec<GameController>, String> {
+    fn open_controllers(
+        gcss: &sdl2::GameControllerSubsystem,
+    ) -> Result<Vec<GameController>, String> {
         let builtin_controller_db = include_bytes!("../../resources/gamecontrollerdb.txt");
         let mut reader = Vec::new();
         reader.extend_from_slice(builtin_controller_db);
@@ -172,8 +175,8 @@ impl App {
     fn loader(&mut self) -> io::Result<()> {
         let result = nfd::open_file_dialog(None, None).unwrap();
         match result {
-            nfd::Response::Okay(path) => { self.load(&path) },
-            _ => { Ok(()) }
+            nfd::Response::Okay(path) => self.load(&path),
+            _ => Ok(()),
         }
     }
 
@@ -187,10 +190,11 @@ impl App {
             }
         }
         if let Some(nes) = &self.nes {
-            glhelper::update_image(self.nes_image,
-                              0, 0, 256, 240, &nes.ppu.borrow().picture);
-            let size = [256.0 * self.preferences.scale * self.preferences.aspect,
-                        240.0 * self.preferences.scale];
+            glhelper::update_image(self.nes_image, 0, 0, 256, 240, &nes.ppu.borrow().picture);
+            let size = [
+                256.0 * self.preferences.scale * self.preferences.aspect,
+                240.0 * self.preferences.scale,
+            ];
             let style = ui.push_style_vars(&[
                 imgui::StyleVar::WindowPadding([0.0, 0.0]),
                 imgui::StyleVar::WindowRounding(0.0),
@@ -199,17 +203,18 @@ impl App {
             imgui::Window::new(im_str!("NES"))
                 .position([0.0, 20.0], imgui::Condition::Always)
                 .size(size, imgui::Condition::Always)
-                .flags(imgui::WindowFlags::NO_TITLE_BAR
+                .flags(
+                    imgui::WindowFlags::NO_TITLE_BAR
                      | imgui::WindowFlags::NO_MOVE
                      | imgui::WindowFlags::NO_SCROLLBAR
                      | imgui::WindowFlags::NO_BRING_TO_FRONT_ON_FOCUS
                      // Imgui-rs 0.4.0
                      //| imgui::WindowFlags::NO_SROLL_WITH_MOUSE
-                     | imgui::WindowFlags::NO_RESIZE)
+                     | imgui::WindowFlags::NO_RESIZE,
+                )
                 .build(ui, || {
-                imgui::Image::new(self.nes_image, size)
-                    .build(ui);
-            });
+                    imgui::Image::new(self.nes_image, size).build(ui);
+                });
             style.pop(&ui);
         }
     }
@@ -227,17 +232,22 @@ impl App {
                 }
             });
             ui.menu(im_str!("Edit"), true, || {
-                MenuItem::new(im_str!("Hardware Palette")).build_with_ref(ui, &mut self.palette_editor);
-                MenuItem::new(im_str!("Preferences")).build_with_ref(ui, &mut self.preferences.visible);
+                MenuItem::new(im_str!("Hardware Palette"))
+                    .build_with_ref(ui, &mut self.palette_editor);
+                MenuItem::new(im_str!("Preferences"))
+                    .build_with_ref(ui, &mut self.preferences.visible);
             });
             ui.menu(im_str!("View"), true, || {
                 MenuItem::new(im_str!("Audio")).build_with_ref(ui, &mut self.apu_debug.visible);
-                MenuItem::new(im_str!("Controllers")).build_with_ref(ui, &mut self.controller_debug.visible);
-                MenuItem::new(im_str!("CHR Viewer")).build_with_ref(ui, &mut self.ppu_debug.chr_visible);
-                MenuItem::new(im_str!("VRAM Viewer")).build_with_ref(ui, &mut self.ppu_debug.vram_visible);
+                MenuItem::new(im_str!("Controllers"))
+                    .build_with_ref(ui, &mut self.controller_debug.visible);
+                MenuItem::new(im_str!("CHR Viewer"))
+                    .build_with_ref(ui, &mut self.ppu_debug.chr_visible);
+                MenuItem::new(im_str!("VRAM Viewer"))
+                    .build_with_ref(ui, &mut self.ppu_debug.vram_visible);
             })
         });
-        
+
         self.preferences.draw(ui);
         if let Some(nes) = &self.nes {
             self.apu_debug.draw(nes, ui);
@@ -251,7 +261,6 @@ impl App {
                 let pal = &mut nes.palette.borrow_mut();
                 hwpalette_editor(pal, ui, visible);
             }
-
         }
         self.draw_nes(ui);
         {
@@ -264,8 +273,7 @@ impl App {
         let mut last_frame = Instant::now();
         let mut imgui = imgui::Context::create();
         let mut imgui_sdl2 = ImguiSdl2::new(&mut imgui, &self.window);
-        let renderer = Renderer::new(
-            &mut imgui, |s| self.video.gl_get_proc_address(s) as _);
+        let renderer = Renderer::new(&mut imgui, |s| self.video.gl_get_proc_address(s) as _);
 
         'running: while self.running {
             let frame_start = Instant::now();
@@ -278,8 +286,11 @@ impl App {
                     nes.controller[0].borrow_mut().process_event(&event);
                 }
                 match event {
-                    Event::Quit {..} => { break 'running },
-                    Event::KeyUp { keycode: Some(Keycode::F11), ..} => {
+                    Event::Quit { .. } => break 'running,
+                    Event::KeyUp {
+                        keycode: Some(Keycode::F11),
+                        ..
+                    } => {
                         if let Some(nes) = &mut self.nes {
                             nes.reset();
                         }
@@ -288,8 +299,7 @@ impl App {
                 }
             }
 
-            imgui_sdl2.prepare_frame(imgui.io_mut(), &self.window,
-                                     &self.event_pump.mouse_state());
+            imgui_sdl2.prepare_frame(imgui.io_mut(), &self.window, &self.event_pump.mouse_state());
 
             let now = Instant::now();
             let delta = now - last_frame;
@@ -307,7 +317,7 @@ impl App {
             let delta = (frame_end - frame_start).as_secs_f64();
             self.preferences.set_frame_time(delta as f32);
 
-            let leftover = (1.0/Nes::FPS) - delta;
+            let leftover = (1.0 / Nes::FPS) - delta;
             if leftover > 0.0 {
                 //thread::sleep(Duration::from_secs_f64(leftover));
             } else {

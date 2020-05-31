@@ -1,11 +1,10 @@
-use std::default::Default;
-use crate::nes::nes::Nes;
 use crate::nes::cpu6502::Memory;
+use crate::nes::nes::Nes;
+use std::default::Default;
 
 const DMC_TABLE: [u8; 16] = [
     214, 190, 170, 160, 143, 127, 113, 107, 95, 80, 71, 64, 53, 42, 36, 27,
 ];
-
 
 #[derive(Clone, Debug, Default)]
 pub struct Registers {
@@ -39,7 +38,6 @@ pub struct ApuDmc {
     pub dbg_offset: usize,
     pub dbg_buf: Vec<f32>,
 }
-
 
 impl ApuDmc {
     pub fn new(volume: f32) -> Self {

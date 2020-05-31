@@ -28,7 +28,9 @@ fn self_test_program() {
     mem[0xFFFC] = 0x00;
     mem[0xFFFD] = 0x04;
 
-    let mut ram = Ram { mem: RefCell::new(mem) };
+    let mut ram = Ram {
+        mem: RefCell::new(mem),
+    };
     let mut cpu = Cpu6502::default();
     cpu.reset();
 

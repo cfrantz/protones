@@ -1,11 +1,11 @@
 use imgui;
 use imgui::im_str;
 
-use crate::nes::nes::Nes;
+use crate::nes::apu_dmc::ApuDmc;
+use crate::nes::apu_noise::ApuNoise;
 use crate::nes::apu_pulse::ApuPulse;
 use crate::nes::apu_triangle::ApuTriangle;
-use crate::nes::apu_noise::ApuNoise;
-use crate::nes::apu_dmc::ApuDmc;
+use crate::nes::nes::Nes;
 
 #[derive(Clone, Debug)]
 pub struct ApuDebug {
@@ -14,9 +14,7 @@ pub struct ApuDebug {
 
 impl ApuDebug {
     pub fn new() -> Self {
-        ApuDebug {
-            visible: false,
-        }
+        ApuDebug { visible: false }
     }
 
     fn draw_pulse(ui: &imgui::Ui, pulse: &mut ApuPulse) {
@@ -32,9 +30,10 @@ impl ApuDebug {
         ui.group(|| {
             ui.text(format!("Control: {:02x}", pulse.reg.control));
             ui.text(format!("Sweep:   {:02x}", pulse.reg.sweep));
-            ui.text(format!("Timer:   {:02x}{:02x}",
-                            pulse.reg.timer_hi,
-                            pulse.reg.timer_lo));
+            ui.text(format!(
+                "Timer:   {:02x}{:02x}",
+                pulse.reg.timer_hi, pulse.reg.timer_lo
+            ));
         });
         imgui::Slider::new(&name, 0.0..=1.0f32)
             .display_format(im_str!("%.02f"))
@@ -52,9 +51,10 @@ impl ApuDebug {
         ui.same_line(0.0);
         ui.group(|| {
             ui.text(format!("Control: {:02x}", triangle.reg.control));
-            ui.text(format!("Timer:   {:02x}{:02x}",
-                            triangle.reg.timer_hi,
-                            triangle.reg.timer_lo));
+            ui.text(format!(
+                "Timer:   {:02x}{:02x}",
+                triangle.reg.timer_hi, triangle.reg.timer_lo
+            ));
         });
         imgui::Slider::new(im_str!("Triangle"), 0.0..=1.0f32)
             .display_format(im_str!("%.02f"))
@@ -98,14 +98,13 @@ impl ApuDebug {
         imgui::Slider::new(im_str!("DMC"), 0.0..=1.0f32)
             .display_format(im_str!("%.02f"))
             .build(ui, &mut dmc.output_volume);
-
     }
 
     pub fn draw(&mut self, nes: &Nes, ui: &imgui::Ui) {
         if !self.visible {
             return;
         }
-        let mut visible =  self.visible;
+        let mut visible = self.visible;
         imgui::Window::new(im_str!("Audio"))
             .opened(&mut visible)
             .build(&ui, || {

@@ -28,12 +28,10 @@ impl Mapper for UxROM {
         } else if address >= 0x6000 && address < 0x8000 {
             self.cartridge.sram[(address & 0x1FFF) as usize]
         } else if address < 0xC000 {
-            let a = (self.prg_bank1 as usize) * 0x4000 +
-                    (address & 0x3FFF) as usize;
+            let a = (self.prg_bank1 as usize) * 0x4000 + (address & 0x3FFF) as usize;
             self.cartridge.prg[a]
         } else if address >= 0xC000 {
-            let a = (self.prg_bank2 as usize) * 0x4000 +
-                    (address & 0x3FFF) as usize;
+            let a = (self.prg_bank2 as usize) * 0x4000 + (address & 0x3FFF) as usize;
             self.cartridge.prg[a]
         } else {
             warn!("UxROM: unhandled read address={:x}", address);
@@ -49,8 +47,10 @@ impl Mapper for UxROM {
         } else if address >= 0x8000 {
             self.prg_bank1 = value % self.prg_banks;
         } else {
-            warn!("UxROM: unhandled write address={:x} value={:x}",
-                  address, value);
+            warn!(
+                "UxROM: unhandled write address={:x} value={:x}",
+                address, value
+            );
         }
     }
     fn mirror_address(&self, address: u16) -> u16 {

@@ -1,6 +1,5 @@
 use std::vec::Vec;
 
-
 /*
  * Loops and Conditionals are not yet allowed in const functions.
  *

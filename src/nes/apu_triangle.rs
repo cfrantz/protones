@@ -1,13 +1,13 @@
 use std::default::Default;
 
 const LENGTH_TABLE: [u8; 32] = [
-    10, 254, 20,  2, 40,  4, 80,  6, 160,  8, 60, 10, 14, 12, 26, 14,
-    12,  16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28, 32, 30,
+    10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 10, 14, 12, 26, 14, 12, 16, 24, 18, 48, 20, 96, 22,
+    192, 24, 72, 26, 16, 28, 32, 30,
 ];
 
 const TRIANGLE: [u8; 32] = [
-    15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
-    0, 1, 2, 3, 4, 5, 6, 7, 8 ,9, 10, 11, 12, 13, 14, 15,
+    15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+    13, 14, 15,
 ];
 
 #[derive(Clone, Debug, Default)]
@@ -40,7 +40,6 @@ pub struct ApuTriangle {
     pub dbg_buf: Vec<f32>,
 }
 
-
 impl ApuTriangle {
     pub fn new(volume: f32) -> Self {
         ApuTriangle {
@@ -70,8 +69,7 @@ impl ApuTriangle {
     pub fn set_timer_high(&mut self, val: u8) {
         self.reg.timer_hi = val;
         self.length_value = LENGTH_TABLE[(val >> 3) as usize];
-        self.timer_period = (self.timer_period & 0x00FF) |
-                            ((val & 0x07) as u16) << 8;
+        self.timer_period = (self.timer_period & 0x00FF) | ((val & 0x07) as u16) << 8;
         self.timer_value = self.timer_period;
         self.counter_reload = true;
     }
@@ -84,10 +82,11 @@ impl ApuTriangle {
     }
 
     fn internal_output(&self) -> u8 {
-        if self.enabled == false ||
-           self.length_value == 0 ||
-           self.counter_value == 0 ||
-           (self.timer_period == 0 && self.timer_value == 0) {
+        if self.enabled == false
+            || self.length_value == 0
+            || self.counter_value == 0
+            || (self.timer_period == 0 && self.timer_value == 0)
+        {
             0
         } else {
             TRIANGLE[self.duty_value]

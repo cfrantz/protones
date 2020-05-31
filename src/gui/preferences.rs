@@ -34,15 +34,17 @@ impl Preferences {
         if !self.visible {
             return;
         }
-        let mut visible =  self.visible;
+        let mut visible = self.visible;
         let fps: f32 = self.frame_time.iter().sum();
         let fps = self.frame_time.len() as f32 / fps;
         imgui::Window::new(im_str!("Preferences"))
             .opened(&mut visible)
             .build(&ui, || {
-                ui.text(
-                    format!("Average FPS:       {:>6.02}\nInstantaneous FPS: {:>6.02}",
-                            fps, 1.0 / ui.io().delta_time));
+                ui.text(format!(
+                    "Average FPS:       {:>6.02}\nInstantaneous FPS: {:>6.02}",
+                    fps,
+                    1.0 / ui.io().delta_time
+                ));
 
                 imgui::DragFloat::new(ui, im_str!("Scale"), &mut self.scale)
                     .min(0.0)
@@ -62,13 +64,12 @@ impl Preferences {
                     .display_format(im_str!("%.02f"))
                     .build(ui, &mut self.volume);
 
-                imgui::ColorEdit::new(im_str!("Background"),
-                                      &mut self.background)
+                imgui::ColorEdit::new(im_str!("Background"), &mut self.background)
                     .alpha(false)
                     .inputs(false)
                     .picker(true)
                     .build(&ui);
-        });
+            });
         self.visible = visible;
     }
 }

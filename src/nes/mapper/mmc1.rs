@@ -1,5 +1,5 @@
-use super::mapper::Mapper;
 use super::mapper::simple_mirror_address;
+use super::mapper::Mapper;
 use crate::nes::cartridge::Cartridge;
 use log::warn;
 
@@ -11,7 +11,7 @@ pub struct MMC1 {
     prg_mode: u8,
     chr_mode: u8,
     prg_bank: u8,
-    chr_bank: [u8 ;2],
+    chr_bank: [u8; 2],
     prg_offset: [usize; 2],
     chr_offset: [usize; 2],
 }
@@ -67,15 +67,14 @@ impl MMC1 {
                 MMC1::prg_bank_offset(&self.cartridge, self.prg_bank & 0xFE),
                 MMC1::prg_bank_offset(&self.cartridge, self.prg_bank | 0x01),
             ],
-            2 => [
-                0,
-                MMC1::prg_bank_offset(&self.cartridge, self.prg_bank)
-            ],
+            2 => [0, MMC1::prg_bank_offset(&self.cartridge, self.prg_bank)],
             3 => [
                 MMC1::prg_bank_offset(&self.cartridge, self.prg_bank),
                 MMC1::prg_bank_offset(&self.cartridge, 0xFF),
             ],
-            _ => { panic!("Bad prg_mode {}", self.prg_mode); }
+            _ => {
+                panic!("Bad prg_mode {}", self.prg_mode);
+            }
         };
         self.chr_offset = match self.chr_mode {
             0 => [
@@ -86,7 +85,9 @@ impl MMC1 {
                 MMC1::chr_bank_offset(&self.cartridge, self.chr_bank[0]),
                 MMC1::chr_bank_offset(&self.cartridge, self.chr_bank[1]),
             ],
-            _ => { panic!("Bad chr_mode {}", self.chr_mode); }
+            _ => {
+                panic!("Bad chr_mode {}", self.chr_mode);
+            }
         };
     }
     fn write_control(&mut self, val: u8) {
@@ -125,8 +126,10 @@ impl Mapper for MMC1 {
         } else if address >= 0x8000 {
             self.load_register(address, value);
         } else {
-            warn!("MMC1: unhandled write address={:x} value={:x}",
-                  address, value);
+            warn!(
+                "MMC1: unhandled write address={:x} value={:x}",
+                address, value
+            );
         }
     }
 

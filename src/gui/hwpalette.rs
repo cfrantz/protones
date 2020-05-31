@@ -21,18 +21,20 @@ fn f32_to_color(fcol: &[f32; 4]) -> u32 {
     (r << R_SHIFT) | (g << G_SHIFT) | (b << B_SHIFT) | (a << A_SHIFT)
 }
 
-
 pub fn hwpalette_editor(palette: &mut [u32], ui: &imgui::Ui, visible: &mut bool) {
     imgui::Window::new(im_str!("Hardware Palette"))
         .opened(visible)
         .build(ui, || {
             ui.text("Click to edit colors");
             for x in 0..16 {
-                if x != 0 { ui.same_line(0.0); }
+                if x != 0 {
+                    ui.same_line(0.0);
+                }
                 ui.group(|| {
                     ui.align_text_to_frame_padding();
                     if x == 0 {
-                        ui.text("  "); ui.same_line(0.0);
+                        ui.text("  ");
+                        ui.same_line(0.0);
                     }
                     let text = format!("{:02x}", x);
                     ui.text(imgui::ImString::new(text));
@@ -42,7 +44,7 @@ pub fn hwpalette_editor(palette: &mut [u32], ui: &imgui::Ui, visible: &mut bool)
                             ui.text(imgui::ImString::new(text));
                             ui.same_line(0.0);
                         }
-                        let i = (y*16+x) as usize;
+                        let i = (y * 16 + x) as usize;
                         let id = ui.push_id(i as i32);
                         let mut fcol = [0.0f32; 4];
                         color_to_f32(palette[i], &mut fcol);

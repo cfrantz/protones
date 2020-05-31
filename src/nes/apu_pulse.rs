@@ -8,8 +8,8 @@ const DUTY_TABLE: [[u8; 8]; 4] = [
 ];
 
 const LENGTH_TABLE: [u8; 32] = [
-    10, 254, 20,  2, 40,  4, 80,  6, 160,  8, 60, 10, 14, 12, 26, 14,
-    12,  16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28, 32, 30,
+    10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 10, 14, 12, 26, 14, 12, 16, 24, 18, 48, 20, 96, 22,
+    192, 24, 72, 26, 16, 28, 32, 30,
 ];
 
 #[derive(Clone, Debug, Default)]
@@ -55,7 +55,6 @@ pub struct ApuPulse {
     pub dbg_buf: Vec<f32>,
 }
 
-
 impl ApuPulse {
     pub fn new(channel: u8, volume: f32) -> Self {
         ApuPulse {
@@ -99,8 +98,7 @@ impl ApuPulse {
     pub fn set_timer_high(&mut self, val: u8) {
         self.reg.timer_hi = val;
         self.length_value = LENGTH_TABLE[(val >> 3) as usize];
-        self.timer_period = (self.timer_period & 0x00FF) |
-                            ((val & 0x07) as u16) << 8;
+        self.timer_period = (self.timer_period & 0x00FF) | ((val & 0x07) as u16) << 8;
         self.envelope_start = true;
         self.duty_value = 0;
     }
@@ -113,11 +111,12 @@ impl ApuPulse {
     }
 
     fn internal_output(&self) -> u8 {
-        if self.enabled == false ||
-           self.length_value == 0 ||
-           DUTY_TABLE[self.duty_mode][self.duty_value] == 0 ||
-           self.timer_period < 8 ||
-           self.timer_period > 0x7ff {
+        if self.enabled == false
+            || self.length_value == 0
+            || DUTY_TABLE[self.duty_mode][self.duty_value] == 0
+            || self.timer_period < 8
+            || self.timer_period > 0x7ff
+        {
             0
         } else if self.envelope_enable {
             self.envelope_volume

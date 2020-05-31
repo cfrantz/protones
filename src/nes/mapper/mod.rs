@@ -1,13 +1,13 @@
+mod cnrom;
 pub mod mapper;
 mod mmc1;
 mod uxrom;
-mod cnrom;
 pub use mapper::Mapper;
 
-use crate::nes::cartridge::Cartridge;
-use super::mapper::uxrom::UxROM;
 use super::mapper::cnrom::CNROM;
 use super::mapper::mmc1::MMC1;
+use super::mapper::uxrom::UxROM;
+use crate::nes::cartridge::Cartridge;
 
 pub fn new(cartridge: Cartridge) -> Box<dyn Mapper> {
     match cartridge.header.mapper {

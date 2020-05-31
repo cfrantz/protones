@@ -1,13 +1,12 @@
 use std::default::Default;
 
 const NOISE_TABLE: [u16; 16] = [
-    4, 8, 16, 32, 64, 96, 128, 160,
-    202, 254, 380, 508, 762, 1016, 2034, 4068,
+    4, 8, 16, 32, 64, 96, 128, 160, 202, 254, 380, 508, 762, 1016, 2034, 4068,
 ];
 
 const LENGTH_TABLE: [u8; 32] = [
-    10, 254, 20,  2, 40,  4, 80,  6, 160,  8, 60, 10, 14, 12, 26, 14,
-    12,  16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28, 32, 30,
+    10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 10, 14, 12, 26, 14, 12, 16, 24, 18, 48, 20, 96, 22,
+    192, 24, 72, 26, 16, 28, 32, 30,
 ];
 
 #[derive(Clone, Debug, Default)]
@@ -43,7 +42,6 @@ pub struct ApuNoise {
     pub dbg_offset: usize,
     pub dbg_buf: Vec<f32>,
 }
-
 
 impl ApuNoise {
     pub fn new(volume: f32) -> Self {
@@ -91,9 +89,7 @@ impl ApuNoise {
     }
 
     fn internal_output(&self) -> u8 {
-        if self.enabled == false ||
-           self.length_value == 0 ||
-           (self.shift_register & 1) == 1 {
+        if self.enabled == false || self.length_value == 0 || (self.shift_register & 1) == 1 {
             0
         } else if self.envelope_enable {
             self.envelope_volume
@@ -108,8 +104,7 @@ impl ApuNoise {
             let shift = if self.mode { 6 } else { 1 };
             let b1 = self.shift_register & 1;
             let b2 = (self.shift_register >> shift) & 1;
-            self.shift_register = (self.shift_register >> 1) |
-                                  ((b1 ^ b2) << 14);
+            self.shift_register = (self.shift_register >> 1) | ((b1 ^ b2) << 14);
         } else {
             self.timer_value -= 1;
         }

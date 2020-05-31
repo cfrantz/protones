@@ -1,9 +1,9 @@
-use std::default::Default;
-use crate::nes::nes::Nes;
+use crate::nes::apu_dmc::ApuDmc;
+use crate::nes::apu_noise::ApuNoise;
 use crate::nes::apu_pulse::ApuPulse;
 use crate::nes::apu_triangle::ApuTriangle;
-use crate::nes::apu_noise::ApuNoise;
-use crate::nes::apu_dmc::ApuDmc;
+use crate::nes::nes::Nes;
+use std::default::Default;
 
 #[derive(Clone, Debug, Default)]
 pub struct Apu {
@@ -80,13 +80,12 @@ impl Apu {
         }
     }
     fn output(&mut self) -> f32 {
-        self.volume * (
-            self.pulse0.output()
-            + self.pulse1.output()
-            + self.triangle.output()
-            + self.noise.output()
-            + self.dmc.output()
-        )
+        self.volume
+            * (self.pulse0.output()
+                + self.pulse1.output()
+                + self.triangle.output()
+                + self.noise.output()
+                + self.dmc.output())
     }
     pub fn emulate(&mut self, nes: &Nes) -> Option<f32> {
         let c1 = self.cycle as f64;
@@ -138,20 +137,19 @@ impl Apu {
             0x4015 => self.set_control(val),
             0x4017 => self.set_frame_counter(val),
 
-            _ => {},
+            _ => {}
         }
     }
 
     pub fn read(&mut self, address: u16) -> u8 {
         match address {
             0x4015 => {
-                0x00
-                | if self.pulse0.active() { 0x01 } else { 0x00 }
-                | if self.pulse1.active() { 0x02 } else { 0x00 }
-                | if self.triangle.active() { 0x04 } else { 0x00 }
-                | if self.noise.active() { 0x08 } else { 0x00 }
-                | if self.dmc.active() { 0x10 } else { 0x00 }
-            },
+                0x00 | if self.pulse0.active() { 0x01 } else { 0x00 }
+                    | if self.pulse1.active() { 0x02 } else { 0x00 }
+                    | if self.triangle.active() { 0x04 } else { 0x00 }
+                    | if self.noise.active() { 0x08 } else { 0x00 }
+                    | if self.dmc.active() { 0x10 } else { 0x00 }
+            }
             _ => 0,
         }
     }

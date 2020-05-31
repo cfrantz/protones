@@ -24,7 +24,7 @@ impl Controller {
             0
         };
         self.index += 1;
-        if (self.strobe & 1) != 0{
+        if (self.strobe & 1) != 0 {
             self.index = 0;
         }
         ret
@@ -32,7 +32,7 @@ impl Controller {
 
     pub fn write(&mut self, val: u8) {
         self.strobe = val;
-        if (self.strobe & 1) != 0{
+        if (self.strobe & 1) != 0 {
             self.index = 0;
         }
     }

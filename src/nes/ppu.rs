@@ -1,27 +1,27 @@
-use crate::nes::nes::Nes;
 use crate::nes::cpu6502::Memory;
-use std::vec::Vec;
+use crate::nes::nes::Nes;
 use crate::nes::ppu_helper::{EXPAND_L, EXPAND_R};
+use std::vec::Vec;
 
-pub const CTRL_NAMETABLE: u8      = 0x03u8;
-pub const CTRL_INCREMENT: u8      = 0x04u8;
-pub const CTRL_SPRITETABLE: u8    = 0x08u8;
-pub const CTRL_BGTABLE: u8        = 0x10u8;
-pub const CTRL_SPRITESIZE: u8     = 0x20u8;
-pub const CTRL_MASTER: u8         = 0x40u8;
-pub const CTRL_NMI: u8            = 0x80u8;
+pub const CTRL_NAMETABLE: u8 = 0x03u8;
+pub const CTRL_INCREMENT: u8 = 0x04u8;
+pub const CTRL_SPRITETABLE: u8 = 0x08u8;
+pub const CTRL_BGTABLE: u8 = 0x10u8;
+pub const CTRL_SPRITESIZE: u8 = 0x20u8;
+pub const CTRL_MASTER: u8 = 0x40u8;
+pub const CTRL_NMI: u8 = 0x80u8;
 
-pub const MASK_GRAYSCALE: u8      = 0x01u8;
-pub const MASK_SHOWLEFTBG: u8     = 0x02u8;
+pub const MASK_GRAYSCALE: u8 = 0x01u8;
+pub const MASK_SHOWLEFTBG: u8 = 0x02u8;
 pub const MASK_SHOWLEFTSPRITE: u8 = 0x04u8;
-pub const MASK_SHOWBG: u8         = 0x08u8;
-pub const MASK_SHOWSPRITES: u8    = 0x10u8;
-pub const MASK_REDTINT: u8        = 0x20u8;
-pub const MASK_GREENTINT: u8      = 0x40u8;
-pub const MASK_BLUETINT: u8       = 0x80u8;
+pub const MASK_SHOWBG: u8 = 0x08u8;
+pub const MASK_SHOWSPRITES: u8 = 0x10u8;
+pub const MASK_REDTINT: u8 = 0x20u8;
+pub const MASK_GREENTINT: u8 = 0x40u8;
+pub const MASK_BLUETINT: u8 = 0x80u8;
 
-pub const SPRITE_OVERFLOW: u8     = 0x20u8;
-pub const SPRITE_ZEROHIT: u8      = 0x40u8;
+pub const SPRITE_OVERFLOW: u8 = 0x20u8;
+pub const SPRITE_ZEROHIT: u8 = 0x40u8;
 
 #[derive(Clone, Debug, Default)]
 struct Nmi {
@@ -77,7 +77,7 @@ impl Ppu {
         Ppu {
             oam: vec![0u8; 256],
             sprite: vec![Sprite::default(); 8],
-            picture: vec![0u32; 256*240],
+            picture: vec![0u32; 256 * 240],
             ..Default::default()
         }
     }
@@ -100,9 +100,8 @@ impl Ppu {
     }
 
     fn read_status(&mut self) -> u8 {
-        let result = (self.last_regval & 0x1F)
-                     | self.status
-                     | if self.nmi.occurred { 0x80 } else { 0x00 };
+        let result =
+            (self.last_regval & 0x1F) | self.status | if self.nmi.occurred { 0x80 } else { 0x00 };
         self.nmi.occurred = false;
         self.nmi_change();
         self.w = false;
@@ -136,7 +135,11 @@ impl Ppu {
 
     fn set_data(&mut self, nes: &Nes, val: u8) {
         nes.ppu_write(self.v, val);
-        self.v += if (self.control & CTRL_INCREMENT) != 0 { 32 } else { 1 };
+        self.v += if (self.control & CTRL_INCREMENT) != 0 {
+            32
+        } else {
+            1
+        };
     }
 
     fn read_data(&mut self, nes: &Nes) -> u8 {
@@ -146,7 +149,11 @@ impl Ppu {
         } else {
             self.last_data = nes.ppu_read(self.v - 0x1000);
         }
-        self.v += if (self.control & CTRL_INCREMENT) != 0 { 32 } else { 1 };
+        self.v += if (self.control & CTRL_INCREMENT) != 0 {
+            32
+        } else {
+            1
+        };
         val
     }
 
@@ -169,12 +176,12 @@ impl Ppu {
             0x2004 => {
                 self.oam[self.oam_addr as usize] = val;
                 self.oam_addr = self.oam_addr.wrapping_add(1);
-            },
+            }
             0x2005 => self.set_scroll(val),
             0x2006 => self.set_address(val),
             0x2007 => self.set_data(nes, val),
             0x4014 => self.set_dma(nes, val),
-            _ => {},
+            _ => {}
         }
     }
 
@@ -232,8 +239,7 @@ impl Ppu {
 
     fn store_tile_data(&mut self) {
         let aa = 0x44444444u32 * self.attrtable as u32;
-        let data = EXPAND_L[self.low_tile as usize] |
-                   EXPAND_L[self.high_tile as usize] << 1;
+        let data = EXPAND_L[self.low_tile as usize] | EXPAND_L[self.high_tile as usize] << 1;
         self.tiledata |= (data | aa) as u64;
     }
     fn background_pixel(&self) -> u8 {
@@ -250,22 +256,26 @@ impl Ppu {
         self.nametable = nes.ppu_read(0x2000 | (self.v & 0x0FFF));
     }
     fn fetch_attribute_byte(&mut self, nes: &Nes) {
-        let a = 0x23C0 | (self.v & 0x0C00)
-                       | ((self.v >> 4) & 0x38)
-                       | ((self.v >> 2) & 7);
+        let a = 0x23C0 | (self.v & 0x0C00) | ((self.v >> 4) & 0x38) | ((self.v >> 2) & 7);
         let shift = ((self.v >> 4) & 4) | (self.v & 2);
         self.attrtable = (nes.ppu_read(a) >> shift) & 3;
     }
     fn fetch_low_tile_byte(&mut self, nes: &Nes) {
-        let bgtable = if (self.control & CTRL_BGTABLE) != 0 { 0x1000u16 } else { 0u16 };
-        let a = bgtable + (16 * self.nametable as u16)
-                        + ((self.v >> 12) & 7);
+        let bgtable = if (self.control & CTRL_BGTABLE) != 0 {
+            0x1000u16
+        } else {
+            0u16
+        };
+        let a = bgtable + (16 * self.nametable as u16) + ((self.v >> 12) & 7);
         self.low_tile = nes.ppu_read(a);
     }
     fn fetch_high_tile_byte(&mut self, nes: &Nes) {
-        let bgtable = if (self.control & CTRL_BGTABLE) != 0 { 0x1000u16 } else { 0u16 };
-        let a = bgtable + (16 * self.nametable as u16)
-                        + ((self.v >> 12) & 7);
+        let bgtable = if (self.control & CTRL_BGTABLE) != 0 {
+            0x1000u16
+        } else {
+            0u16
+        };
+        let a = bgtable + (16 * self.nametable as u16) + ((self.v >> 12) & 7);
         self.high_tile = nes.ppu_read(a + 8);
     }
 
@@ -287,19 +297,20 @@ impl Ppu {
         (0, 0)
     }
 
-    pub fn chr_bank_as_image(&self, nes: &Nes, offset: usize) -> Vec::<u32> {
+    pub fn chr_bank_as_image(&self, nes: &Nes, offset: usize) -> Vec<u32> {
         let pal = [0xFF000000u32, 0xFF666666u32, 0xFFAAAAAAu32, 0xFFFFFFFFu32];
-        let mut pixels = vec![0u32; 128*128];
+        let mut pixels = vec![0u32; 128 * 128];
         for y in 0..16 {
             for x in 0..16 {
                 let tile = y * 16 + x;
                 for row in 0..8 {
-                    let mut a = nes.ppu_read((offset+16*tile+row) as u16);
-                    let mut b = nes.ppu_read((offset+16*tile+row+8) as u16);
+                    let mut a = nes.ppu_read((offset + 16 * tile + row) as u16);
+                    let mut b = nes.ppu_read((offset + 16 * tile + row + 8) as u16);
                     for col in 0..8 {
                         let color = ((a & 0x80) >> 7) | ((b & 0x80) >> 6);
-                        pixels[128*(8*y+row) + 8*x+col] = pal[color as usize];
-                        a <<= 1; b <<= 1;
+                        pixels[128 * (8 * y + row) + 8 * x + col] = pal[color as usize];
+                        a <<= 1;
+                        b <<= 1;
                     }
                 }
             }
@@ -315,8 +326,12 @@ impl Ppu {
         let color;
 
         if x < 8 {
-            if (self.mask & MASK_SHOWLEFTBG) == 0 { background = 0; }
-            if (self.mask & MASK_SHOWLEFTSPRITE) == 0 { sprite = 0; }
+            if (self.mask & MASK_SHOWLEFTBG) == 0 {
+                background = 0;
+            }
+            if (self.mask & MASK_SHOWLEFTSPRITE) == 0 {
+                sprite = 0;
+            }
         }
 
         let b = background % 4 != 0;
@@ -340,8 +355,8 @@ impl Ppu {
     }
 
     fn fetch_sprite_pattern(&mut self, nes: &Nes, n: usize, row: isize) -> u32 {
-        let mut tile = self.oam[n*4 + 1] as u16;
-        let attr = self.oam[n*4 + 2];
+        let mut tile = self.oam[n * 4 + 1] as u16;
+        let attr = self.oam[n * 4 + 2];
         let table;
         let mut row = row;
 
@@ -349,7 +364,11 @@ impl Ppu {
             if (attr & 0x80) != 0 {
                 row = 7 - row;
             }
-            table = if (self.control & CTRL_SPRITETABLE) == 0 { 0 } else { 0x1000 };
+            table = if (self.control & CTRL_SPRITETABLE) == 0 {
+                0
+            } else {
+                0x1000
+            };
         } else {
             if (attr & 0x80) != 0 {
                 row = 15 - row;
@@ -375,21 +394,23 @@ impl Ppu {
     }
 
     fn evaluate_sprites(&mut self, nes: &Nes) {
-        let height = if (self.control & CTRL_SPRITESIZE) != 0 { 16isize } else { 8isize };
+        let height = if (self.control & CTRL_SPRITESIZE) != 0 {
+            16isize
+        } else {
+            8isize
+        };
         let mut count = 0usize;
         for i in 0..64 {
-            let y = self.oam[i*4 + 0] as isize;
-            let a = self.oam[i*4 + 2];
-            let x = self.oam[i*4 + 3] as isize;
+            let y = self.oam[i * 4 + 0] as isize;
+            let a = self.oam[i * 4 + 2];
+            let x = self.oam[i * 4 + 3] as isize;
             let row = self.scanline - y;
 
-            if !(row >=0 && row < height) {
+            if !(row >= 0 && row < height) {
                 continue;
             }
             if count < self.sprite.len() {
-                self.sprite[count].pattern = self.fetch_sprite_pattern(nes,
-                                                                       i,
-                                                                       row);
+                self.sprite[count].pattern = self.fetch_sprite_pattern(nes, i, row);
                 self.sprite[count].position = x;
                 self.sprite[count].priority = (a & 0x20) != 0;
                 self.sprite[count].index = i as u8;
@@ -401,7 +422,7 @@ impl Ppu {
             self.status |= SPRITE_OVERFLOW;
         }
         self.sprite_count = count;
-    } 
+    }
 
     fn tick(&mut self, nes: &Nes) -> bool {
         if self.dead > 0 {
@@ -458,10 +479,10 @@ impl Ppu {
                         3 => self.fetch_attribute_byte(nes),
                         5 => self.fetch_low_tile_byte(nes),
                         7 => self.fetch_high_tile_byte(nes),
-                        _ => {},
+                        _ => {}
                     };
                 }
-                
+
                 if pre_line && self.cycle >= 280 && self.cycle <= 304 {
                     self.copy_y();
                 }
@@ -490,9 +511,7 @@ impl Ppu {
             if pre_line && self.cycle == 1 {
                 self.set_vertical_blank(false);
                 self.status = 0;
-
             }
-
         }
     }
 }

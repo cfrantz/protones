@@ -1,11 +1,11 @@
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use log::info;
+use std::fmt;
 use std::fs::File;
 use std::io;
 use std::io::{Error, ErrorKind};
 use std::io::{Read, Write};
 use std::vec::Vec;
-use std::fmt;
-use log::info;
 
 #[derive(Debug, Clone, Default)]
 pub struct InesHeader {
@@ -20,7 +20,7 @@ pub struct InesHeader {
     pub playchoice10: bool,
     pub version: u8,
     pub mapper: u8,
-    pub unused: [u8; 8]
+    pub unused: [u8; 8],
 }
 
 #[derive(Clone, Default)]
@@ -41,9 +41,8 @@ impl fmt::Debug for Cartridge {
 
 impl InesHeader {
     pub fn from_reader(mut r: impl Read) -> io::Result<Self> {
-
         let signature = r.read_u32::<LittleEndian>()?;
-        if signature !=  0x1a53454eu32 {
+        if signature != 0x1a53454eu32 {
             return Err(Error::new(ErrorKind::Other, "Invalid iNES signature"));
         }
         let prgsz = r.read_u8()?;
@@ -73,17 +72,15 @@ impl InesHeader {
         w.write_u32::<LittleEndian>(self.signature)?;
         w.write_u8(self.prgsz)?;
         w.write_u8(self.chrsz)?;
-        let flags6 =
-            (self.mapper  << 4) |
-            if self.mirror    { 0x01 } else { 0x00 } |
-            if self.sram      { 0x02 } else { 0x00 } |
-            if self.trainer   { 0x04 } else { 0x00 } |
-            if self.fourscreen{ 0x08 } else { 0x00 } ;
-        let flags7 =
-            (self.mapper & 0xF0) |
-            (self.version << 2) |
-            if self.vs_unisystem    { 0x01 } else { 0x00 } |
-            if self.playchoice10    { 0x02 } else { 0x00 } ;
+        let flags6 = (self.mapper << 4)
+            | if self.mirror { 0x01 } else { 0x00 }
+            | if self.sram { 0x02 } else { 0x00 }
+            | if self.trainer { 0x04 } else { 0x00 }
+            | if self.fourscreen { 0x08 } else { 0x00 };
+        let flags7 = (self.mapper & 0xF0)
+            | (self.version << 2)
+            | if self.vs_unisystem { 0x01 } else { 0x00 }
+            | if self.playchoice10 { 0x02 } else { 0x00 };
         w.write_u8(flags6)?;
         w.write_u8(flags7)?;
         w.write_all(&self.unused)?;
@@ -96,7 +93,6 @@ impl Cartridge {
         let mut header = InesHeader::from_reader(&mut r)?;
         let mut prg = vec![0; header.prgsz as usize * 16384];
         r.read_exact(&mut prg)?;
-
 
         let load_chr = header.chrsz != 0;
         if !load_chr {
@@ -149,5 +145,4 @@ impl Cartridge {
             (address & !0xc00) | (a11 >> 1)
         }
     }
-
 }

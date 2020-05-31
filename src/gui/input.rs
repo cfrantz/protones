@@ -1,7 +1,7 @@
-use sdl2::event::Event;
-use sdl2::controller::Button;
-use sdl2::controller::Axis;
 use crate::nes::controller::Controller;
+use sdl2::controller::Axis;
+use sdl2::controller::Button;
+use sdl2::event::Event;
 
 pub trait SdlInput {
     fn process_event(&mut self, event: &Event);
@@ -24,13 +24,17 @@ fn xbox_to_nes(xbox: &Button) -> u8 {
 impl SdlInput for Controller {
     fn process_event(&mut self, event: &Event) {
         match event {
-            Event::ControllerButtonDown{ button: b, .. } => {
+            Event::ControllerButtonDown { button: b, .. } => {
                 self.buttons |= xbox_to_nes(b);
-            },
-            Event::ControllerButtonUp{ button: b, .. } => {
+            }
+            Event::ControllerButtonUp { button: b, .. } => {
                 self.buttons &= !xbox_to_nes(b);
-            },
-            Event::ControllerAxisMotion{ axis: Axis::LeftX, value: v, .. } => {
+            }
+            Event::ControllerAxisMotion {
+                axis: Axis::LeftX,
+                value: v,
+                ..
+            } => {
                 if *v < -3000 {
                     self.buttons |= Controller::BUTTON_LEFT;
                     self.buttons &= !Controller::BUTTON_RIGHT;
@@ -41,8 +45,12 @@ impl SdlInput for Controller {
                     self.buttons &= !Controller::BUTTON_LEFT;
                     self.buttons &= !Controller::BUTTON_RIGHT;
                 }
-            },
-            Event::ControllerAxisMotion{ axis: Axis::LeftY, value: v, .. } => {
+            }
+            Event::ControllerAxisMotion {
+                axis: Axis::LeftY,
+                value: v,
+                ..
+            } => {
                 if *v < -3000 {
                     self.buttons |= Controller::BUTTON_UP;
                     self.buttons &= !Controller::BUTTON_DOWN;
@@ -53,8 +61,8 @@ impl SdlInput for Controller {
                     self.buttons &= !Controller::BUTTON_UP;
                     self.buttons &= !Controller::BUTTON_DOWN;
                 }
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 }

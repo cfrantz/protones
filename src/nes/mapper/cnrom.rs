@@ -42,8 +42,10 @@ impl Mapper for CNROM {
         } else if address >= 0x8000 {
             self.chr_bank1 = value & 3;
         } else {
-            warn!("CNROM: unhandled write address={:x} value={:x}",
-                  address, value);
+            warn!(
+                "CNROM: unhandled write address={:x} value={:x}",
+                address, value
+            );
         }
     }
     fn mirror_address(&self, address: u16) -> u16 {
