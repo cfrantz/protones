@@ -1,7 +1,6 @@
 use imgui;
 use imgui::im_str;
 
-use crate::gui::glhelper;
 use crate::nes::controller::Controller;
 use crate::nes::nes::Nes;
 

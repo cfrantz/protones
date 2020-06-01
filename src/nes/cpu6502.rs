@@ -1,6 +1,6 @@
+use super::cpu6502_info::{AddressingMode, INFO, NAMES};
 use log::error;
 use std::default::Default;
-use super::cpu6502_info::{AddressingMode, INFO, NAMES};
 
 pub trait Memory {
     fn read(&self, address: u16) -> u8;

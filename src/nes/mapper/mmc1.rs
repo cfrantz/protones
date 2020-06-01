@@ -3,7 +3,7 @@ use super::mapper::Mapper;
 use crate::nes::cartridge::Cartridge;
 use log::warn;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug)]
 pub struct MMC1 {
     cartridge: Cartridge,
     shift_register: u8,
@@ -22,8 +22,13 @@ impl MMC1 {
         MMC1 {
             cartridge: cartridge,
             shift_register: 0x10,
+            control: 0,
+            prg_mode: 0,
+            chr_mode: 0,
+            prg_bank: 0,
+            chr_bank: [0, 0],
             prg_offset: [0, prg_offset],
-            ..Default::default()
+            chr_offset: [0, 0],
         }
     }
 

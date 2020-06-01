@@ -1,10 +1,13 @@
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use log::info;
+use memmap::MmapMut;
 use std::fmt;
 use std::fs::File;
+use std::fs::OpenOptions;
 use std::io;
 use std::io::{Error, ErrorKind};
 use std::io::{Read, Write};
+use std::path::PathBuf;
 use std::vec::Vec;
 
 #[derive(Debug, Clone, Default)]
@@ -23,12 +26,11 @@ pub struct InesHeader {
     pub unused: [u8; 8],
 }
 
-#[derive(Clone, Default)]
 pub struct Cartridge {
     pub header: InesHeader,
     pub prg: Vec<u8>,
     pub chr: Vec<u8>,
-    pub sram: Vec<u8>,
+    pub sram: MmapMut,
 }
 
 impl fmt::Debug for Cartridge {
@@ -89,7 +91,7 @@ impl InesHeader {
 }
 
 impl Cartridge {
-    pub fn from_reader(mut r: impl Read) -> io::Result<Self> {
+    pub fn from_reader(mut r: impl Read, savefile: Option<PathBuf>) -> io::Result<Self> {
         let mut header = InesHeader::from_reader(&mut r)?;
         let mut prg = vec![0; header.prgsz as usize * 16384];
         r.read_exact(&mut prg)?;
@@ -104,7 +106,27 @@ impl Cartridge {
         }
 
         let sramsize = if header.sram { 8192 } else { 0 };
-        let sram = vec![0; sramsize];
+        let sram = if header.sram {
+            if let Some(savefile) = savefile {
+                // Have SRAM and filename: mmap that file.
+                info!("Opening SRAM file: {:?}", savefile);
+                let sramfile = OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .create(true)
+                    .open(savefile)?;
+
+                sramfile.set_len(sramsize)?;
+                unsafe { MmapMut::map_mut(&sramfile)? }
+            } else {
+                // Have SRAM, but no filename, so anonymous mapping.
+                MmapMut::map_anon(sramsize as usize)?
+            }
+        } else {
+            // No SRAM: this should be a zero-length mapping, but that is
+            // apparently not permitted.
+            MmapMut::map_anon(1)?
+        };
 
         info!("iNES header = {:?}", header);
         Ok(Cartridge {
@@ -115,9 +137,9 @@ impl Cartridge {
         })
     }
 
-    pub fn from_file(filename: &str) -> io::Result<Self> {
+    pub fn from_file(filename: &str, savefile: Option<PathBuf>) -> io::Result<Self> {
         let file = File::open(filename)?;
-        Cartridge::from_reader(file)
+        Cartridge::from_reader(file, savefile)
     }
 
     pub fn write(&self, w: &mut impl Write) -> io::Result<()> {
