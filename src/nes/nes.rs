@@ -5,9 +5,10 @@ use crate::nes::cpu6502::{Cpu6502, Memory};
 use crate::nes::mapper;
 use crate::nes::mapper::Mapper;
 use crate::nes::ppu::Ppu;
-use log::{info, warn};
+use log::{trace, warn};
 use std::cell::RefCell;
 use std::io;
+use std::path::PathBuf;
 
 const PALETTE: [u32; 64] = [
     // ABGR
@@ -38,7 +39,7 @@ pub struct Nes {
     pub pram: RefCell<Vec<u8>>,
     pub palette: RefCell<Vec<u32>>,
     remainder: f64,
-    frame: u64,
+    pub frame: u64,
     pub trace: bool,
     pub audio: RefCell<Vec<f32>>,
     stall: RefCell<Stall>,
@@ -88,8 +89,8 @@ impl Nes {
     pub const SAMPLE_RATE: f64 = (Nes::FREQUENCY as f64) / 48000.0;
     pub const FPS: f64 = 60.0998;
 
-    pub fn from_file(filename: &str) -> io::Result<Self> {
-        let cartridge = Cartridge::from_file(filename)?;
+    pub fn from_file(filename: &str, savefile: Option<PathBuf>) -> io::Result<Self> {
+        let cartridge = Cartridge::from_file(filename, savefile)?;
         let mapper = mapper::new(cartridge);
         let mut palette = Vec::<u32>::new();
         palette.extend_from_slice(&PALETTE);
@@ -222,7 +223,12 @@ impl Nes {
         }
         self.frame += 1;
         self.remainder = self.cpu.borrow().get_cycles() as f64 - eof;
-        //info!("frame={} cycle={} count={:.2} remainder={:.2}",
-        //      self.frame, cycle, count, self.remainder);
+        trace!(
+            "frame={} cycle={} count={:.2} remainder={:.2}",
+            self.frame,
+            cycle,
+            count,
+            self.remainder
+        );
     }
 }

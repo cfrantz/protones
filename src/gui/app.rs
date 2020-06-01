@@ -11,6 +11,7 @@ use sdl2::controller::GameController;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::io;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::time::Instant;
 
@@ -75,10 +76,20 @@ pub struct App {
     controller_debug: ControllerDebug,
     ppu_debug: PpuDebug,
     apu_debug: ApuDebug,
+
+    #[allow(dead_code)]
+    config_dir: PathBuf,
+    data_dir: PathBuf,
 }
 
 impl App {
-    pub fn new(name: &str, width: u32, height: u32) -> Result<Self, String> {
+    pub fn new(
+        name: &str,
+        width: u32,
+        height: u32,
+        config_dir: &Path,
+        data_dir: &Path,
+    ) -> Result<Self, String> {
         let sdl_context = sdl2::init()?;
         let video = sdl_context.video()?;
         {
@@ -139,6 +150,8 @@ impl App {
             controller_debug: ControllerDebug::new(),
             ppu_debug: PpuDebug::new(),
             apu_debug: ApuDebug::new(),
+            config_dir: config_dir.to_path_buf(),
+            data_dir: data_dir.to_path_buf(),
         })
     }
 
@@ -165,11 +178,21 @@ impl App {
 
     pub fn load(&mut self, filename: &str) -> io::Result<()> {
         info!("Loading {}", filename);
-        let mut nes = Box::new(Nes::from_file(filename)?);
-        nes.reset();
-        nes.trace = self.trace;
-        self.nes = Some(nes);
-        Ok(())
+        let path = PathBuf::from(filename);
+        if path.is_file() {
+            let sramname = path.with_extension("nes.sram");
+            let basename = sramname.file_name().unwrap();
+            let mut nes = Box::new(Nes::from_file(
+                filename,
+                Some(self.data_dir.join(basename)),
+            )?);
+            nes.reset();
+            nes.trace = self.trace;
+            self.nes = Some(nes);
+            Ok(())
+        } else {
+            Err(io::Error::new(io::ErrorKind::NotFound, filename))
+        }
     }
 
     fn loader(&mut self) -> io::Result<()> {

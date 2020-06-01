@@ -1,7 +1,7 @@
 use super::mapper::Mapper;
 use crate::nes::cartridge::Cartridge;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug)]
 pub struct UxROM {
     cartridge: Cartridge,
     prg_banks: u8,
