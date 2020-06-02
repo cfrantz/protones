@@ -1,13 +1,13 @@
-use crate::nes::controller::Controller;
 use super::scancode::ScancodeRef;
+use crate::nes::controller::Controller;
+use ron;
 use sdl2::controller::Axis;
 use sdl2::controller::Button;
-use sdl2::keyboard::Scancode;
 use sdl2::event::Event;
+use sdl2::keyboard::Scancode;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 use std::default::Default;
-use ron;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum CommandKey {
@@ -54,7 +54,7 @@ pub enum Command {
 #[derive(Hash, Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub enum Key {
     #[serde(with = "ScancodeRef")]
-    Scancode(Scancode)
+    Scancode(Scancode),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -65,18 +65,20 @@ pub struct Keybinds {
 impl Keybinds {
     pub fn translate(&self, event: &Event) -> Command {
         match event {
-            Event::Quit {..} => {
-                Command::Up(CommandKey::SystemQuit)
-            }
-            Event::KeyUp {scancode: Some(sc), ..} => {
-                self.keybind.get(&Key::Scancode(*sc)).map_or_else(
-                    || Command::None, |v| Command::Up(*v))
-            }
-            Event::KeyDown {scancode: Some(sc), ..} => {
-                self.keybind.get(&Key::Scancode(*sc)).map_or_else(
-                    || Command::None, |v| Command::Down(*v))
-            }
-            _ => Command::None
+            Event::Quit { .. } => Command::Up(CommandKey::SystemQuit),
+            Event::KeyUp {
+                scancode: Some(sc), ..
+            } => self
+                .keybind
+                .get(&Key::Scancode(*sc))
+                .map_or_else(|| Command::None, |v| Command::Up(*v)),
+            Event::KeyDown {
+                scancode: Some(sc), ..
+            } => self
+                .keybind
+                .get(&Key::Scancode(*sc))
+                .map_or_else(|| Command::None, |v| Command::Down(*v)),
+            _ => Command::None,
         }
     }
 }

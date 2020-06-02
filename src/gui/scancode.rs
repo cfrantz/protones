@@ -1,5 +1,5 @@
 use sdl2::keyboard::Scancode;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 // Provide a ref implementation so we can have serde derive
 // a serialization/deserialization for SDL's Scancode.

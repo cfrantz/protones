@@ -18,7 +18,7 @@ use crate::gui::controller::ControllerDebug;
 use crate::gui::glhelper;
 use crate::gui::hwpalette::hwpalette_editor;
 use crate::gui::input::SdlInput;
-use crate::gui::input::{Keybinds, Command, CommandKey};
+use crate::gui::input::{Command, CommandKey, Keybinds};
 use crate::gui::ppu::PpuDebug;
 use crate::gui::preferences::Preferences;
 use crate::nes::nes::Nes;
@@ -313,14 +313,16 @@ impl App {
                 }
                 match command {
                     Command::Up(k) => match k {
-                        CommandKey::SystemQuit => { break 'running; }
+                        CommandKey::SystemQuit => {
+                            break 'running;
+                        }
                         CommandKey::SystemReset => {
                             if let Some(nes) = &self.nes {
                                 nes.reset();
                             }
                         }
                         _ => {}
-                    }
+                    },
                     _ => {}
                 }
             }
