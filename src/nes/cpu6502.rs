@@ -250,7 +250,7 @@ impl Cpu6502 {
             self.p.insert(CpuFlags::I);
             self.pc = Cpu6502::read16(mem, 0xFFFAu16);
             self.cycles += 7;
-        } else if self.irq_pending && self.p.contains(CpuFlags::I) {
+        } else if self.irq_pending && !self.p.contains(CpuFlags::I) {
             self.irq_pending = false;
             self.push16(mem, self.pc);
             self.push(mem, (self.p | CpuFlags::B).bits);

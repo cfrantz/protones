@@ -15,7 +15,6 @@ basic structure.
 - Savestates.
 - State history (e.g. rewind).
 - Play back FM2 movies.
-- Add MMC3 mapper.
 - Add MMC5 mapper.
 - Add other mappers as needed.
 

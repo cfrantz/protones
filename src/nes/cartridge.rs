@@ -125,7 +125,9 @@ impl Cartridge {
         } else {
             // No SRAM: this should be a zero-length mapping, but that is
             // apparently not permitted.
-            MmapMut::map_anon(1)?
+            // It appears SMB3 has a spurious write to the SRAM region.
+            // For now, prevent a crash by mapping 8k here.
+            MmapMut::map_anon(8192)?
         };
 
         info!("iNES header = {:?}", header);

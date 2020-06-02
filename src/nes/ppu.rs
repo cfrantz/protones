@@ -41,9 +41,9 @@ struct Sprite {
 
 #[derive(Clone, Debug, Default)]
 pub struct Ppu {
-    cycle: isize,
-    scanline: isize,
-    frame: u64,
+    pub cycle: isize,
+    pub scanline: isize,
+    pub frame: u64,
     dead: u32,
 
     v: u16,
@@ -52,8 +52,8 @@ pub struct Ppu {
     w: bool,
     f: bool,
 
-    control: u8,
-    mask: u8,
+    pub control: u8,
+    pub mask: u8,
     status: u8,
     nmi: Nmi,
     last_regval: u8,
