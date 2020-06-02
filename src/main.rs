@@ -4,6 +4,7 @@ extern crate bitflags;
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
+extern crate ron;
 //#[macro_use]
 extern crate structopt;
 

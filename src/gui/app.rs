@@ -8,8 +8,6 @@ use nfd;
 use sdl2;
 use sdl2::audio::{AudioCallback, AudioDevice, AudioSpecDesired};
 use sdl2::controller::GameController;
-use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
@@ -20,6 +18,7 @@ use crate::gui::controller::ControllerDebug;
 use crate::gui::glhelper;
 use crate::gui::hwpalette::hwpalette_editor;
 use crate::gui::input::SdlInput;
+use crate::gui::input::{Keybinds, Command, CommandKey};
 use crate::gui::ppu::PpuDebug;
 use crate::gui::preferences::Preferences;
 use crate::nes::nes::Nes;
@@ -72,6 +71,7 @@ pub struct App {
     nes_image: imgui::TextureId,
     pub trace: bool,
 
+    keybinds: Keybinds,
     pub preferences: Preferences,
     controller_debug: ControllerDebug,
     ppu_debug: PpuDebug,
@@ -146,6 +146,7 @@ impl App {
             nes: None,
             nes_image: glhelper::new_blank_image(256, 240),
             trace: false,
+            keybinds: Keybinds::default(),
             preferences: Preferences::new(),
             controller_debug: ControllerDebug::new(),
             ppu_debug: PpuDebug::new(),
@@ -305,18 +306,20 @@ impl App {
                 if imgui_sdl2.ignore_event(&event) {
                     continue;
                 }
+                let command = self.keybinds.translate(&event);
                 if let Some(nes) = &self.nes {
                     nes.controller[0].borrow_mut().process_event(&event);
+                    nes.controller[0].borrow_mut().process_command(&command);
                 }
-                match event {
-                    Event::Quit { .. } => break 'running,
-                    Event::KeyUp {
-                        keycode: Some(Keycode::F11),
-                        ..
-                    } => {
-                        if let Some(nes) = &mut self.nes {
-                            nes.reset();
+                match command {
+                    Command::Up(k) => match k {
+                        CommandKey::SystemQuit => { break 'running; }
+                        CommandKey::SystemReset => {
+                            if let Some(nes) = &self.nes {
+                                nes.reset();
+                            }
                         }
+                        _ => {}
                     }
                     _ => {}
                 }

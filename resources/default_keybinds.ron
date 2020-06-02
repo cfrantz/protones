@@ -1,0 +1,31 @@
+(
+    // SDL Scancode names
+    // https://docs.rs/sdl2/0.34.0/sdl2/keyboard/enum.Scancode.html
+    keybind: {
+        Scancode(Up):     ControllerUp,
+        Scancode(Down):   ControllerDown,
+        Scancode(Left):   ControllerLeft,
+        Scancode(Right):  ControllerRight,
+        Scancode(LShift): ControllerSelect,
+        Scancode(Tab):    ControllerStart,
+        Scancode(LCtrl):  ControllerB,
+        Scancode(LAlt):   ControllerA,
+        Scancode(F12):    Controller2UpAndA,
+
+        Scancode(F11):    SystemReset,
+        Scancode(Pause):  SystemPause,
+
+        Scancode(F5):     SystemSaveState,
+        Scancode(F7):     SystemRestoreState,
+        Scancode(Num0):   SelectState0,
+        Scancode(Num1):   SelectState1,
+        Scancode(Num2):   SelectState2,
+        Scancode(Num3):   SelectState3,
+        Scancode(Num4):   SelectState4,
+        Scancode(Num5):   SelectState5,
+        Scancode(Num6):   SelectState6,
+        Scancode(Num7):   SelectState7,
+        Scancode(Num8):   SelectState8,
+        Scancode(Num9):   SelectState9,
+    },
+)

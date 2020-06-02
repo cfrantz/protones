@@ -21,8 +21,7 @@ basic structure.
 
 ### User Interface
 
-- Add keyboard input.
-- Load preferences as rusty object notation from a file.
+- Load preferences as rusty object notation (ron) from a file.
 
 ### Debug Functionality
 

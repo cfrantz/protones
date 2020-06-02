@@ -6,3 +6,4 @@ pub mod hwpalette;
 pub mod input;
 pub mod ppu;
 pub mod preferences;
+pub mod scancode;
