@@ -25,7 +25,7 @@ impl Mapper for CNROM {
             let a = (self.chr_bank1 as usize) * 0x2000 + address as usize;
             self.cartridge.chr[a]
         } else if address >= 0x6000 && address < 0x8000 {
-            self.cartridge.sram[(address & 0x1FFF) as usize]
+            self.cartridge.sram.read((address & 0x1FFF) as usize)
         } else if address >= 0x8000 {
             self.cartridge.prg[(address & 0x7FFF) as usize]
         } else {
@@ -38,7 +38,9 @@ impl Mapper for CNROM {
         if address < 0x2000 {
             self.cartridge.chr[address as usize] = value;
         } else if address >= 0x6000 && address < 0x8000 {
-            self.cartridge.sram[(address & 0x1FFF) as usize] = value;
+            self.cartridge
+                .sram
+                .write((address & 0x1FFF) as usize, value);
         } else if address >= 0x8000 {
             self.chr_bank1 = value & 3;
         } else {

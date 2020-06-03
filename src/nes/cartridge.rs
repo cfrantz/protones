@@ -16,7 +16,7 @@ pub struct InesHeader {
     pub prgsz: u8,
     pub chrsz: u8,
     pub mirror: bool,
-    pub sram: bool,
+    pub battery: bool,
     pub trainer: bool,
     pub fourscreen: bool,
     pub vs_unisystem: bool,
@@ -26,11 +26,15 @@ pub struct InesHeader {
     pub unused: [u8; 8],
 }
 
+pub struct SRam {
+    pub data: MmapMut,
+}
+
 pub struct Cartridge {
     pub header: InesHeader,
     pub prg: Vec<u8>,
     pub chr: Vec<u8>,
-    pub sram: MmapMut,
+    pub sram: SRam,
 }
 
 impl fmt::Debug for Cartridge {
@@ -59,7 +63,7 @@ impl InesHeader {
             prgsz: prgsz,
             chrsz: chrsz,
             mirror: (flags6 & 0x01) != 0,
-            sram: (flags6 & 0x02) != 0,
+            battery: (flags6 & 0x02) != 0,
             trainer: (flags6 & 0x04) != 0,
             fourscreen: (flags6 & 0x08) != 0,
             vs_unisystem: (flags7 & 0x01) != 0,
@@ -76,7 +80,7 @@ impl InesHeader {
         w.write_u8(self.chrsz)?;
         let flags6 = (self.mapper << 4)
             | if self.mirror { 0x01 } else { 0x00 }
-            | if self.sram { 0x02 } else { 0x00 }
+            | if self.battery { 0x02 } else { 0x00 }
             | if self.trainer { 0x04 } else { 0x00 }
             | if self.fourscreen { 0x08 } else { 0x00 };
         let flags7 = (self.mapper & 0xF0)
@@ -87,6 +91,44 @@ impl InesHeader {
         w.write_u8(flags7)?;
         w.write_all(&self.unused)?;
         Ok(())
+    }
+}
+
+impl SRam {
+    pub fn from_file(filepath: &PathBuf, length: usize) -> io::Result<Self> {
+        let sramfile = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(filepath)?;
+
+        sramfile.set_len(length as u64)?;
+        Ok(SRam {
+            data: unsafe { MmapMut::map_mut(&sramfile)? },
+        })
+    }
+    pub fn anon(length: usize) -> io::Result<Self> {
+        Ok(SRam {
+            // Can't create a zero length mapping.
+            data: MmapMut::map_anon(length)?,
+        })
+    }
+
+    pub fn read(&self, offset: usize) -> u8 {
+        if offset < self.data.len() {
+            self.data[offset]
+        } else {
+            error!("SRAM: bad read at {:04x}", offset);
+            0xff
+        }
+    }
+
+    pub fn write(&mut self, offset: usize, value: u8) {
+        if offset < self.data.len() {
+            self.data[offset] = value;
+        } else {
+            error!("SRAM: bad write at {:04x}, value={:02x}", offset, value);
+        }
     }
 }
 
@@ -105,29 +147,20 @@ impl Cartridge {
             r.read_exact(&mut chr)?;
         }
 
-        let sramsize = if header.sram { 8192 } else { 0 };
-        let sram = if header.sram {
+        // FIXME: different mappers generally represent different amounts of
+        // sram in the cartridge.  Generally, carts provide 8K.  MMC5 can
+        // provide upto 128K, but it seems common for it to provide between
+        // 8K and 64K.
+        let sramsize = 8192;
+        let sram = if header.battery {
             if let Some(savefile) = savefile {
-                // Have SRAM and filename: mmap that file.
-                info!("Opening SRAM file: {:?}", savefile);
-                let sramfile = OpenOptions::new()
-                    .read(true)
-                    .write(true)
-                    .create(true)
-                    .open(savefile)?;
-
-                sramfile.set_len(sramsize)?;
-                unsafe { MmapMut::map_mut(&sramfile)? }
+                SRam::from_file(&savefile, sramsize)?
             } else {
                 // Have SRAM, but no filename, so anonymous mapping.
-                MmapMut::map_anon(sramsize as usize)?
+                SRam::anon(sramsize)?
             }
         } else {
-            // No SRAM: this should be a zero-length mapping, but that is
-            // apparently not permitted.
-            // It appears SMB3 has a spurious write to the SRAM region.
-            // For now, prevent a crash by mapping 8k here.
-            MmapMut::map_anon(8192)?
+            SRam::anon(sramsize)?
         };
 
         info!("iNES header = {:?}", header);

@@ -138,7 +138,7 @@ impl Mapper for MMC3 {
             let offset = (address % 0x0400) as usize;
             self.cartridge.chr[self.chr_offset[bank] + offset]
         } else if address >= 0x6000 && address < 0x8000 {
-            self.cartridge.sram[(address & 0x1FFF) as usize]
+            self.cartridge.sram.read((address & 0x1FFF) as usize)
         } else if address >= 0x8000 {
             let address = (address & 0x7FFF) as usize;
             let bank = address / 0x2000;
@@ -156,7 +156,9 @@ impl Mapper for MMC3 {
             let offset = (address % 0x0400) as usize;
             self.cartridge.chr[self.chr_offset[bank] + offset] = value;
         } else if address >= 0x6000 && address < 0x8000 {
-            self.cartridge.sram[(address & 0x1FFF) as usize] = value;
+            self.cartridge
+                .sram
+                .write((address & 0x1FFF) as usize, value);
         } else if address >= 0x8000 {
             self.write_register(address, value);
         } else {
