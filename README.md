@@ -12,7 +12,6 @@ basic structure.
 ### Basic Functionality
 
 - Improve framerate stability.
-- Savestates.
 - State history (e.g. rewind).
 - Play back FM2 movies.
 - Add MMC5 mapper.

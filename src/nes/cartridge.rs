@@ -1,16 +1,16 @@
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use log::info;
-use memmap::MmapMut;
+//use memmap::MmapMut;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fs::File;
-use std::fs::OpenOptions;
 use std::io;
 use std::io::{Error, ErrorKind};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::vec::Vec;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct InesHeader {
     pub signature: u32,
     pub prgsz: u8,
@@ -26,10 +26,12 @@ pub struct InesHeader {
     pub unused: [u8; 8],
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct SRam {
-    pub data: MmapMut,
+    pub data: Vec<u8>,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Cartridge {
     pub header: InesHeader,
     pub prg: Vec<u8>,
@@ -95,23 +97,10 @@ impl InesHeader {
 }
 
 impl SRam {
-    pub fn from_file(filepath: &PathBuf, length: usize) -> io::Result<Self> {
-        let sramfile = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .open(filepath)?;
-
-        sramfile.set_len(length as u64)?;
-        Ok(SRam {
-            data: unsafe { MmapMut::map_mut(&sramfile)? },
-        })
-    }
-    pub fn anon(length: usize) -> io::Result<Self> {
-        Ok(SRam {
-            // Can't create a zero length mapping.
-            data: MmapMut::map_anon(length)?,
-        })
+    pub fn with_size(length: usize) -> Self {
+        SRam {
+            data: vec![0u8; length],
+        }
     }
 
     pub fn read(&self, offset: usize) -> u8 {
@@ -130,10 +119,20 @@ impl SRam {
             error!("SRAM: bad write at {:04x}, value={:02x}", offset, value);
         }
     }
+
+    pub fn load(&mut self, filepath: &PathBuf) -> io::Result<()> {
+        let mut file = File::open(filepath)?;
+        file.read_exact(&mut self.data)
+    }
+
+    pub fn save(&self, filepath: &PathBuf) -> io::Result<()> {
+        let mut file = File::create(filepath)?;
+        file.write_all(&self.data)
+    }
 }
 
 impl Cartridge {
-    pub fn from_reader(mut r: impl Read, savefile: Option<PathBuf>) -> io::Result<Self> {
+    pub fn from_reader(mut r: impl Read) -> io::Result<Self> {
         let mut header = InesHeader::from_reader(&mut r)?;
         let mut prg = vec![0; header.prgsz as usize * 16384];
         r.read_exact(&mut prg)?;
@@ -152,16 +151,7 @@ impl Cartridge {
         // provide upto 128K, but it seems common for it to provide between
         // 8K and 64K.
         let sramsize = 8192;
-        let sram = if header.battery {
-            if let Some(savefile) = savefile {
-                SRam::from_file(&savefile, sramsize)?
-            } else {
-                // Have SRAM, but no filename, so anonymous mapping.
-                SRam::anon(sramsize)?
-            }
-        } else {
-            SRam::anon(sramsize)?
-        };
+        let sram = SRam::with_size(sramsize);
 
         info!("iNES header = {:?}", header);
         Ok(Cartridge {
@@ -172,9 +162,9 @@ impl Cartridge {
         })
     }
 
-    pub fn from_file(filename: &str, savefile: Option<PathBuf>) -> io::Result<Self> {
+    pub fn from_file(filename: &str) -> io::Result<Self> {
         let file = File::open(filename)?;
-        Cartridge::from_reader(file, savefile)
+        Cartridge::from_reader(file)
     }
 
     pub fn write(&self, w: &mut impl Write) -> io::Result<()> {

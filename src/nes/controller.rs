@@ -1,6 +1,7 @@
+use serde::{Deserialize, Serialize};
 use std::default::Default;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Controller {
     pub buttons: u8,
     index: u8,

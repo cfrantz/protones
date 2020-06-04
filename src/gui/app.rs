@@ -8,6 +8,7 @@ use nfd;
 use sdl2;
 use sdl2::audio::{AudioCallback, AudioDevice, AudioSpecDesired};
 use sdl2::controller::GameController;
+use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
@@ -22,6 +23,7 @@ use crate::gui::input::{Command, CommandKey, Keybinds};
 use crate::gui::ppu::PpuDebug;
 use crate::gui::preferences::Preferences;
 use crate::nes::nes::Nes;
+use ron;
 
 struct Playback {
     volume: f32,
@@ -80,6 +82,11 @@ pub struct App {
     #[allow(dead_code)]
     config_dir: PathBuf,
     data_dir: PathBuf,
+
+    nesfile: Option<PathBuf>,
+    sramfile: Option<PathBuf>,
+
+    state_slot: u32,
 }
 
 impl App {
@@ -153,6 +160,9 @@ impl App {
             apu_debug: ApuDebug::new(),
             config_dir: config_dir.to_path_buf(),
             data_dir: data_dir.to_path_buf(),
+            nesfile: None,
+            sramfile: None,
+            state_slot: 1,
         })
     }
 
@@ -183,13 +193,19 @@ impl App {
         if path.is_file() {
             let sramname = path.with_extension("nes.sram");
             let basename = sramname.file_name().unwrap();
-            let mut nes = Box::new(Nes::from_file(
-                filename,
-                Some(self.data_dir.join(basename)),
-            )?);
+            let mut nes = Box::new(Nes::from_file(filename)?);
+
+            let sramfile = self.data_dir.join(basename);
+            match nes.mapper.borrow_mut().sram_load(&sramfile) {
+                Ok(()) => {}
+                Err(e) => info!("Could not load SRAM file {:?}: {:?}", sramfile, e),
+            }
+
             nes.reset();
             nes.trace = self.trace;
             self.nes = Some(nes);
+            self.nesfile = Some(path);
+            self.sramfile = Some(sramfile);
             Ok(())
         } else {
             Err(io::Error::new(io::ErrorKind::NotFound, filename))
@@ -204,7 +220,20 @@ impl App {
         }
     }
 
+    fn sram_save(&self) {
+        if let (Some(nes), Some(sramfile)) = (&self.nes, &self.sramfile) {
+            // Save the SRAM file every second.
+            if nes.frame % 60 == 0 {
+                match nes.mapper.borrow().sram_save(sramfile) {
+                    Ok(()) => {}
+                    Err(e) => error!("Could not save SRAM file {:?}: {:?}", sramfile, e),
+                }
+            }
+        }
+    }
+
     fn draw_nes(&mut self, ui: &imgui::Ui) {
+        self.sram_save();
         if let Some(nes) = &mut self.nes {
             nes.emulate_frame();
             let mut audio = nes.audio.borrow_mut();
@@ -293,6 +322,36 @@ impl App {
         }
     }
 
+    fn save_state(&self) {
+        if let (Some(nes), Some(sramfile)) = (&self.nes, &self.sramfile) {
+            let pretty = ron::ser::PrettyConfig::new();
+            let s = ron::ser::to_string_pretty(nes, pretty).unwrap();
+            let statefile = sramfile.with_extension(format!("state.{}", self.state_slot));
+            info!("Saving state to {:?}", statefile);
+            match fs::write(statefile, &s) {
+                Ok(()) => {}
+                Err(e) => error!("Could not save state: {:?}", e),
+            }
+        }
+    }
+
+    fn load_state(&self) -> io::Result<Box<Nes>> {
+        if let Some(sramfile) = &self.sramfile {
+            let statefile = sramfile.with_extension(format!("state.{}", self.state_slot));
+            info!("Loading state from {:?}", statefile);
+            let file = fs::File::open(statefile)?;
+            match ron::de::from_reader(&file) {
+                Ok(nes) => Ok(Box::new(nes)),
+                Err(v) => Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Deserialization failure: {:?})", v),
+                )),
+            }
+        } else {
+            Err(io::Error::new(io::ErrorKind::Other, "No game loaded."))
+        }
+    }
+
     pub fn run(&mut self) {
         let mut last_frame = Instant::now();
         let mut imgui = imgui::Context::create();
@@ -301,6 +360,9 @@ impl App {
 
         'running: while self.running {
             let frame_start = Instant::now();
+            let mut want_load = false;
+            let mut want_save = false;
+
             for event in self.event_pump.poll_iter() {
                 imgui_sdl2.handle_event(&mut imgui, &event);
                 if imgui_sdl2.ignore_event(&event) {
@@ -316,14 +378,60 @@ impl App {
                         CommandKey::SystemQuit => {
                             break 'running;
                         }
+                        CommandKey::SystemSaveState => {
+                            want_save = true;
+                        }
+                        CommandKey::SystemRestoreState => {
+                            want_load = true;
+                        }
                         CommandKey::SystemReset => {
                             if let Some(nes) = &self.nes {
                                 nes.reset();
                             }
                         }
+                        CommandKey::SelectState0 => {
+                            self.state_slot = 0;
+                        }
+                        CommandKey::SelectState1 => {
+                            self.state_slot = 1;
+                        }
+                        CommandKey::SelectState2 => {
+                            self.state_slot = 2;
+                        }
+                        CommandKey::SelectState3 => {
+                            self.state_slot = 3;
+                        }
+                        CommandKey::SelectState4 => {
+                            self.state_slot = 4;
+                        }
+                        CommandKey::SelectState5 => {
+                            self.state_slot = 5;
+                        }
+                        CommandKey::SelectState6 => {
+                            self.state_slot = 6;
+                        }
+                        CommandKey::SelectState7 => {
+                            self.state_slot = 7;
+                        }
+                        CommandKey::SelectState8 => {
+                            self.state_slot = 8;
+                        }
+                        CommandKey::SelectState9 => {
+                            self.state_slot = 9;
+                        }
                         _ => {}
                     },
                     _ => {}
+                }
+            }
+
+            if want_save {
+                self.save_state();
+            }
+            if want_load {
+                match self.load_state() {
+                    Ok(nes) => self.nes = Some(nes),
+                    Err(e) => error!("Could not load state {}: {:?}", self.state_slot, e),
                 }
             }
 

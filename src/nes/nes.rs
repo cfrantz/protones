@@ -6,9 +6,9 @@ use crate::nes::mapper;
 use crate::nes::mapper::Mapper;
 use crate::nes::ppu::Ppu;
 use log::{trace, warn};
+use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::io;
-use std::path::PathBuf;
 
 const PALETTE: [u32; 64] = [
     // ABGR
@@ -22,11 +22,13 @@ const PALETTE: [u32; 64] = [
     0xff94e5e4, 0xff96efcf, 0xffabf4bd, 0xffccf3b3, 0xfff2ebb5, 0xffb8b8b8, 0xff000000, 0xff000000,
 ];
 
+#[derive(Debug, Serialize, Deserialize)]
 struct Stall {
     cycles: u32,
     oddcycle: bool,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Nes {
     pub mapper: RefCell<Box<dyn Mapper>>,
     pub cpu: RefCell<Cpu6502>,
@@ -89,8 +91,8 @@ impl Nes {
     pub const SAMPLE_RATE: f64 = (Nes::FREQUENCY as f64) / 48000.0;
     pub const FPS: f64 = 60.0998;
 
-    pub fn from_file(filename: &str, savefile: Option<PathBuf>) -> io::Result<Self> {
-        let cartridge = Cartridge::from_file(filename, savefile)?;
+    pub fn from_file(filename: &str) -> io::Result<Self> {
+        let cartridge = Cartridge::from_file(filename)?;
         let mapper = mapper::new(cartridge);
         let mut palette = Vec::<u32>::new();
         palette.extend_from_slice(&PALETTE);

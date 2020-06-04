@@ -1,12 +1,13 @@
 use crate::nes::cpu6502::Memory;
 use crate::nes::nes::Nes;
+use serde::{Deserialize, Serialize};
 use std::default::Default;
 
 const DMC_TABLE: [u8; 16] = [
     214, 190, 170, 160, 143, 127, 113, 107, 95, 80, 71, 64, 53, 42, 36, 27,
 ];
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Registers {
     pub control: u8,
     pub value: u8,
@@ -14,7 +15,7 @@ pub struct Registers {
     pub length: u8,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ApuDmc {
     pub output_volume: f32,
 

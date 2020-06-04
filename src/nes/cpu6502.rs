@@ -1,5 +1,6 @@
 use super::cpu6502_info::{AddressingMode, INFO, NAMES};
 use log::error;
+use serde::{Deserialize, Serialize};
 use std::default::Default;
 
 pub trait Memory {
@@ -8,7 +9,7 @@ pub trait Memory {
 }
 
 bitflags! {
-    #[derive(Default)]
+    #[derive(Default, Serialize, Deserialize)]
     pub struct CpuFlags: u8 {
         const C = 0b00000001;
         const Z = 0b00000010;
@@ -21,7 +22,7 @@ bitflags! {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Cpu6502 {
     pub a: u8,
     pub x: u8,

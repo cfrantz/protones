@@ -17,6 +17,7 @@ extern crate memmap;
 extern crate nfd;
 extern crate sdl2;
 extern crate simplelog;
+extern crate typetag;
 use directories::ProjectDirs;
 
 pub mod gui;

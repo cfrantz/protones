@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::default::Default;
 
 const LENGTH_TABLE: [u8; 32] = [
@@ -10,14 +11,14 @@ const TRIANGLE: [u8; 32] = [
     13, 14, 15,
 ];
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Registers {
     pub control: u8,
     pub timer_lo: u8,
     pub timer_hi: u8,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ApuTriangle {
     pub output_volume: f32,
 

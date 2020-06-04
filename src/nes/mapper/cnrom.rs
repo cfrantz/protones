@@ -1,7 +1,8 @@
 use super::mapper::Mapper;
 use crate::nes::cartridge::Cartridge;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CNROM {
     cartridge: Cartridge,
     chr_banks: u8,
@@ -19,7 +20,15 @@ impl CNROM {
     }
 }
 
+#[typetag::serde]
 impl Mapper for CNROM {
+    fn borrow_cart(&self) -> &Cartridge {
+        &self.cartridge
+    }
+    fn borrow_cart_mut(&mut self) -> &mut Cartridge {
+        &mut self.cartridge
+    }
+
     fn read(&mut self, address: u16) -> u8 {
         if address < 0x2000 {
             let a = (self.chr_bank1 as usize) * 0x2000 + address as usize;

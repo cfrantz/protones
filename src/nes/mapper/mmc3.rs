@@ -4,8 +4,9 @@ use crate::nes::cartridge::Cartridge;
 use crate::nes::nes::Nes;
 use crate::nes::ppu::{MASK_SHOWBG, MASK_SHOWSPRITES};
 use log::warn;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct MMC3 {
     cartridge: Cartridge,
 
@@ -131,7 +132,15 @@ impl MMC3 {
     }
 }
 
+#[typetag::serde]
 impl Mapper for MMC3 {
+    fn borrow_cart(&self) -> &Cartridge {
+        &self.cartridge
+    }
+    fn borrow_cart_mut(&mut self) -> &mut Cartridge {
+        &mut self.cartridge
+    }
+
     fn read(&mut self, address: u16) -> u8 {
         if address < 0x2000 {
             let bank = (address / 0x0400) as usize;

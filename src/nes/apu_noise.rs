@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::default::Default;
 
 const NOISE_TABLE: [u16; 16] = [
@@ -9,14 +10,14 @@ const LENGTH_TABLE: [u8; 32] = [
     192, 24, 72, 26, 16, 28, 32, 30,
 ];
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Registers {
     pub control: u8,
     pub period: u8,
     pub length: u8,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ApuNoise {
     pub output_volume: f32,
 

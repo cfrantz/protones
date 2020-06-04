@@ -1,6 +1,7 @@
 use crate::nes::cpu6502::Memory;
 use crate::nes::nes::Nes;
 use crate::nes::ppu_helper::{EXPAND_L, EXPAND_R};
+use serde::{Deserialize, Serialize};
 use std::vec::Vec;
 
 pub const CTRL_NAMETABLE: u8 = 0x03u8;
@@ -23,7 +24,7 @@ pub const MASK_BLUETINT: u8 = 0x80u8;
 pub const SPRITE_OVERFLOW: u8 = 0x20u8;
 pub const SPRITE_ZEROHIT: u8 = 0x40u8;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct Nmi {
     delay: u32,
     occurred: bool,
@@ -31,7 +32,7 @@ struct Nmi {
     previous: bool,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct Sprite {
     pattern: u32,
     position: isize,
@@ -39,7 +40,7 @@ struct Sprite {
     index: u8,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Ppu {
     pub cycle: isize,
     pub scanline: isize,

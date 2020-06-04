@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::default::Default;
 
 const DUTY_TABLE: [[u8; 8]; 4] = [
@@ -12,7 +13,7 @@ const LENGTH_TABLE: [u8; 32] = [
     192, 24, 72, 26, 16, 28, 32, 30,
 ];
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Registers {
     pub control: u8,
     pub sweep: u8,
@@ -20,7 +21,7 @@ pub struct Registers {
     pub timer_hi: u8,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ApuPulse {
     pub channel: u8,
     pub output_volume: f32,

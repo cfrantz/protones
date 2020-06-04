@@ -1,7 +1,8 @@
 use super::mapper::Mapper;
 use crate::nes::cartridge::Cartridge;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UxROM {
     cartridge: Cartridge,
     prg_banks: u8,
@@ -21,7 +22,15 @@ impl UxROM {
     }
 }
 
+#[typetag::serde]
 impl Mapper for UxROM {
+    fn borrow_cart(&self) -> &Cartridge {
+        &self.cartridge
+    }
+    fn borrow_cart_mut(&mut self) -> &mut Cartridge {
+        &mut self.cartridge
+    }
+
     fn read(&mut self, address: u16) -> u8 {
         if address < 0x2000 {
             self.cartridge.chr[address as usize]

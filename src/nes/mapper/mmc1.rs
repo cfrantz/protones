@@ -2,8 +2,9 @@ use super::mapper::simple_mirror_address;
 use super::mapper::Mapper;
 use crate::nes::cartridge::Cartridge;
 use log::warn;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct MMC1 {
     cartridge: Cartridge,
     shift_register: u8,
@@ -102,7 +103,15 @@ impl MMC1 {
     }
 }
 
+#[typetag::serde]
 impl Mapper for MMC1 {
+    fn borrow_cart(&self) -> &Cartridge {
+        &self.cartridge
+    }
+    fn borrow_cart_mut(&mut self) -> &mut Cartridge {
+        &mut self.cartridge
+    }
+
     fn read(&mut self, address: u16) -> u8 {
         if address < 0x2000 {
             let bank = (address / 0x1000) as usize;

@@ -3,9 +3,10 @@ use crate::nes::apu_noise::ApuNoise;
 use crate::nes::apu_pulse::ApuPulse;
 use crate::nes::apu_triangle::ApuTriangle;
 use crate::nes::nes::Nes;
+use serde::{Deserialize, Serialize};
 use std::default::Default;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Apu {
     cycle: u64,
     frame_period: u8,
