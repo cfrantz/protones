@@ -1,25 +1,6 @@
+use super::glhelper::{color_to_f32, f32_to_color};
 use imgui;
 use imgui::im_str;
-
-const R_SHIFT: usize = 0;
-const G_SHIFT: usize = 8;
-const B_SHIFT: usize = 16;
-const A_SHIFT: usize = 24;
-
-fn color_to_f32(color: u32, fcol: &mut [f32; 4]) {
-    fcol[0] = ((color >> R_SHIFT) & 0xFF) as f32 / 255.0;
-    fcol[1] = ((color >> G_SHIFT) & 0xFF) as f32 / 255.0;
-    fcol[2] = ((color >> B_SHIFT) & 0xFF) as f32 / 255.0;
-    fcol[3] = ((color >> A_SHIFT) & 0xFF) as f32 / 255.0;
-}
-
-fn f32_to_color(fcol: &[f32; 4]) -> u32 {
-    let r = (fcol[0] * 255.0) as u32;
-    let g = (fcol[1] * 255.0) as u32;
-    let b = (fcol[2] * 255.0) as u32;
-    let a = (fcol[3] * 255.0) as u32;
-    (r << R_SHIFT) | (g << G_SHIFT) | (b << B_SHIFT) | (a << A_SHIFT)
-}
 
 pub fn hwpalette_editor(palette: &mut [u32], ui: &imgui::Ui, visible: &mut bool) {
     imgui::Window::new(im_str!("Hardware Palette"))

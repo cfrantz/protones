@@ -23,7 +23,7 @@ basic structure.
 
 ### Debug Functionality
 
-- Improve PPU debug to colorize (like the C++ version).
+- Improve PPU debug to show sprites and scroll positions.
 - Memory Hexdump.
 - Disassembly.
 - CPU single stepping.
