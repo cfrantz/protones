@@ -305,8 +305,7 @@ impl App {
         if let Some(nes) = &self.nes {
             self.apu_debug.draw(nes, ui);
             self.controller_debug.draw(nes, ui);
-            self.ppu_debug.draw_chr(nes, ui);
-            self.ppu_debug.draw_vram(nes, ui);
+            self.ppu_debug.draw(nes, ui);
         }
         if self.palette_editor {
             let visible = &mut self.palette_editor;

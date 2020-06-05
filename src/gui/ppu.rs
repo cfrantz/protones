@@ -48,10 +48,10 @@ impl PpuDebug {
     fn most_common(counts: &[u8; 4]) -> u8 {
         let mut max = 0;
         let mut n = 0;
-        for (i, count) in counts.iter().enumerate() {
+        for (i, count) in counts[1..].iter().enumerate() {
             if *count > max {
                 max = *count;
-                n = i as u8;
+                n = (i + 1) as u8;
             }
         }
         n
@@ -99,7 +99,7 @@ impl PpuDebug {
         }
     }
 
-    pub fn draw_chr(&mut self, nes: &Nes, ui: &imgui::Ui) {
+    fn draw_chr(&mut self, nes: &Nes, ui: &imgui::Ui) {
         if !self.chr_visible {
             return;
         }
@@ -109,8 +109,6 @@ impl PpuDebug {
             .build(&ui, || {
                 for i in 0..2 {
                     let id = ui.push_id(imgui::Id::Int(i as i32));
-                    let p = self.chr_palette[i];
-                    self.update_chr_image(nes, i, p);
                     ui.text(format!("Pattern Table {}", i));
                     imgui::Image::new(self.chr_image[i], [128.0 * 4.0, 128.0 * 4.0]).build(ui);
                     ui.same_line(0.0);
@@ -167,8 +165,10 @@ impl PpuDebug {
         } else {
             0
         };
+        //let x0 = if (v & 0x400) == 0 { 0 } else {32};
+        //let y0 = if (v & 0x800) == 0 { 0 } else {30};
         let mut v = v;
-        for _ in 0..30 {
+        for _y in 0..30 {
             for x in 0..32 {
                 let val = nes.ppu_read(v);
                 let a = 0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 7);
@@ -184,7 +184,7 @@ impl PpuDebug {
         }
     }
 
-    pub fn draw_vram(&mut self, nes: &Nes, ui: &imgui::Ui) {
+    fn draw_vram(&mut self, nes: &Nes, ui: &imgui::Ui) {
         if !self.vram_visible {
             return;
         }
@@ -203,5 +203,16 @@ impl PpuDebug {
                 style.pop(&ui);
             });
         self.vram_visible = visible;
+    }
+
+    pub fn draw(&mut self, nes: &Nes, ui: &imgui::Ui) {
+        if self.chr_visible || self.vram_visible {
+            for i in 0..2 {
+                let p = self.chr_palette[i];
+                self.update_chr_image(nes, i, p);
+            }
+            self.draw_chr(nes, ui);
+            self.draw_vram(nes, ui);
+        }
     }
 }
