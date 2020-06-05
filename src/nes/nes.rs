@@ -45,6 +45,8 @@ pub struct Nes {
     pub trace: bool,
     pub audio: RefCell<Vec<f32>>,
     stall: RefCell<Stall>,
+    pub pause: bool,
+    pub framestep: bool,
 }
 
 impl Memory for Nes {
@@ -118,6 +120,8 @@ impl Nes {
                 cycles: 0,
                 oddcycle: false,
             }),
+            pause: false,
+            framestep: false,
         })
     }
 
@@ -215,6 +219,13 @@ impl Nes {
     }
 
     pub fn emulate_frame(&mut self) {
+        if self.pause {
+            if self.framestep {
+                self.framestep = false;
+            } else {
+                return;
+            }
+        }
         let count = (Nes::FREQUENCY as f64) / Nes::FPS - self.remainder;
         let cycle = self.cpu.borrow().get_cycles();
         let eof = count + cycle as f64;

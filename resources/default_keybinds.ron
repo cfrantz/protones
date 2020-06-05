@@ -14,6 +14,7 @@
 
         Scancode(F11):    SystemReset,
         Scancode(Pause):  SystemPause,
+        Scancode(Backslash):  SystemFrameStep,
 
         Scancode(F5):     SystemSaveState,
         Scancode(F7):     SystemRestoreState,

@@ -25,6 +25,7 @@ pub enum CommandKey {
     SystemQuit,
     SystemReset,
     SystemPause,
+    SystemFrameStep,
     SystemSaveState,
     SystemRestoreState,
 

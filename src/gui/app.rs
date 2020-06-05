@@ -388,6 +388,17 @@ impl App {
                                 nes.reset();
                             }
                         }
+                        CommandKey::SystemPause => {
+                            if let Some(nes) = &mut self.nes {
+                                nes.pause = !nes.pause;
+                            }
+                        }
+                        CommandKey::SystemFrameStep => {
+                            if let Some(nes) = &mut self.nes {
+                                nes.pause = true;
+                                nes.framestep = true;
+                            }
+                        }
                         CommandKey::SelectState0 => {
                             self.state_slot = 0;
                         }
