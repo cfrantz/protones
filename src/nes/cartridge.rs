@@ -150,6 +150,9 @@ impl Cartridge {
         // sram in the cartridge.  Generally, carts provide 8K.  MMC5 can
         // provide upto 128K, but it seems common for it to provide between
         // 8K and 64K.
+        //
+        // Having this in the cartridge is a modelling error.  The SRAM
+        // should be a feature of the mapper implementations.
         let sramsize = 8192;
         let sram = SRam::with_size(sramsize);
 

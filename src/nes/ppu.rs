@@ -181,6 +181,8 @@ impl Ppu {
             0x2005 => self.set_scroll(val),
             0x2006 => self.set_address(val),
             0x2007 => self.set_data(nes, val),
+            // FIXME: this is probably a modelling error.  The DMA engine
+            // is a feature of the CPU/APU chip in the NES.
             0x4014 => self.set_dma(nes, val),
             _ => {}
         }
