@@ -7,6 +7,17 @@ The C++ codebase owes it's basic structure to
 easy to understand NES emulator in Golang.  The Rust port keeps the same
 basic structure.
 
+## Features
+
+- Mappers: UxROM, AxROM, CxROM, MMC1 and MMC3.
+- Visualization of the internal state of NES hardware:
+  - Audio
+  - Controller Inputs
+  - CHR Banks
+  - PPU & VRAM
+
+![Screenshot](resources/screenshot.png)
+
 ## TODO
 
 ### Basic Functionality
@@ -23,7 +34,6 @@ basic structure.
 
 ### Debug Functionality
 
-- Improve PPU debug to show sprites and scroll positions.
 - Memory Hexdump.
 - Disassembly.
 - CPU single stepping.

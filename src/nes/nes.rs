@@ -226,16 +226,25 @@ impl Nes {
                 return;
             }
         }
-        let count = (Nes::FREQUENCY as f64) / Nes::FPS - self.remainder;
+        //let count = (Nes::FREQUENCY as f64) / Nes::FPS - self.remainder;
+        //let cycle = self.cpu.borrow().get_cycles();
+        //let eof = count + cycle as f64;
+        //while (self.cpu.borrow().get_cycles() as f64) < eof {
+        //    if !self.emulate() {
+        //        break;
+        //    }
+        //}
+
         let cycle = self.cpu.borrow().get_cycles();
-        let eof = count + cycle as f64;
-        while (self.cpu.borrow().get_cycles() as f64) < eof {
+        let frame = self.ppu.borrow().frame;
+        while self.ppu.borrow().frame == frame {
             if !self.emulate() {
                 break;
             }
         }
+        let count = self.cpu.borrow().get_cycles() - cycle;
         self.frame += 1;
-        self.remainder = self.cpu.borrow().get_cycles() as f64 - eof;
+        //self.remainder = self.cpu.borrow().get_cycles() as f64 - eof;
         trace!(
             "frame={} cycle={} count={:.2} remainder={:.2}",
             self.frame,

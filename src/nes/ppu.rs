@@ -41,6 +41,12 @@ struct Sprite {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ScrollPosition {
+    pub x: u16,
+    pub y: u16,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Ppu {
     pub cycle: isize,
     pub scanline: isize,
@@ -66,11 +72,12 @@ pub struct Ppu {
     high_tile: u8,
     tiledata: u64,
 
-    oam: Vec<u8>,
+    pub oam: Vec<u8>,
     oam_addr: u8,
     sprite: Vec<Sprite>,
     sprite_count: usize,
     pub picture: Vec<u32>,
+    pub scroll: Vec<ScrollPosition>,
 }
 
 impl Ppu {
@@ -79,6 +86,7 @@ impl Ppu {
             oam: vec![0u8; 256],
             sprite: vec![Sprite::default(); 8],
             picture: vec![0u32; 256 * 240],
+            scroll: vec![ScrollPosition::default(); 262],
             ..Default::default()
         }
     }
@@ -211,6 +219,16 @@ impl Ppu {
 
     fn copy_x(&mut self) {
         self.v = (self.v & 0xFBE0) | (self.t & 0x041F);
+
+        // Compute the scroll offset for the debug display
+        let line = (self.scanline as usize + 1) % 262;
+        let coarse_x = ((self.v & 0x001F) << 3) + ((self.v & 0x400) >> 2);
+        let coarse_y = ((self.v & 0x03E0) >> 2) + if (self.v & 0x800) == 0 { 0 } else { 240 };
+        let fine_y = (self.v & 0x7000) >> 12;
+        self.scroll[line] = ScrollPosition {
+            x: coarse_x + self.x as u16,
+            y: coarse_y + fine_y,
+        };
     }
     fn copy_y(&mut self) {
         self.v = (self.v & 0x841F) | (self.t & 0x7BE0);
