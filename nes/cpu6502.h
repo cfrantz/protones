@@ -33,6 +33,7 @@ class Cpu : public EmulatedDevice {
         irq_pending_ = true;
         Emit("IRQ");
     }
+    void Flush();
     inline bool irq_pending() const { return irq_pending_; }
 
     inline void reset() { Reset(); }
@@ -183,7 +184,6 @@ class Cpu : public EmulatedDevice {
     static const InstructionInfo info_[256];
     static const char* instruction_names_[256];
 
-    void Flush();
     void Emit(const char *buf, int how=0);
     void Trace();
 

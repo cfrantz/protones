@@ -8,6 +8,6 @@ cc_library(
     ]),
     includes = ["."],
     linkopts = [
-        "-lpython3.8",
+        "-lpython3.9",
     ],
 )

@@ -120,7 +120,7 @@ rules_proto_toolchains()
 new_local_repository(
     name = "system_python",
     build_file = "//rules:system_python.BUILD",
-    path = "/usr/include/python3.8",
+    path = "/usr/include/python3.9",
 )
 
 new_git_repository(

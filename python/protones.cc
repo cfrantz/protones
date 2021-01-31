@@ -83,6 +83,7 @@ PYBIND11_EMBEDDED_MODULE(protones, m) {
         .def_property("flags", &Cpu::flags, &Cpu::set_flags)
         .def_property("pc", &Cpu::pc, &Cpu::set_pc)
         .def_property_readonly("irq_pending", &Cpu::irq_pending)
+        .def("Flush", &Cpu::Flush, "Flush the trace buffer")
         .def("Reset", &Cpu::Reset, "Reset the CPU")
         .def("IRQ", &Cpu::IRQ, "Signal an IRQ to the CPU")
         .def("NMI", &Cpu::NMI, "Signal an NMI to the CPU")
