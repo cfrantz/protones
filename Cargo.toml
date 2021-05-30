@@ -10,23 +10,24 @@ bitflags = "1.2.1"
 byteorder = "1"
 structopt = "0.3"
 
-#clipboard = "0.5"
-#glium = { version = "0.25", default-features = true }
-#imgui = { version = "0.3.0-pre", path = "imgui-rs" }
-#imgui-glium-renderer = { version = "0.3.0-pre", path = "imgui-rs/imgui-glium-renderer" }
-#imgui-winit-support = { version = "0.3.0-pre", path = "imgui-rs/imgui-winit-support" }
+lazy_static = "1.4.0"
+log = "0.4"
+env_logger = "0.8.3"
+directories = "3.0"
+memmap = "0.7.0"
+termcolor = "1.1"
+rustyline = "8.2.0"
+
+[target.'cfg(unix)'.dependencies]
+nix = "0.18"
 
 ron = "*"
 serde = { version = "1", features = ["serde_derive"] }
-lazy_static = "1.4.0"
-log = "0.4"
-simplelog = "^0.7.6"
-imgui = "0.3"
-sdl2 = "0.33"
-gl = "0.10.0"
-imgui-opengl-renderer = "0.7"
-imgui-sdl2 = "0.9.0"
-nfd = "0.0.4"
-directories = "2.0"
-memmap = "0.7.0"
 typetag = "0.1"
+
+sdl2 = "0.34"
+gl = "0.14"
+nfd = "0.0.4"
+imgui = "0.7"
+imgui-opengl-renderer = "0.11"
+imgui-sdl2 = "0.14"

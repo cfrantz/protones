@@ -339,12 +339,11 @@ impl PpuDebug {
                     .build(&ui);
                 ui.same_line(0.0);
                 let token = ui.push_item_width(32.0);
-                imgui::DragFloat::new(ui, im_str!("Sprite Alpha"), &mut self.spr_alpha)
-                    .min(0.0)
-                    .max(1.0)
+                imgui::Drag::new(im_str!("Sprite Alpha"))
+                    .range(0.0..=1.0)
                     .speed(0.01)
                     .display_format(im_str!("%.02f"))
-                    .build();
+                    .build(ui, &mut self.spr_alpha);
                 token.pop(ui);
 
                 let style = ui.push_style_vars(&[imgui::StyleVar::ItemSpacing([1.0, 1.0])]);

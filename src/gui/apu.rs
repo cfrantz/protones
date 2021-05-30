@@ -35,7 +35,8 @@ impl ApuDebug {
                 pulse.reg.timer_hi, pulse.reg.timer_lo
             ));
         });
-        imgui::Slider::new(&name, 0.0..=1.0f32)
+        imgui::Slider::new(&name)
+            .range(0.0..=1.0f32)
             .display_format(im_str!("%.02f"))
             .build(ui, &mut pulse.output_volume);
     }
@@ -56,7 +57,8 @@ impl ApuDebug {
                 triangle.reg.timer_hi, triangle.reg.timer_lo
             ));
         });
-        imgui::Slider::new(im_str!("Triangle"), 0.0..=1.0f32)
+        imgui::Slider::new(im_str!("Triangle"))
+            .range(0.0..=1.0f32)
             .display_format(im_str!("%.02f"))
             .build(ui, &mut triangle.output_volume);
     }
@@ -75,7 +77,8 @@ impl ApuDebug {
             ui.text(format!("Period:  {:02x}", noise.reg.period));
             ui.text(format!("Length:  {:02x}", noise.reg.length));
         });
-        imgui::Slider::new(im_str!("Noise"), 0.0..=1.0f32)
+        imgui::Slider::new(im_str!("Noise"))
+            .range(0.0..=1.0f32)
             .display_format(im_str!("%.02f"))
             .build(ui, &mut noise.output_volume);
     }
@@ -95,7 +98,8 @@ impl ApuDebug {
             ui.text(format!("Address: {:02x}", dmc.reg.address));
             ui.text(format!("Length:  {:02x}", dmc.reg.length));
         });
-        imgui::Slider::new(im_str!("DMC"), 0.0..=1.0f32)
+        imgui::Slider::new(im_str!("DMC"))
+            .range(0.0..=1.0f32)
             .display_format(im_str!("%.02f"))
             .build(ui, &mut dmc.output_volume);
     }

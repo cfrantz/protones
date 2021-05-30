@@ -46,21 +46,20 @@ impl Preferences {
                     1.0 / ui.io().delta_time
                 ));
 
-                imgui::DragFloat::new(ui, im_str!("Scale"), &mut self.scale)
-                    .min(0.0)
-                    .max(8.0)
+                imgui::Drag::new(im_str!("Scale"))
+                    .range(0.0..=8.0)
                     .speed(0.01)
                     .display_format(im_str!("%.02f"))
-                    .build();
+                    .build(ui, &mut self.scale);
 
-                imgui::DragFloat::new(ui, im_str!("Aspect"), &mut self.aspect)
-                    .min(0.0)
-                    .max(2.0)
+                imgui::Drag::new(im_str!("Aspect"))
+                    .range(0.0..=2.0)
                     .speed(0.01)
                     .display_format(im_str!("%.02f"))
-                    .build();
+                    .build(ui, &mut self.aspect);
 
-                imgui::Slider::new(im_str!("Volume"), 0.0..=1.0f32)
+                imgui::Slider::new(im_str!("Volume"))
+                    .range(0.0..=1.0)
                     .display_format(im_str!("%.02f"))
                     .build(ui, &mut self.volume);
 
