@@ -1,3 +1,4 @@
+extern crate anyhow;
 #[macro_use]
 extern crate bitflags;
 #[macro_use]
@@ -5,66 +6,66 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 extern crate ron;
-//#[macro_use]
 extern crate structopt;
 
 extern crate directories;
+extern crate env_logger;
 extern crate gl;
 extern crate imgui;
 extern crate imgui_opengl_renderer;
 extern crate imgui_sdl2;
 extern crate memmap;
 extern crate nfd;
+extern crate pyo3;
 extern crate sdl2;
-extern crate env_logger;
 extern crate typetag;
 use directories::ProjectDirs;
 
 pub mod gui;
 pub mod nes;
+pub mod util;
 
-use log::LevelFilter;
+use anyhow::Result;
 use gui::app::App;
+use log::LevelFilter;
+use pyo3::prelude::*;
 use std::fs;
 use std::io;
 use structopt::StructOpt;
+use util::app_context::{AppContext, CommandlineArgs};
+use util::TerminalGuard;
 
-#[derive(StructOpt, Debug)]
-#[structopt(name = "protones")]
-struct Opt {
-    #[structopt(short, long, default_value = "1280")]
-    width: u32,
+fn run(py: Python) -> Result<()> {
+    AppContext::setup_pythonsite(py)?;
 
-    #[structopt(short, long, default_value = "720")]
-    height: u32,
+    let app = Py::new(py, App::new(py)?)?;
+    let args = &AppContext::get().args;
 
-    #[structopt(short, long, default_value = "0.5")]
-    volume: f32,
+    {
+        let mut app = app.borrow_mut(py);
+        app.trace = args.trace;
+        app.preferences.volume = args.volume;
+        app.preferences.scale = args.scale;
+        app.preferences.aspect = args.aspect;
+    }
 
-    #[structopt(short, long, default_value = "4")]
-    scale: f32,
-
-    #[structopt(short, long, default_value = "1")]
-    aspect: f32,
-
-    #[structopt(long)]
-    trace: bool,
-
-    #[structopt(name = "FILE")]
-    rom_file: Option<String>,
+    if let Some(rom) = &args.rom_file {
+        app.borrow_mut(py).load(rom)?;
+    }
+    App::run(&app, py);
+    Ok(())
 }
 
-fn main() -> Result<(), io::Error> {
-    let opt = Opt::from_args();
+fn main() -> Result<()> {
+    let args = CommandlineArgs::from_args();
     let mut builder = env_logger::Builder::from_default_env();
     builder.filter(None, LevelFilter::Info).init();
 
     let dirs = ProjectDirs::from("org", "CF207", "ProtoNES");
     if dirs.is_none() {
-        return Err(io::Error::new(
-            io::ErrorKind::NotFound,
-            "Could not find home directory",
-        ));
+        return Err(
+            io::Error::new(io::ErrorKind::NotFound, "Could not find home directory").into(),
+        );
     }
     let dirs = dirs.unwrap();
 
@@ -76,15 +77,7 @@ fn main() -> Result<(), io::Error> {
     info!("Data dir: {}", data.display());
     fs::create_dir_all(data)?;
 
-    let mut app = App::new("ProtoNES (rust)", opt.width, opt.height, config, data).unwrap();
-    app.trace = opt.trace;
-    app.preferences.volume = opt.volume;
-    app.preferences.scale = opt.scale;
-    app.preferences.aspect = opt.aspect;
-
-    if let Some(rom) = opt.rom_file {
-        app.load(&rom)?;
-    }
-    app.run();
-    Ok(())
+    AppContext::init(args, "ProtoNES", config, data)?;
+    let _guard = TerminalGuard::new();
+    Python::with_gil(|py| run(py))
 }

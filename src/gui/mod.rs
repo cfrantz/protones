@@ -1,5 +1,6 @@
 pub mod app;
 pub mod apu;
+pub mod console;
 pub mod controller;
 pub mod glhelper;
 pub mod hwpalette;

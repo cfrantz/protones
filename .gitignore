@@ -3,3 +3,4 @@ Cargo.lock
 **/*.rs.bk
 *.nes
 imgui.ini
+__pycache__
