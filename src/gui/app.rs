@@ -12,12 +12,12 @@ use sdl2::audio::{AudioCallback, AudioDevice, AudioSpecDesired};
 use std::cell::{Cell, RefCell};
 use std::fs;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::mpsc;
 use std::time::Instant;
 
 use crate::gui::apu::ApuDebug;
-use crate::gui::console::{Console, Executor};
+use crate::gui::console::Console;
 use crate::gui::controller::ControllerDebug;
 use crate::gui::glhelper;
 use crate::gui::hwpalette::hwpalette_editor;
@@ -96,9 +96,6 @@ impl App {
             })
             .map_err(AppError::SdlError)?;
         playback.resume();
-
-        // FIXME(cfrantz): Does this do anything?
-        //video.gl_set_swap_interval(1)?;
 
         Ok(App {
             running: Cell::new(false),
@@ -387,13 +384,16 @@ impl App {
                 slf.borrow(py).save_state();
             }
             if want_load {
-                match slf.borrow(py).load_state() {
-                    Ok(nes) => slf.borrow_mut(py).nes = Some(nes),
-                    Err(e) => error!(
-                        "Could not load state {}: {:?}",
-                        slf.borrow(py).state_slot.get(),
-                        e
-                    ),
+                let mut slf = slf.borrow_mut(py);
+                match slf.load_state() {
+                    Ok(nes) => {
+                        let old = slf.nes.take();
+                        nes.mapper
+                            .borrow_mut()
+                            .set_cartridge(old.mapper.borrow().borrow_cart().clone());
+                        slf.nes = Some(nes)
+                    }
+                    Err(e) => error!("Could not load state {}: {:?}", slf.state_slot.get(), e),
                 }
             }
 

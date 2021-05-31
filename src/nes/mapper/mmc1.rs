@@ -1,11 +1,13 @@
 use super::mapper::simple_mirror_address;
 use super::mapper::Mapper;
 use crate::nes::cartridge::Cartridge;
+use crate::nes::sram::SRam;
 use log::warn;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MMC1 {
+    #[serde(skip)]
     cartridge: Cartridge,
     shift_register: u8,
     control: u8,
@@ -15,6 +17,7 @@ pub struct MMC1 {
     chr_bank: [u8; 2],
     prg_offset: [usize; 2],
     chr_offset: [usize; 2],
+    sram: SRam,
 }
 
 impl MMC1 {
@@ -30,6 +33,7 @@ impl MMC1 {
             chr_bank: [0, 0],
             prg_offset: [0, prg_offset],
             chr_offset: [0, 0],
+            sram: SRam::with_size(8192),
         }
     }
 
@@ -108,8 +112,14 @@ impl Mapper for MMC1 {
     fn borrow_cart(&self) -> &Cartridge {
         &self.cartridge
     }
-    fn borrow_cart_mut(&mut self) -> &mut Cartridge {
-        &mut self.cartridge
+    fn set_cartridge(&mut self, cart: Cartridge) {
+        self.cartridge = cart;
+    }
+    fn borrow_sram(&self) -> &SRam {
+        &self.sram
+    }
+    fn borrow_sram_mut(&mut self) -> &mut SRam {
+        &mut self.sram
     }
 
     fn read(&mut self, address: u16) -> u8 {
@@ -118,7 +128,7 @@ impl Mapper for MMC1 {
             let offset = (address % 0x1000) as usize;
             self.cartridge.chr[self.chr_offset[bank] + offset]
         } else if address >= 0x6000 && address < 0x8000 {
-            self.cartridge.sram.read((address & 0x1FFF) as usize)
+            self.sram.read((address & 0x1FFF) as usize)
         } else if address >= 0x8000 {
             let address = (address & 0x7FFF) as usize;
             let bank = address / 0x4000;
@@ -136,9 +146,7 @@ impl Mapper for MMC1 {
             let offset = (address % 0x1000) as usize;
             self.cartridge.chr[self.chr_offset[bank] + offset] = value;
         } else if address >= 0x6000 && address < 0x8000 {
-            self.cartridge
-                .sram
-                .write((address & 0x1FFF) as usize, value);
+            self.sram.write((address & 0x1FFF) as usize, value);
         } else if address >= 0x8000 {
             self.load_register(address, value);
         } else {

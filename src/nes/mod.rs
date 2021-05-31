@@ -11,3 +11,4 @@ pub mod mapper;
 pub mod nes;
 pub mod ppu;
 pub mod ppu_helper;
+pub mod sram;

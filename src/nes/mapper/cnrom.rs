@@ -1,12 +1,15 @@
 use super::mapper::Mapper;
 use crate::nes::cartridge::Cartridge;
+use crate::nes::sram::SRam;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CNROM {
+    #[serde(skip)]
     cartridge: Cartridge,
     chr_banks: u8,
     chr_bank1: u8,
+    sram: SRam,
 }
 
 impl CNROM {
@@ -16,6 +19,7 @@ impl CNROM {
             cartridge: cartridge,
             chr_banks: chrsz,
             chr_bank1: 0,
+            sram: SRam::with_size(8192),
         }
     }
 }
@@ -25,8 +29,14 @@ impl Mapper for CNROM {
     fn borrow_cart(&self) -> &Cartridge {
         &self.cartridge
     }
-    fn borrow_cart_mut(&mut self) -> &mut Cartridge {
-        &mut self.cartridge
+    fn set_cartridge(&mut self, cart: Cartridge) {
+        self.cartridge = cart;
+    }
+    fn borrow_sram(&self) -> &SRam {
+        &self.sram
+    }
+    fn borrow_sram_mut(&mut self) -> &mut SRam {
+        &mut self.sram
     }
 
     fn read(&mut self, address: u16) -> u8 {
@@ -34,7 +44,7 @@ impl Mapper for CNROM {
             let a = (self.chr_bank1 as usize) * 0x2000 + address as usize;
             self.cartridge.chr[a]
         } else if address >= 0x6000 && address < 0x8000 {
-            self.cartridge.sram.read((address & 0x1FFF) as usize)
+            self.sram.read((address & 0x1FFF) as usize)
         } else if address >= 0x8000 {
             self.cartridge.prg[(address & 0x7FFF) as usize]
         } else {
@@ -47,9 +57,7 @@ impl Mapper for CNROM {
         if address < 0x2000 {
             self.cartridge.chr[address as usize] = value;
         } else if address >= 0x6000 && address < 0x8000 {
-            self.cartridge
-                .sram
-                .write((address & 0x1FFF) as usize, value);
+            self.sram.write((address & 0x1FFF) as usize, value);
         } else if address >= 0x8000 {
             self.chr_bank1 = value & 3;
         } else {

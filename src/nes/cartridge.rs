@@ -1,16 +1,12 @@
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use log::info;
-//use memmap::MmapMut;
-use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fs::File;
 use std::io;
 use std::io::{Error, ErrorKind};
 use std::io::{Read, Write};
-use std::path::PathBuf;
 use std::vec::Vec;
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default)]
 pub struct InesHeader {
     pub signature: u32,
     pub prgsz: u8,
@@ -26,17 +22,11 @@ pub struct InesHeader {
     pub unused: [u8; 8],
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct SRam {
-    pub data: Vec<u8>,
-}
-
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Default)]
 pub struct Cartridge {
     pub header: InesHeader,
     pub prg: Vec<u8>,
     pub chr: Vec<u8>,
-    pub sram: SRam,
 }
 
 impl fmt::Debug for Cartridge {
@@ -96,41 +86,6 @@ impl InesHeader {
     }
 }
 
-impl SRam {
-    pub fn with_size(length: usize) -> Self {
-        SRam {
-            data: vec![0u8; length],
-        }
-    }
-
-    pub fn read(&self, offset: usize) -> u8 {
-        if offset < self.data.len() {
-            self.data[offset]
-        } else {
-            error!("SRAM: bad read at {:04x}", offset);
-            0xff
-        }
-    }
-
-    pub fn write(&mut self, offset: usize, value: u8) {
-        if offset < self.data.len() {
-            self.data[offset] = value;
-        } else {
-            error!("SRAM: bad write at {:04x}, value={:02x}", offset, value);
-        }
-    }
-
-    pub fn load(&mut self, filepath: &PathBuf) -> io::Result<()> {
-        let mut file = File::open(filepath)?;
-        file.read_exact(&mut self.data)
-    }
-
-    pub fn save(&self, filepath: &PathBuf) -> io::Result<()> {
-        let mut file = File::create(filepath)?;
-        file.write_all(&self.data)
-    }
-}
-
 impl Cartridge {
     pub fn from_reader(mut r: impl Read) -> io::Result<Self> {
         let mut header = InesHeader::from_reader(&mut r)?;
@@ -146,23 +101,8 @@ impl Cartridge {
             r.read_exact(&mut chr)?;
         }
 
-        // FIXME: different mappers generally represent different amounts of
-        // sram in the cartridge.  Generally, carts provide 8K.  MMC5 can
-        // provide upto 128K, but it seems common for it to provide between
-        // 8K and 64K.
-        //
-        // Having this in the cartridge is a modelling error.  The SRAM
-        // should be a feature of the mapper implementations.
-        let sramsize = 8192;
-        let sram = SRam::with_size(sramsize);
-
         info!("iNES header = {:?}", header);
-        Ok(Cartridge {
-            header,
-            prg,
-            chr,
-            sram,
-        })
+        Ok(Cartridge { header, prg, chr })
     }
 
     pub fn from_file(filename: &str) -> io::Result<Self> {
