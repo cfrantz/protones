@@ -87,6 +87,21 @@ impl InesHeader {
 }
 
 impl Cartridge {
+    pub fn blank() -> Self {
+        let prg = vec![0; 16384];
+        let chr = vec![0; 8192];
+        Cartridge {
+            header: InesHeader {
+                signature: 0x1a53454eu32,
+                prgsz: 1,
+                chrsz: 1,
+                ..Default::default()
+            },
+            prg: prg,
+            chr: chr,
+        }
+    }
+
     pub fn from_reader(mut r: impl Read) -> io::Result<Self> {
         let mut header = InesHeader::from_reader(&mut r)?;
         let mut prg = vec![0; header.prgsz as usize * 16384];

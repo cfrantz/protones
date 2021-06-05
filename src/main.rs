@@ -36,11 +36,19 @@ use util::app_context::{AppContext, CommandlineArgs};
 use util::TerminalGuard;
 
 fn run(py: Python) -> Result<()> {
+    // Get our subdir added into python's import machinery.
     AppContext::setup_pythonsite(py)?;
 
+    // Create the emulator application instance.
     let app = Py::new(py, App::new(py)?)?;
-    let args = &AppContext::get().args;
 
+    // Add the application class & instance to the protones module.
+    let module = PyModule::import(py, "protones")?;
+    module.add_class::<App>()?;
+    module.setattr("app", &app)?;
+
+    // Set various preferences from command line args.
+    let args = &AppContext::get().args;
     {
         let mut app = app.borrow_mut(py);
         app.trace = args.trace;
@@ -49,9 +57,12 @@ fn run(py: Python) -> Result<()> {
         app.preferences.aspect = args.aspect;
     }
 
+    // Load the ROM specified on the command line.
     if let Some(rom) = &args.rom_file {
-        app.borrow_mut(py).load(rom)?;
+        app.borrow(py).load(py, rom)?;
     }
+
+    // Run!
     App::run(&app, py);
     Ok(())
 }

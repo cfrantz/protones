@@ -6,8 +6,9 @@ use crate::nes::mapper;
 use crate::nes::mapper::Mapper;
 use crate::nes::ppu::Ppu;
 use log::{trace, warn};
+use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::io;
 
 const PALETTE: [u32; 64] = [
@@ -28,6 +29,7 @@ struct Stall {
     oddcycle: bool,
 }
 
+#[pyclass(unsendable)]
 #[derive(Serialize, Deserialize)]
 pub struct Nes {
     pub mapper: RefCell<Box<dyn Mapper>>,
@@ -40,13 +42,13 @@ pub struct Nes {
     pub vram: RefCell<Vec<u8>>,
     pub pram: RefCell<Vec<u8>>,
     pub palette: RefCell<Vec<u32>>,
-    remainder: f64,
-    pub frame: u64,
-    pub trace: bool,
+    remainder: Cell<f64>,
+    pub frame: Cell<u64>,
+    pub trace: Cell<bool>,
     pub audio: RefCell<Vec<f32>>,
     stall: RefCell<Stall>,
-    pub pause: bool,
-    pub framestep: bool,
+    pub pause: Cell<bool>,
+    pub framestep: Cell<bool>,
 }
 
 impl Memory for Nes {
@@ -95,11 +97,19 @@ impl Nes {
 
     pub fn from_file(filename: &str) -> io::Result<Self> {
         let cartridge = Cartridge::from_file(filename)?;
+        Ok(Nes::from_cartridge(cartridge))
+    }
+
+    pub fn blank() -> Self {
+        Nes::from_cartridge(Cartridge::blank())
+    }
+
+    pub fn from_cartridge(cartridge: Cartridge) -> Self {
         let mapper = mapper::new(cartridge);
-        let mut palette = Vec::<u32>::new();
+        let mut palette = Vec::new();
         palette.extend_from_slice(&PALETTE);
 
-        Ok(Nes {
+        Nes {
             mapper: RefCell::new(mapper),
             cpu: RefCell::new(Cpu6502::default()),
             ppu: RefCell::new(Ppu::new()),
@@ -112,17 +122,17 @@ impl Nes {
             vram: RefCell::new(vec![0u8; 4096]),
             pram: RefCell::new(vec![0u8; 32]),
             palette: RefCell::new(palette),
-            remainder: 0f64,
-            frame: 0,
-            trace: false,
+            remainder: Cell::default(),
+            frame: Cell::default(),
+            trace: Cell::default(),
             audio: RefCell::new(Vec::<f32>::new()),
             stall: RefCell::new(Stall {
                 cycles: 0,
                 oddcycle: false,
             }),
-            pause: false,
-            framestep: false,
-        })
+            pause: Cell::default(),
+            framestep: Cell::default(),
+        }
     }
 
     pub fn reset(&self) {
@@ -190,7 +200,7 @@ impl Nes {
     }
 
     pub fn emulate(&self) -> bool {
-        if self.trace {
+        if self.trace.get() {
             let cpu = self.cpu.borrow();
             let (instr, _) = Cpu6502::disassemble(self, cpu.pc);
             println!("          {}", cpu.cpustate());
@@ -218,10 +228,10 @@ impl Nes {
         n != 0
     }
 
-    pub fn emulate_frame(&mut self) {
-        if self.pause {
-            if self.framestep {
-                self.framestep = false;
+    pub fn emulate_frame(&self) {
+        if self.pause.get() {
+            if self.framestep.get() {
+                self.framestep.set(false);
             } else {
                 return;
             }
@@ -243,14 +253,32 @@ impl Nes {
             }
         }
         let count = self.cpu.borrow().get_cycles() - cycle;
-        self.frame += 1;
+        self.frame.set(self.frame.get() + 1);
         //self.remainder = self.cpu.borrow().get_cycles() as f64 - eof;
         trace!(
             "frame={} cycle={} count={:.2} remainder={:.2}",
-            self.frame,
+            self.frame.get(),
             cycle,
             count,
-            self.remainder
+            self.remainder.get(),
         );
+    }
+}
+
+#[pymethods]
+impl Nes {
+    #[getter]
+    fn get_pause(&self) -> bool {
+        self.pause.get()
+    }
+
+    #[setter]
+    fn set_pause(&self, value: bool) {
+        self.pause.set(value)
+    }
+
+    #[getter]
+    fn get_frame(&self) -> u64 {
+        self.frame.get()
     }
 }

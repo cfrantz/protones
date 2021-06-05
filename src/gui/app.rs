@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use imgui;
 use imgui::im_str;
 use imgui::MenuItem;
@@ -6,6 +6,7 @@ use imgui_opengl_renderer::Renderer;
 use imgui_sdl2::ImguiSdl2;
 use log::{error, info};
 use nfd;
+use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use sdl2;
 use sdl2::audio::{AudioCallback, AudioDevice, AudioSpecDesired};
@@ -63,7 +64,7 @@ pub struct App {
     executor: RefCell<PythonExecutor>,
     palette_editor: bool,
 
-    nes: Option<Box<Nes>>,
+    nes: RefCell<Py<Nes>>,
     nes_image: imgui::TextureId,
     pub trace: bool,
 
@@ -73,8 +74,8 @@ pub struct App {
     ppu_debug: PpuDebug,
     apu_debug: ApuDebug,
 
-    nesfile: Option<PathBuf>,
-    sramfile: Option<PathBuf>,
+    nesfile: RefCell<Option<PathBuf>>,
+    sramfile: RefCell<Option<PathBuf>>,
 
     state_slot: Cell<u32>,
 }
@@ -104,7 +105,7 @@ impl App {
             console: RefCell::new(Console::new("Debug Console")),
             executor: RefCell::new(PythonExecutor::new(py)?),
             palette_editor: false,
-            nes: None,
+            nes: RefCell::new(Py::new(py, Nes::blank())?),
             nes_image: glhelper::new_blank_image(256, 240),
             trace: false,
             keybinds: Keybinds::default(),
@@ -112,50 +113,51 @@ impl App {
             controller_debug: ControllerDebug::new(),
             ppu_debug: PpuDebug::new(),
             apu_debug: ApuDebug::new(),
-            nesfile: None,
-            sramfile: None,
+            nesfile: RefCell::default(),
+            sramfile: RefCell::default(),
             state_slot: Cell::new(1),
         })
     }
 
-    pub fn load(&mut self, filename: &str) -> Result<()> {
+    pub fn load(&self, py: Python, filename: &str) -> Result<()> {
         info!("Loading {}", filename);
         let path = PathBuf::from(filename);
         if path.is_file() {
             let sramname = path.with_extension("nes.sram");
             let basename = sramname.file_name().unwrap();
-            let mut nes = Box::new(Nes::from_file(filename)?);
+            let nes = Py::new(py, Nes::from_file(filename)?)?;
 
             let sramfile = AppContext::data_file(basename);
-            match nes.mapper.borrow_mut().sram_load(&sramfile) {
+            match nes.borrow(py).mapper.borrow_mut().sram_load(&sramfile) {
                 Ok(()) => {}
                 Err(e) => info!("Could not load SRAM file {:?}: {:?}", sramfile, e),
             }
 
-            nes.reset();
-            nes.trace = self.trace;
-            self.nes = Some(nes);
-            self.nesfile = Some(path);
-            self.sramfile = Some(sramfile);
+            nes.borrow(py).reset();
+            nes.borrow(py).trace.set(self.trace);
+            self.nes.replace(nes);
+            self.nesfile.replace(Some(path));
+            self.sramfile.replace(Some(sramfile));
             Ok(())
         } else {
             Err(io::Error::new(io::ErrorKind::NotFound, filename).into())
         }
     }
 
-    fn loader(&mut self) -> Result<()> {
+    fn loader(&self, py: Python) -> Result<()> {
         let result = nfd::open_file_dialog(None, None).unwrap();
         match result {
-            nfd::Response::Okay(path) => self.load(&path),
+            nfd::Response::Okay(path) => self.load(py, &path),
             _ => Ok(()),
         }
     }
 
-    fn sram_save(&self) {
-        if let (Some(nes), Some(sramfile)) = (&self.nes, &self.sramfile) {
+    fn sram_save(&self, py: Python) {
+        if let Some(sramfile) = &*self.sramfile.borrow() {
             // Save the SRAM file every second.
-            if nes.frame % 60 == 0 {
-                match nes.mapper.borrow().sram_save(sramfile) {
+            let refnes = self.nes.borrow();
+            if refnes.borrow(py).frame.get() % 60 == 0 {
+                match refnes.borrow(py).mapper.borrow().sram_save(sramfile) {
                     Ok(()) => {}
                     Err(e) => error!("Could not save SRAM file {:?}: {:?}", sramfile, e),
                 }
@@ -163,44 +165,44 @@ impl App {
         }
     }
 
-    fn draw_nes(&mut self, ui: &imgui::Ui) {
-        self.sram_save();
-        if let Some(nes) = &mut self.nes {
-            nes.emulate_frame();
-            let mut audio = nes.audio.borrow_mut();
-            if audio.len() >= 1024 {
-                let frag: Vec<_> = audio.drain(0..1024).collect();
-                self.queue.send(frag).unwrap();
-            }
+    fn draw_nes(&mut self, py: Python, ui: &imgui::Ui) {
+        self.sram_save(py);
+        let refnes = self.nes.borrow();
+        let nes = refnes.borrow(py);
+
+        nes.emulate_frame();
+        let mut audio = nes.audio.borrow_mut();
+        if audio.len() >= 1024 {
+            let frag: Vec<_> = audio.drain(0..1024).collect();
+            self.queue.send(frag).unwrap();
         }
-        if let Some(nes) = &self.nes {
-            glhelper::update_image(self.nes_image, 0, 0, 256, 240, &nes.ppu.borrow().picture);
-            let size = [
-                256.0 * self.preferences.scale * self.preferences.aspect,
-                240.0 * self.preferences.scale,
-            ];
-            let style = ui.push_style_vars(&[
-                imgui::StyleVar::WindowPadding([0.0, 0.0]),
-                imgui::StyleVar::WindowRounding(0.0),
-                imgui::StyleVar::WindowBorderSize(0.0),
-            ]);
-            imgui::Window::new(im_str!("NES"))
-                .position([0.0, 20.0], imgui::Condition::Always)
-                .size(size, imgui::Condition::Always)
-                .flags(
-                    imgui::WindowFlags::NO_TITLE_BAR
-                     | imgui::WindowFlags::NO_MOVE
-                     | imgui::WindowFlags::NO_SCROLLBAR
-                     | imgui::WindowFlags::NO_BRING_TO_FRONT_ON_FOCUS
-                     // Imgui-rs 0.4.0
-                     //| imgui::WindowFlags::NO_SROLL_WITH_MOUSE
-                     | imgui::WindowFlags::NO_RESIZE,
-                )
-                .build(ui, || {
-                    imgui::Image::new(self.nes_image, size).build(ui);
-                });
-            style.pop(&ui);
-        }
+
+        glhelper::update_image(self.nes_image, 0, 0, 256, 240, &nes.ppu.borrow().picture);
+        let size = [
+            256.0 * self.preferences.scale * self.preferences.aspect,
+            240.0 * self.preferences.scale,
+        ];
+        let style = ui.push_style_vars(&[
+            imgui::StyleVar::WindowPadding([0.0, 0.0]),
+            imgui::StyleVar::WindowRounding(0.0),
+            imgui::StyleVar::WindowBorderSize(0.0),
+        ]);
+        imgui::Window::new(im_str!("NES"))
+            .position([0.0, 20.0], imgui::Condition::Always)
+            .size(size, imgui::Condition::Always)
+            .flags(
+                imgui::WindowFlags::NO_TITLE_BAR
+                 | imgui::WindowFlags::NO_MOVE
+                 | imgui::WindowFlags::NO_SCROLLBAR
+                 | imgui::WindowFlags::NO_BRING_TO_FRONT_ON_FOCUS
+                 // Imgui-rs 0.4.0
+                 //| imgui::WindowFlags::NO_SROLL_WITH_MOUSE
+                 | imgui::WindowFlags::NO_RESIZE,
+            )
+            .build(ui, || {
+                imgui::Image::new(self.nes_image, size).build(ui);
+            });
+        style.pop(&ui);
     }
 
     fn draw_console(&self, ui: &imgui::Ui) {
@@ -209,11 +211,11 @@ impl App {
         console.draw(&mut *executor, ui);
     }
 
-    fn draw(&mut self, ui: &imgui::Ui) {
+    fn draw(&mut self, py: Python, ui: &imgui::Ui) {
         ui.main_menu_bar(|| {
             ui.menu(im_str!("File"), true, || {
                 if MenuItem::new(im_str!("Open")).build(ui) {
-                    if let Err(e) = self.loader() {
+                    if let Err(e) = self.loader(py) {
                         error!("Could not load file: {:?}", e);
                     }
                 }
@@ -240,30 +242,33 @@ impl App {
             })
         });
 
-        self.preferences.draw(ui);
-        if let Some(nes) = &self.nes {
-            self.apu_debug.draw(nes, ui);
-            self.controller_debug.draw(nes, ui);
-            self.ppu_debug.draw(nes, ui);
-        }
-        if self.palette_editor {
-            let visible = &mut self.palette_editor;
-            if let Some(nes) = &self.nes {
+        {
+            let refnes = self.nes.borrow();
+            let nes = refnes.borrow(py);
+            self.preferences.draw(ui);
+            self.apu_debug.draw(&nes, ui);
+            self.controller_debug.draw(&nes, ui);
+            self.ppu_debug.draw(&nes, ui);
+
+            if self.palette_editor {
+                let visible = &mut self.palette_editor;
                 let pal = &mut nes.palette.borrow_mut();
                 hwpalette_editor(pal, ui, visible);
             }
         }
-        self.draw_nes(ui);
+        self.draw_nes(py, ui);
         {
             let mut playback = self.playback.lock();
             playback.volume = self.preferences.volume;
         }
     }
 
-    fn save_state(&self) {
-        if let (Some(nes), Some(sramfile)) = (&self.nes, &self.sramfile) {
+    fn save_state(&self, py: Python) {
+        if let Some(sramfile) = &*self.sramfile.borrow() {
+            let refnes = self.nes.borrow();
+            let nes = refnes.borrow(py);
             let pretty = ron::ser::PrettyConfig::new();
-            let s = ron::ser::to_string_pretty(nes, pretty).unwrap();
+            let s = ron::ser::to_string_pretty(&*nes, pretty).unwrap();
             let statefile = sramfile.with_extension(format!("state.{}", self.state_slot.get()));
             info!("Saving state to {:?}", statefile);
             match fs::write(statefile, &s) {
@@ -273,20 +278,15 @@ impl App {
         }
     }
 
-    fn load_state(&self) -> io::Result<Box<Nes>> {
-        if let Some(sramfile) = &self.sramfile {
+    fn load_state(&self, py: Python) -> Result<Py<Nes>> {
+        if let Some(sramfile) = &*self.sramfile.borrow() {
             let statefile = sramfile.with_extension(format!("state.{}", self.state_slot.get()));
             info!("Loading state from {:?}", statefile);
             let file = fs::File::open(statefile)?;
-            match ron::de::from_reader(&file) {
-                Ok(nes) => Ok(Box::new(nes)),
-                Err(v) => Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("Deserialization failure: {:?})", v),
-                )),
-            }
+            let nes: Nes = ron::de::from_reader(&file)?;
+            Ok(Py::new(py, nes)?)
         } else {
-            Err(io::Error::new(io::ErrorKind::Other, "No game loaded."))
+            Err(anyhow!("No game loaded."))
         }
     }
 
@@ -313,7 +313,10 @@ impl App {
                     continue;
                 }
                 let command = slf.borrow(py).keybinds.translate(&event);
-                if let Some(nes) = &slf.borrow(py).nes {
+                {
+                    let slf = slf.borrow(py);
+                    let refnes = slf.nes.borrow();
+                    let nes = refnes.borrow(py);
                     nes.controller[0].borrow_mut().process_event(&event);
                     nes.controller[0].borrow_mut().process_command(&command);
                 }
@@ -329,20 +332,23 @@ impl App {
                             want_load = true;
                         }
                         CommandKey::SystemReset => {
-                            if let Some(nes) = &slf.borrow(py).nes {
-                                nes.reset();
-                            }
+                            let slf = slf.borrow(py);
+                            let refnes = slf.nes.borrow();
+                            let nes = refnes.borrow(py);
+                            nes.reset();
                         }
                         CommandKey::SystemPause => {
-                            if let Some(nes) = &mut slf.borrow_mut(py).nes {
-                                nes.pause = !nes.pause;
-                            }
+                            let slf = slf.borrow(py);
+                            let refnes = slf.nes.borrow();
+                            let nes = refnes.borrow(py);
+                            nes.pause.set(!nes.pause.get());
                         }
                         CommandKey::SystemFrameStep => {
-                            if let Some(nes) = &mut slf.borrow_mut(py).nes {
-                                nes.pause = true;
-                                nes.framestep = true;
-                            }
+                            let slf = slf.borrow(py);
+                            let refnes = slf.nes.borrow();
+                            let nes = refnes.borrow(py);
+                            nes.pause.set(true);
+                            nes.framestep.set(true);
                         }
                         CommandKey::SelectState0 => {
                             slf.borrow(py).state_slot.set(0);
@@ -381,17 +387,21 @@ impl App {
             }
 
             if want_save {
-                slf.borrow(py).save_state();
+                slf.borrow(py).save_state(py);
             }
             if want_load {
-                let mut slf = slf.borrow_mut(py);
-                match slf.load_state() {
+                let slf = slf.borrow(py);
+                match slf.load_state(py) {
                     Ok(nes) => {
-                        let old = slf.nes.take();
-                        nes.mapper
-                            .borrow_mut()
-                            .set_cartridge(old.mapper.borrow().borrow_cart().clone());
-                        slf.nes = Some(nes)
+                        {
+                            let refnes = slf.nes.borrow();
+                            let old = refnes.borrow(py);
+                            nes.borrow(py)
+                                .mapper
+                                .borrow_mut()
+                                .set_cartridge(old.mapper.borrow().borrow_cart().clone());
+                        }
+                        slf.nes.replace(nes);
                     }
                     Err(e) => error!("Could not load state {}: {:?}", slf.state_slot.get(), e),
                 }
@@ -405,7 +415,7 @@ impl App {
             last_frame = now;
 
             let ui = imgui.frame();
-            slf.borrow_mut(py).draw(&ui);
+            slf.borrow_mut(py).draw(py, &ui);
             slf.borrow(py).draw_console(&ui);
 
             glhelper::clear_screen(&slf.borrow(py).preferences.background);
@@ -423,5 +433,29 @@ impl App {
                 //info!("Timing underrun: {:.03}us", leftover * 1e6);
             }
         }
+    }
+}
+
+#[pymethods]
+impl App {
+    #[getter]
+    fn get_running(&self) -> bool {
+        self.running.get()
+    }
+
+    #[setter]
+    fn set_running(&self, value: bool) {
+        self.running.set(value)
+    }
+
+    #[name = "load"]
+    fn py_load(&self, py: Python, filename: &str) -> PyResult<()> {
+        self.load(py, filename)
+            .map_err(|e| PyException::new_err(e.to_string()))
+    }
+
+    #[getter]
+    fn get_nes(&self, py: Python) -> Py<Nes> {
+        self.nes.borrow().clone_ref(py)
     }
 }
