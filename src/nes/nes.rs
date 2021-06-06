@@ -5,6 +5,7 @@ use crate::nes::cpu6502::{Cpu6502, Memory};
 use crate::nes::mapper;
 use crate::nes::mapper::Mapper;
 use crate::nes::ppu::Ppu;
+use crate::nes::python;
 use log::{trace, warn};
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -29,6 +30,30 @@ struct Stall {
     oddcycle: bool,
 }
 
+pub struct Proxy {
+    pub cpu: Py<python::Cpu6502>,
+    pub mem: Py<python::Mem>,
+}
+
+impl Proxy {
+    pub fn new(py: Python, nes: Py<Nes>) -> PyResult<Self> {
+        Ok(Proxy {
+            cpu: Py::new(
+                py,
+                python::Cpu6502 {
+                    nes: nes.clone_ref(py),
+                },
+            )?,
+            mem: Py::new(
+                py,
+                python::Mem {
+                    nes: nes.clone_ref(py),
+                },
+            )?,
+        })
+    }
+}
+
 #[pyclass(unsendable)]
 #[derive(Serialize, Deserialize)]
 pub struct Nes {
@@ -49,6 +74,8 @@ pub struct Nes {
     stall: RefCell<Stall>,
     pub pause: Cell<bool>,
     pub framestep: Cell<bool>,
+    #[serde(skip)]
+    pub proxy: Option<Proxy>,
 }
 
 impl Memory for Nes {
@@ -132,6 +159,7 @@ impl Nes {
             }),
             pause: Cell::default(),
             framestep: Cell::default(),
+            proxy: None,
         }
     }
 
@@ -228,6 +256,44 @@ impl Nes {
         n != 0
     }
 
+    fn init_proxy(slf: &Py<Self>, py: Python) -> PyResult<()> {
+        if slf.borrow(py).proxy.is_none() {
+            let proxy = Proxy::new(py, slf.clone_ref(py))?;
+            slf.borrow_mut(py).proxy.replace(proxy);
+        }
+        Ok(())
+    }
+}
+
+#[pymethods]
+impl Nes {
+    #[getter]
+    fn get_pause(&self) -> bool {
+        self.pause.get()
+    }
+
+    #[setter]
+    fn set_pause(&self, value: bool) {
+        self.pause.set(value)
+    }
+
+    #[getter]
+    fn get_frame(&self) -> u64 {
+        self.frame.get()
+    }
+
+    #[getter]
+    fn get_cpu(slf: Py<Self>, py: Python) -> PyResult<Py<python::Cpu6502>> {
+        Nes::init_proxy(&slf, py)?;
+        Ok(slf.borrow(py).proxy.as_ref().unwrap().cpu.clone_ref(py))
+    }
+
+    #[getter]
+    fn get_mem(slf: Py<Self>, py: Python) -> PyResult<Py<python::Mem>> {
+        Nes::init_proxy(&slf, py)?;
+        Ok(slf.borrow(py).proxy.as_ref().unwrap().mem.clone_ref(py))
+    }
+
     pub fn emulate_frame(&self) {
         if self.pause.get() {
             if self.framestep.get() {
@@ -262,23 +328,5 @@ impl Nes {
             count,
             self.remainder.get(),
         );
-    }
-}
-
-#[pymethods]
-impl Nes {
-    #[getter]
-    fn get_pause(&self) -> bool {
-        self.pause.get()
-    }
-
-    #[setter]
-    fn set_pause(&self, value: bool) {
-        self.pause.set(value)
-    }
-
-    #[getter]
-    fn get_frame(&self) -> u64 {
-        self.frame.get()
     }
 }

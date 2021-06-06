@@ -65,6 +65,7 @@ pub struct App {
     palette_editor: bool,
 
     nes: RefCell<Py<Nes>>,
+    peer: RefCell<PyObject>,
     nes_image: imgui::TextureId,
     pub trace: bool,
 
@@ -98,6 +99,9 @@ impl App {
             .map_err(AppError::SdlError)?;
         playback.resume();
 
+        let module = PyModule::import(py, "protones")?;
+        let peer = PyObject::from(module.call0("EmulatorPeer")?);
+
         Ok(App {
             running: Cell::new(false),
             playback: playback,
@@ -106,6 +110,7 @@ impl App {
             executor: RefCell::new(PythonExecutor::new(py)?),
             palette_editor: false,
             nes: RefCell::new(Py::new(py, Nes::blank())?),
+            peer: RefCell::new(peer.clone_ref(py)),
             nes_image: glhelper::new_blank_image(256, 240),
             trace: false,
             keybinds: Keybinds::default(),
@@ -168,9 +173,17 @@ impl App {
     fn draw_nes(&mut self, py: Python, ui: &imgui::Ui) {
         self.sram_save(py);
         let refnes = self.nes.borrow();
-        let nes = refnes.borrow(py);
 
-        nes.emulate_frame();
+        {
+            let refpeer = self.peer.borrow();
+            match refpeer.call_method1(py, "emulate_frame", (refnes.clone_ref(py),)) {
+                Ok(_) => {}
+                Err(e) => {
+                    error!("Error calling `emulate_frame` on peer object: {:?}", e);
+                }
+            }
+        }
+        let nes = refnes.borrow(py);
         let mut audio = nes.audio.borrow_mut();
         if audio.len() >= 1024 {
             let frag: Vec<_> = audio.drain(0..1024).collect();
@@ -457,5 +470,15 @@ impl App {
     #[getter]
     fn get_nes(&self, py: Python) -> Py<Nes> {
         self.nes.borrow().clone_ref(py)
+    }
+
+    #[getter]
+    fn get_peer(&self, py: Python) -> PyObject {
+        self.peer.borrow().clone_ref(py)
+    }
+
+    #[setter]
+    fn set_peer(&self, peer: PyObject) {
+        self.peer.replace(peer);
     }
 }
