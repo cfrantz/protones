@@ -40,7 +40,7 @@ class Mapper5: public Mapper {
         apu_divider_(0),
         cycle_(0),
 
-        pulse_({{nes, 1}, {nes, 2}}),
+        pulse_{{nes, 1}, {nes, 2}},
         audio_debug_{&pulse_[0], &pulse_[1]}
         {
         pulse_[0].set_name("MMC5 Pulse 0");
@@ -446,8 +446,8 @@ class Mapper5: public Mapper {
 
     void Emulate() override {
         // According to the nesdev MMC5 document, the IRQ should happen
-        // at ppu cycle 260.
-        if (nes_->ppu()->cycle() == 0) {
+        // at ppu cycle 4.
+        if (nes_->ppu()->cycle() == 4) {
             CheckScanline();
         }
         // The mapper is clocked at the PPU clock rate.
