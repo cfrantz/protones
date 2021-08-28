@@ -52,10 +52,10 @@ HEADERS = [
     outs = [ 'fixed/' + F ],
     cmd = select({
         ":windows": """
-            sed \
-                -e "s|Python\.h|python37/Python.h|g" \
-                -e "s|frameobject\.h|python37/frameobject.h|g" \
-                -e "s|pythread\.h|python37/pythread.h|g" \
+            sed \\
+                -e "s|Python\\.h|python37/Python.h|g" \\
+                -e "s|frameobject\\.h|python37/frameobject.h|g" \\
+                -e "s|pythread\\.h|python37/pythread.h|g" \\
                 < $(<) > $(@)
             """,
         "//conditions:default": "cp $< $@",
