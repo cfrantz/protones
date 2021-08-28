@@ -47,9 +47,6 @@ void Triangle::LoadState(proto::APUTriangle *state) {
 
 uint8_t Triangle::InternalOutput() {
     if (!enabled_) return 0;
-    if (length_value_ == 0) return 0;
-    if (counter_value_ == 0) return 0;
-    if (timer_period_ == 0 && timer_value_ == 0) return 0;
     return triangle_table[duty_value_];
 }
 
