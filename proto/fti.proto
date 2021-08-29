@@ -1,0 +1,36 @@
+syntax = "proto3";
+package proto;
+
+message Envelope {
+    enum Kind {
+        UNKNOWN = 0;
+        VOLUME = 1;
+        ARPEGGIO = 2;
+        PITCH = 3;
+        HIPITCH = 4;
+        DUTY = 5;
+    }
+    Kind kind = 1;
+    int32 loop = 2;
+    int32 release = 3;
+    repeated int32 sequence = 4;
+}
+
+message FTInstrument {
+    enum Kind {
+        UNKNOWN = 0;
+        NONE = 1;
+        VRC6 = 2;
+        VRC7 = 3;
+        FDS = 4;
+        N163 = 5;
+        S5B = 6;
+    }
+    string name = 1;
+    Kind kind = 2;
+    Envelope volume = 3;
+    Envelope arpeggio = 4;
+    Envelope pitch = 5;
+    Envelope hipitch = 6;
+    Envelope duty = 7;
+}

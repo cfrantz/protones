@@ -8,7 +8,6 @@
 namespace protones {
 
 class NES;
-class Controller;
 
 class MidiSetup : public ImWindowBase {
   public:
@@ -17,8 +16,7 @@ class MidiSetup : public ImWindowBase {
       nes_(nes),
       enabled_(false),
       ports_(0),
-      current_port_(0),
-      A4_(440)
+      current_port_(0)
     {}
     bool Draw() override;
   private:
@@ -28,7 +26,6 @@ class MidiSetup : public ImWindowBase {
     bool enabled_;
     int ports_;
     int current_port_;
-    float A4_;
     std::vector<std::string> portnames_;
     const char* names_[128];
 };

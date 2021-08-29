@@ -83,3 +83,27 @@ cc_proto_library(
     name = "config",
     deps = [":config_proto"],
 )
+
+proto_library(
+    name = "fti_proto",
+    srcs = [
+        "fti.proto",
+    ],
+)
+
+cc_proto_library(
+    name = "fti",
+    deps = [":fti_proto"],
+)
+
+proto_library(
+    name = "midi_proto",
+    srcs = [
+        "midi.proto",
+    ],
+)
+
+cc_proto_library(
+    name = "midi",
+    deps = [":midi_proto"],
+)

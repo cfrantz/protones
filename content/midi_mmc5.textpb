@@ -1,0 +1,25 @@
+name: "BasicConfig"
+channel {
+    name: "Piano"
+    channel: 1
+    oscillator: [
+        PULSE1,
+        PULSE2,
+        MMC5_PULSE1,
+        MMC5_PULSE2
+    ]
+}
+channel {
+    name: "Bass"
+    channel: 2
+    oscillator: [
+        TRIANGLE
+    ]
+}
+channel {
+    name: "Drums"
+    channel: 10
+    oscillator: [
+        NOISE
+    ]
+}

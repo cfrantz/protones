@@ -98,9 +98,21 @@ class File {
     bool Read(std::string* buf);
     bool Read(std::string* buf, int64_t len);
     bool Read(void* buf, int64_t *len);
+    template<typename T>
+    bool Read(T* item) {
+        int64_t len = sizeof(T);
+        int64_t orig = len;
+        bool result = Read(item, &len);
+        return result && orig == len;
+    }
+
     bool Write(const std::string& buf);
     bool Write(const std::string& buf, int64_t len);
     bool Write(const void* buf, int64_t len);
+    template<typename T>
+    bool Write(const T* item) {
+        return Write(item, sizeof(T));
+    }
 
     void Close();
   private:

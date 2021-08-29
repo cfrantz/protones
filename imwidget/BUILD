@@ -98,7 +98,7 @@ cc_library(
     deps = [
         ":base",
         "//external:imgui",
-        "//nes:midi",
+        "//midi:midi",
         "//nes:nes-interface",
     ],
 )

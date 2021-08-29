@@ -13,12 +13,13 @@
 #include "nes/fm2.h"
 #include "nes/mapper.h"
 #include "nes/mem.h"
-//#include "nes/midi.h"
+#include "midi/midi.h"
 #include "nes/ppu.h"
 #include "proto/config.pb.h"
 #include "util/config.h"
 
 DEFINE_string(fm2, "", "FM2 Movie file.");
+DEFINE_string(midi, "", "Midi configuration textpb.");
 DEFINE_double(fps, 60.0988, "Desired NES fps.");
 namespace protones {
 
@@ -73,8 +74,11 @@ NES::NES() :
     cart_ = new Cartridge(this);
     devices_.emplace_back(cart_);
 
-    //midi_ = new MidiConnector();
-    //devices_.emplace_back(midi_);
+    midi_ = new MidiConnector(this);
+    devices_.emplace_back(midi_);
+    if (!FLAGS_midi.empty()) {
+        midi_->LoadConfig(FLAGS_midi);
+    }
 
     controller_[0] = new Controller(this, 0);
     controller_[1] = new Controller(this, 1);
@@ -274,6 +278,7 @@ bool NES::Emulate() {
 }
 
 bool NES::EmulateFrame() {
+    midi_->Emulate();
     if (pause_) {
         if (!step_) return true;
         step_ = false;

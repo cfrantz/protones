@@ -2,13 +2,13 @@
 
 #include "imgui.h"
 #include "nes/nes.h"
-#include "nes/midi.h"
+#include "midi/midi.h"
 #include "RtMidi.h"
 
 namespace protones {
 
 void MidiSetup::GetPortNames() {
-    RtMidiOut* midi = nes_->midi()->out();
+    RtMidiIn* midi = nes_->midi()->midi();
     int ports = midi->getPortCount();
     portnames_.clear();
     for(int i=0; i<ports; ++i) {
@@ -19,16 +19,10 @@ void MidiSetup::GetPortNames() {
 }
 
 bool MidiSetup::Draw() {
-    const char *chanlbl[] = {
-        "Channel 1",
-        "Channel 2",
-        "Channel 3",
-        "Channel 4",
-    };
     if (!visible_)
         return false;
 
-    RtMidiOut* midi = nes_->midi()->out();
+    RtMidiIn* midi = nes_->midi()->midi();
     GetPortNames();
     ImGui::Begin("Midi Setup", &visible_);
     if (ImGui::Checkbox("Enabled", &enabled_)) {
@@ -42,12 +36,6 @@ bool MidiSetup::Draw() {
     if (ImGui::Combo("Midi Port", &current_port_, names_, ports_)) {
             midi->closePort();
             midi->openPort(current_port_);
-    }
-    if (ImGui::DragFloat("A440", &A4_, 1.0f, 300.0f, 500.0f, "%.1f")) {
-        nes_->midi()->InitFreqTable(A4_);
-    }
-    for(int i=0; i<4; ++i) {
-        ImGui::SliderFloat(chanlbl[i], &nes_->midi()->chan_volume(i), 0, 2.0, "%.02f");
     }
     ImGui::End();
     return false;

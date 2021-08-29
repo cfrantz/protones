@@ -1,0 +1,24 @@
+syntax = "proto3";
+package proto;
+
+message MidiChannel {
+    enum Oscillator {
+        UNKNOWN = 0;
+        PULSE1 = 1;
+        PULSE2 = 2;
+        TRIANGLE = 3;
+        NOISE = 4;
+        DMC_NOT_YET = 5;
+        MMC5_PULSE1 = 6;
+        MMC5_PULSE2 = 7;
+    }
+    string name = 1;
+    int32 channel = 2;
+    repeated Oscillator oscillator = 3;
+    int32 note_offset = 4;
+}
+
+message MidiConfig {
+    string name = 1;
+    repeated MidiChannel channel = 2;
+}

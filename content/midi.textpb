@@ -1,0 +1,24 @@
+name: "BasicConfig"
+channel {
+    name: "Piano"
+    channel: 1
+    oscillator: [
+        PULSE1,
+        PULSE2
+    ]
+}
+channel {
+    name: "Bass"
+    channel: 2
+    note_offset: 12
+    oscillator: [
+        TRIANGLE
+    ]
+}
+channel {
+    name: "Drums"
+    channel: 10
+    oscillator: [
+        NOISE
+    ]
+}

@@ -37,7 +37,7 @@ cc_library(
         "//imwidget:apu_debug",
         "//imwidget:controller_debug",
         "//imwidget:mem_debug",
-        #"//imwidget:midi_setup",
+        "//imwidget:midi_setup",
         "//imwidget:ppu_debug",
         "//imwidget:python_console",
         "//imwidget:error_dialog",

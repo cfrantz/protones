@@ -38,16 +38,6 @@ cc_library(
 )
 
 cc_library(
-    name = "midi",
-    srcs = ["midi.cc"],
-    hdrs = ["midi.h"],
-    deps = [
-        ":base",
-        "@rtmidi_git//:rtmidi",
-    ],
-)
-
-cc_library(
     name = "apu",
     srcs = [
         "apu.cc",
@@ -65,7 +55,6 @@ cc_library(
     ],
     deps = [
         ":base",
-        #":midi",
         ":nes-interface",
         ":mapper",
         ":pbmacro",
@@ -198,9 +187,9 @@ cc_library(
         ":mapper",
         ":mapper-lib",
         ":mem",
-        #":midi",
         ":nes-interface",
         ":ppu",
+        "//midi:midi",
         "//external:imgui",
         "//proto:config",
         "//util:config",
