@@ -21,27 +21,11 @@ class Envelope {
     static constexpr int STATE_ON = 1;
     static constexpr int STATE_RELEASE = 2;
 
-    Envelope(const proto::Envelope* e)
+    Envelope(const proto::Envelope* e, int8_t def)
       : envelope_(e),
       state_(STATE_OFF),
       frame_(0),
-      default_(0),
-      value_(0)
-      {}
-
-    Envelope(int8_t def)
-      : envelope_(nullptr),
-      state_(STATE_OFF),
-      frame_(0),
       default_(def),
-      value_(0)
-      {}
-
-    Envelope()
-      : envelope_(nullptr),
-      state_(STATE_OFF),
-      frame_(0),
-      default_(0),
       value_(0)
       {}
 
@@ -68,10 +52,10 @@ class InstrumentPlayer {
       velocity_(0)
     {
         if (instrument_ != nullptr) {
-            volume_ = Envelope(&instrument_->volume());
-            arpeggio_ = Envelope(&instrument_->arpeggio());
-            pitch_ = Envelope(&instrument_->pitch());
-            duty_ = Envelope(&instrument_->duty());
+            volume_ = Envelope(&instrument_->volume(), 15);
+            arpeggio_ = Envelope(&instrument_->arpeggio(), 0);
+            pitch_ = Envelope(&instrument_->pitch(), 0);
+            duty_ = Envelope(&instrument_->duty(), 2);
         }
     }
 
@@ -83,23 +67,26 @@ class InstrumentPlayer {
     uint16_t timer();
 
     uint8_t note() { return note_; }
+    bool released() { return released_; }
     bool done();
   private:
     proto::FTInstrument *instrument_;
     uint8_t note_;
     uint8_t velocity_;
-    Envelope volume_ = Envelope(15);
-    Envelope arpeggio_ = Envelope();
-    Envelope pitch_ = Envelope();
-    Envelope duty_ = Envelope(2);
+    bool released_ = false;
+    Envelope volume_ = Envelope(nullptr, 15);
+    Envelope arpeggio_ = Envelope(nullptr, 0);
+    Envelope pitch_ = Envelope(nullptr, 0);
+    Envelope duty_ = Envelope(nullptr, 2);
 };
 
 
 class Channel {
   public:
-    Channel(NES* nes, const proto::MidiChannel& config)
+    Channel(NES* nes, const proto::MidiChannel& config, proto::FTInstrument* instrument)
       : nes_(nes),
-      config_(config)
+      config_(config),
+      instrument_(instrument)
     {}
     
     void ProcessMessage(const std::vector<uint8_t>& message);
@@ -111,6 +98,7 @@ class Channel {
 
     NES* nes_; 
     proto::MidiChannel config_;
+    proto::FTInstrument* instrument_;
     std::vector<InstrumentPlayer> player_;
     std::map<uint16_t, uint8_t> last_timer_hi_;
 }; 
@@ -139,6 +127,8 @@ class MidiConnector : public EmulatedDevice {
     void ProcessMessage(const std::vector<uint8_t>& message);
     void LoadConfig(const std::string& filename);
 
+    proto::FTInstrument* instrument(const std::string& name);
+
     static void InitNotes(double a440);
     static int notes_[128];
   private:
@@ -148,6 +138,7 @@ class MidiConnector : public EmulatedDevice {
     std::unique_ptr<RtMidiIn> midi_;
     proto::MidiConfig config_;
     std::map<std::string, std::unique_ptr<Channel>> channel_;
+    std::map<std::string, proto::FTInstrument> instrument_;
 
     static constexpr double TRT = std::pow(2.0, 1.0/12.0);
 };

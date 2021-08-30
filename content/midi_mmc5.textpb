@@ -8,13 +8,16 @@ channel {
         MMC5_PULSE1,
         MMC5_PULSE2
     ]
+    instrument: "piano"
 }
 channel {
     name: "Bass"
     channel: 2
+    note_offset: 12
     oscillator: [
         TRIANGLE
     ]
+    instrument: "blank"
 }
 channel {
     name: "Drums"
@@ -22,4 +25,40 @@ channel {
     oscillator: [
         NOISE
     ]
+    drumkit: [
+        { key: 36 value: { patch: "hat" period: 0xe }},      # Kick
+        { key: 38 value: { patch: "snare" period: 0x6 }},    # Snare
+        { key: 41 value: { patch: "snare" period: 0xc }},    # Low Tom
+        { key: 45 value: { patch: "snare" period: 0xb }},    # Mid Tom
+        { key: 47 value: { patch: "snare" period: 0xa }},    # Mid Tom 2
+        { key: 48 value: { patch: "snare" period: 0x9 }},    # High Tom
+        { key: 50 value: { patch: "snare" period: 0x8 }},    # High Tom 2
+        { key: 49 value: { patch: "snare" period: 0x2 }},    # Crash
+        { key: 57 value: { patch: "snare" period: 0x3 }},    # Crash 2
+        { key: 42 value: { patch: "hat" period: 0x2 }}       # Closed HH
+    ]
 }
+instruments: [
+    { key: "blank" value: "content/fti/00_blank.fti" },
+    { key: "snare" value: "content/fti/03_snare.fti" },
+    { key: "hat" value: "content/fti/04_hat.fti" },
+    { key: "trikick" value: "content/fti/05_trikick.fti" },
+    { key: "2 1" value: "content/fti/07_2_1.fti" },
+    { key: "open_hat" value: "content/fti/08_open_hat.fti" },
+    { key: "load_drum" value: "content/fti/09_loud_drum.fti" },
+    { key: "ahh" value: "content/fti/0b_ahh.fti" },
+    { key: "0 2" value: "content/fti/0d_0_2.fti" },
+    { key: "fade_in" value: "content/fti/0e_fade_in.fti" },
+    { key: "timpani_dpcm" value: "content/fti/10_timpani_dpcm.fti" },
+    { key: "marching_snare" value: "content/fti/11_marching_snare.fti" },
+    { key: "noise_hat" value: "content/fti/12_p_noise_hat.fti" },
+    { key: "arp" value: "content/fti/13_arp.fti" },
+    { key: "sea" value: "content/fti/15_sea_2_1.fti" },
+    { key: "hat" value: "content/fti/16_hat_2.fti" },
+    { key: "crash" value: "content/fti/17_crash.fti" },
+    { key: "piano" value: "content/fti/18_piano.fti" },
+    { key: "snare2" value: "content/fti/19_snare_2.fti" },
+    { key: "shaker" value: "content/fti/1d_shaker.fti" },
+    { key: "huge_snare" value: "content/fti/1f_huge_snare.fti" },
+    { key: "snare3" value: "content/fti/22_snare_3.fti" }
+]

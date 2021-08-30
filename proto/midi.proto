@@ -1,6 +1,13 @@
 syntax = "proto3";
 package proto;
 
+message MidiDrumKit {
+    // Patch (or "instrument") for this drum sound.
+    string patch = 1;
+    // Noise channel period for this drum sound.
+    int32 period = 2;
+}
+
 message MidiChannel {
     enum Oscillator {
         UNKNOWN = 0;
@@ -12,13 +19,27 @@ message MidiChannel {
         MMC5_PULSE1 = 6;
         MMC5_PULSE2 = 7;
     }
+    // Name of this channel.
     string name = 1;
+    // Midi channel number of this channel (1-based).
     int32 channel = 2;
+    // The oscillators assigned to this channel.
     repeated Oscillator oscillator = 3;
+    // The note offset for this channel (e.g. 12 for the triangle channel).
     int32 note_offset = 4;
+    // The instrument to use on this channel (or blank).
+    string instrument = 5;
+    // The drumkit assignments for this channel (leave blank except for
+    // when using the noise channel).
+    map<int32, MidiDrumKit> drumkit = 6;
 }
 
+
 message MidiConfig {
+    // Name of this midi configuration.
     string name = 1;
+    // Channel setup.
     repeated MidiChannel channel = 2;
+    // FamiTracker Instruments (instrument name to filename mapping).
+    map<string, string> instruments = 3;
 }

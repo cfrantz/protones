@@ -25,6 +25,7 @@ cc_library(
     srcs = ["midi.cc"],
     hdrs = ["midi.h"],
     deps = [
+        ":fti",
         "//nes:base",
         "//nes:nes-interface",
         "//nes:mem",

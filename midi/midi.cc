@@ -3,6 +3,7 @@
 
 #include "nes/mem.h"
 #include "util/file.h"
+#include "midi/fti.h"
 
 namespace protones {
 
@@ -81,9 +82,34 @@ void MidiConnector::LoadConfig(const std::string& filename) {
     }
 
     config_ = config;
+
+    instrument_.clear();
+    for(const auto& inst : config_.instruments()) {
+        auto fti = LoadFTI(inst.second);
+        if (fti.ok()) {
+            instrument_.emplace(inst.first, fti.ValueOrDie());
+        } else {
+            fprintf(stderr, "Error loading '%s': %s\n",
+                    inst.first.c_str(),
+                    fti.status().ToString().c_str());
+        }
+    }
+
     channel_.clear();
     for(const auto& channel : config_.channel()) {
-        channel_.emplace(channel.name(), std::make_unique<Channel>(nes_, channel));
+        channel_.emplace(channel.name(),
+                std::make_unique<Channel>(nes_,
+                                          channel,
+                                          instrument(channel.instrument())));
+    }
+}
+
+proto::FTInstrument* MidiConnector::instrument(const std::string& name) {
+    auto item = instrument_.find(name);
+    if (item != instrument_.end()) {
+        return &item->second;
+    } else {
+        return nullptr;
     }
 }
 
@@ -116,13 +142,30 @@ void Channel::ProcessMessage(const std::vector<uint8_t>& message) {
 }
 
 void Channel::NoteOn(uint8_t note, uint8_t velocity) {
-    player_.emplace_back(nullptr);
-    player_.back().NoteOn(note, velocity);
+    if (config_.drumkit().empty()) {
+        player_.emplace_back(instrument_);
+        player_.back().NoteOn(note, velocity);
+    } else {
+        auto drum = config_.drumkit().find(note);
+        if (drum != config_.drumkit().end()) {
+            player_.emplace_back(nes_->midi()->instrument(drum->second.patch()));
+            player_.back().NoteOn(drum->second.period(), velocity);
+        } else {
+            fprintf(stderr, "Unknown drum patch for midi note %d\n", note);
+        }
+    }
+    printf("player_ size = %d\n", (int)player_.size());
 }
 
 void Channel::NoteOff(uint8_t note) {
+    if (!config_.drumkit().empty()) {
+        auto drum = config_.drumkit().find(note);
+        if (drum != config_.drumkit().end()) {
+            note = drum->second.period();
+        }
+    }
     for(auto& p : player_) {
-        if (p.note() == note) {
+        if (p.note() == note && !p.released()) {
             p.Release();
             break;
         }
@@ -193,8 +236,11 @@ void Channel::Step() {
                 break;
             case proto::MidiChannel_Oscillator_NOISE:
                 nes_->mem()->Write(base + 0, vol | 0x30);
-                nes_->mem()->Write(base + 2, timer & 0x0F);
-                nes_->mem()->Write(base + 3, 0xF8);
+                if (p.note() != last_timer_hi_[base+2]) {
+                    nes_->mem()->Write(base + 2, p.note() % 16);
+                    nes_->mem()->Write(base + 3, 0xF8);
+                    last_timer_hi_[base+2] = p.note();
+                }
                 break;
             default:
                 fprintf(stderr, "Don't know how to program oscillator type %d\n",
@@ -220,7 +266,7 @@ void Channel::Step() {
                 break;
             case proto::MidiChannel_Oscillator_NOISE:
                 nes_->mem()->Write(base + 0, 0x30);
-                last_timer_hi_[base+3] = 0xFF;
+                last_timer_hi_[base+2] = 0xFF;
                 break;
             default:
                 ;
@@ -238,7 +284,9 @@ void Channel::Step() {
 }
 
 int8_t Envelope::value() {
-    if (envelope_ == nullptr || state_ == STATE_OFF) {
+    if (envelope_ == nullptr
+        || envelope_->sequence_size() == 0
+        || state_ == STATE_OFF) {
         return value_;
     }
     return envelope_->sequence(frame_);
@@ -255,14 +303,15 @@ void Envelope::Step() {
                     // We've reached the release point, but aren't released
                     // yet, so go to the loop point.
                     frame_ = envelope_->loop();
+                    break;
                 } else if (frame_ == envelope_->sequence_size()) {
                     // We've reached the end, so go to the loop point or
                     // last element of the envelope until we get released.
                     frame_ = envelope_->loop() >= 0 && envelope_->release() < 0
                         ? envelope_->loop()
                         : envelope_->sequence_size() - 1;
+                    break;
                 }
-                break;
             }
             frame_ += 1;
             break;
@@ -271,7 +320,9 @@ void Envelope::Step() {
             frame_ += 1;
             break;
     }
-    if (envelope_ != nullptr && frame_ == envelope_->sequence_size()) {
+    if (envelope_ != nullptr
+        && envelope_->kind() != proto::Envelope_Kind_UNKNOWN
+        && frame_ >= envelope_->sequence_size()) {
         Reset(STATE_OFF);
     }
 }
@@ -287,7 +338,8 @@ void Envelope::NoteOn() {
 }
 
 void Envelope::Release() {
-    if (envelope_ != nullptr) {
+    if (envelope_ != nullptr
+        && envelope_->kind() != proto::Envelope_Kind_UNKNOWN) {
         if (envelope_->release() >= 0) {
             frame_ = envelope_->release();
         }
@@ -307,6 +359,7 @@ void InstrumentPlayer::NoteOn(uint8_t note, uint8_t velocity) {
 }
 
 void InstrumentPlayer::Release() {
+    released_ = true;
     volume_.Release();
     arpeggio_.Release();
     pitch_.Release();
@@ -347,6 +400,7 @@ uint8_t InstrumentPlayer::duty() {
 
 uint16_t InstrumentPlayer::timer() {
     int freq = MidiConnector::notes_[note_] + pitch_.value();
+    if (freq == 0) return 0;
     int t = (NES::frequency / (16 * freq)) - 1;
     if (t > 2047) t = 0;
     return t;
