@@ -1,9 +1,12 @@
 #include <algorithm>
+#include <ctype.h>
 
 #include "imwidget/midi_setup.h"
 
 #include "imgui.h"
+#include "nfd.h"
 #include "nes/nes.h"
+#include "midi/fti.h"
 #include "midi/midi.h"
 #include "RtMidi.h"
 
@@ -64,9 +67,12 @@ void MidiSetup::DrawEnvelope(proto::Envelope* envelope, proto::Envelope_Kind kin
         ImGui::SameLine();
         ImGui::PushID(++n);
         ImGui::BeginGroup();
-        if (n == frame) ImGui::PushStyleColor(ImGuiCol_FrameBg, 0xFFFFFFFF);
+        if (n == frame) {
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, 0xFF999999);
+            ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, 0xFFCCCCCC);
+        }
         ImGui::VSliderInt("##envseq", ImVec2(20, 256), &val, range.min, range.max);
-        if (n == frame) ImGui::PopStyleColor(1);
+        if (n == frame) ImGui::PopStyleColor(2);
         int loopsel = n == envelope->loop() ? 1 :
                       n == envelope->release() ? 2 : 0;
         const char *loopitems[] = {" ", "Loop", "Release" };
@@ -107,7 +113,7 @@ void MidiSetup::DrawEnvelope(proto::Envelope* envelope, proto::Envelope_Kind kin
     ImGui::PushItemWidth(128);
     ImGui::Text("Envelope Steps: ");
     ImGui::SameLine();
-    if (ImGui::InputInt("#envsteps", &steps, 1, 1)) {
+    if (ImGui::InputInt("##envsteps", &steps, 1, 1)) {
         steps = std::clamp(steps, 0, 256);
         envelope->mutable_sequence()->Resize(steps, 0);
     }
@@ -116,16 +122,18 @@ void MidiSetup::DrawEnvelope(proto::Envelope* envelope, proto::Envelope_Kind kin
     char text[4096] = {0};
     size_t p = 0;
     for(int i=0; i<envelope->sequence_size(); i++) {
-        if (i == envelope->release()) p += sprintf(text+p, "]");
         if (i > 0) p += sprintf(text+p, " ");
         if (i == envelope->loop()) p += sprintf(text+p, "[");
         p+= sprintf(text+p, "%d", envelope->sequence(i));
+        if (i+1 == envelope->release()) p += sprintf(text+p, "]");
     }
     ImGui::Text("Envelope Values:");
     ImGui::SameLine();
     if (ImGui::InputText("##envtext", text, sizeof(text), ImGuiInputTextFlags_EnterReturnsTrue)) {
         char *p = text;
         envelope->mutable_sequence()->Clear();
+        envelope->set_loop(-1);
+        envelope->set_release(-1);
         while(*p) {
             if (*p == ' ') { p++; continue; }
             if (*p == '[') {
@@ -136,7 +144,7 @@ void MidiSetup::DrawEnvelope(proto::Envelope* envelope, proto::Envelope_Kind kin
                 envelope->set_release(envelope->sequence_size());
                 p++; continue;
             }
-            if (isdigit(*p)) {
+            if (isdigit(*p) || *p == '-' || *p == '+') {
                 int val = strtol(p, &p, 0);
                 envelope->add_sequence(val);
             } else {
@@ -206,8 +214,17 @@ bool MidiSetup::Draw() {
         ImGui::PopItemWidth();
 
         if (!current_channel_.empty()) {
-            const char *names[] = {"", "Volume", "Arpeggio", "Pitch", "HiPitch", "Duty" };
+            ImGui::Separator();
             auto* instrument = midi->channel_[current_channel_]->instrument_;
+            char name[1024];
+            snprintf(name, sizeof(name), "%s", instrument->name().c_str());
+            ImGui::PushItemWidth(400);
+            if (ImGui::InputText("FTI Instrument Name##name", name, sizeof(name), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                instrument->set_name(name);
+            }
+            ImGui::PopItemWidth();
+
+            const char *names[] = {"", "Volume", "Arpeggio", "Pitch", "HiPitch", "Duty" };
             auto* player = midi->channel_[current_channel_]->now_playing(instrument);
             if (ImGui::BeginTabBar("Envelopes", ImGuiTabBarFlags_None)) {
                 for(int i=1; i<6; i++) {
@@ -220,9 +237,18 @@ bool MidiSetup::Draw() {
                 }
                 ImGui::EndTabBar();
             }
+            if (ImGui::Button("Save Instrument")) {
+                char *filename = nullptr;
+                auto result = NFD_SaveDialog("fti", nullptr, &filename);
+                if (result == NFD_OKAY) {
+                    auto status = SaveFTI(filename, *instrument);
+                    if (!status.ok()) {
+                        fprintf(stderr, "Error saving instrument: %s", status.ToString().c_str());
+                    }
+                }
+            }
         }
     }
-
     ImGui::End();
     return false;
 }

@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include "midi/fti.h"
 
+#include "absl/strings/match.h"
+#include "google/protobuf/text_format.h"
 #include "util/file.h"
 
 namespace protones {
@@ -127,7 +129,7 @@ StatusOr<proto::FTInstrument> ParseFTI(File* file) {
 
     util::Status status;
     switch(inst.kind()) {
-        case proto::FTInstrument_Kind_NONE:
+        case proto::FTInstrument_Kind_NES2A03:
         case proto::FTInstrument_Kind_VRC6:
             status = ParseBasicFTI(file, &inst);
             if (!status.ok()) return status;
@@ -139,13 +141,108 @@ StatusOr<proto::FTInstrument> ParseFTI(File* file) {
     return inst;
 }
 
-StatusOr<proto::FTInstrument> LoadFTI(const std::string& filename) {
-    std::string buffer;
-    auto f = File::Open(filename, "rb");
-    if (!f) {
-        return Error("Unable to read FTI file");
+util::Status SaveEnvelope(File* file, const proto::Envelope* env) {
+    // count
+    file->Write(static_cast<uint32_t>(env->sequence_size()));
+    file->Write(env->loop());
+    // Undo the release fixup done by the loader.
+    int32_t release = env->release();
+    if (release != -1) {
+        release -= 1;
     }
-    return ParseFTI(f.get());
+    file->Write(release);
+    // Settings
+    file->Write(static_cast<uint32_t>(0));
+    // Sequence values
+    for(const auto& val : env->sequence()) {
+        file->Write(static_cast<int8_t>(val));
+    }
+    return util::Status();
+}
+
+util::Status SaveBasicFTI(File* file, const proto::FTInstrument& inst) {
+    file->Write(static_cast<uint8_t>(5));
+
+    for(size_t i=0; i<5; i++) {
+        const proto::Envelope* env =
+            (i==0) ? &inst.volume() :
+            (i==1) ? &inst.arpeggio() :
+            (i==2) ? &inst.pitch() :
+            (i==3) ? &inst.hipitch() :
+            (i==4) ? &inst.duty() : nullptr;
+        if (env == nullptr || env->kind() == proto::Envelope_Kind_UNKNOWN) {
+            // Not Present
+            file->Write(static_cast<uint8_t>(0));
+        } else {
+            // Present
+            file->Write(static_cast<uint8_t>(1));
+            auto status = SaveEnvelope(file, env);
+            if (!status.ok()) {
+                return status;
+            }
+        }
+    }
+    return util::Status();
+}
+
+util::Status SaveFTInstrument(File* file, proto::FTInstrument& inst) {
+    file->Write("FTI2.4", 6);
+    file->Write(static_cast<uint8_t>(inst.kind()));
+    file->Write(static_cast<uint32_t>(inst.name().size()));
+    file->Write(inst.name().data(), inst.name().size());
+
+    util::Status status;
+    switch(inst.kind()) {
+        case proto::FTInstrument_Kind_NES2A03:
+        case proto::FTInstrument_Kind_VRC6:
+            status = SaveBasicFTI(file, inst);
+            if (!status.ok()) return status;
+            break;
+        default:
+            return Error("Expansion not supported");
+    }
+    return util::Status();
+}
+
+StatusOr<proto::FTInstrument> LoadFTI(const std::string& filename) {
+    if (absl::EndsWith(filename, ".textpb")
+        || absl::EndsWith(filename, ".textproto")
+        || absl::EndsWith(filename, ".txt")) {
+        std::string buffer;
+        if (!File::GetContents(filename, &buffer)) {
+            return Error("Unable to read FTI file");
+        }
+        proto::FTInstrument inst;
+        if (!google::protobuf::TextFormat::ParseFromString(buffer, &inst)) {
+            return Error("Unable to parse FTI textproto");
+        }
+        return inst;
+    } else {
+        auto f = File::Open(filename, "rb");
+        if (!f) {
+            return Error("Unable to read FTI file");
+        }
+        return ParseFTI(f.get());
+    }
+}
+
+util::Status SaveFTI(const std::string& filename, proto::FTInstrument& inst) {
+    if (absl::EndsWith(filename, ".textpb")
+        || absl::EndsWith(filename, ".textproto")
+        || absl::EndsWith(filename, ".txt")) {
+        std::string buffer;
+        google::protobuf::TextFormat::PrintToString(inst, &buffer);
+        if (!File::SetContents(filename, buffer)) {
+            return Error("Unable to write FTI file");
+        }
+        return util::Status();
+    } else {
+        auto f = File::Open(filename, "wb");
+        if (!f) {
+            return Error("Unable to write FTI file");
+        }
+        return SaveFTInstrument(f.get(), inst);
+    }
 }
 
 }  // namespace protones

@@ -19,7 +19,7 @@ message Envelope {
 message FTInstrument {
     enum Kind {
         UNKNOWN = 0;
-        NONE = 1;
+        NES2A03 = 1;
         VRC6 = 2;
         VRC7 = 3;
         FDS = 4;

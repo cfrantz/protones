@@ -97,10 +97,12 @@ cc_library(
     hdrs = ["midi_setup.h"],
     deps = [
         ":base",
-        "//proto:fti",
-        "//external:imgui",
+        "//midi:fti",
         "//midi:midi",
         "//nes:nes-interface",
+        "//proto:fti",
+        "//external:imgui",
+        "//external:nfd",
     ],
 )
 

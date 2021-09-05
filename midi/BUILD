@@ -8,6 +8,7 @@ cc_library(
         "//util:file",
         "//util:status",
         "//proto:fti",
+        "@com_google_absl//absl/strings",
     ],
 )
 

@@ -8,6 +8,7 @@
 namespace protones {
 
 StatusOr<proto::FTInstrument> LoadFTI(const std::string& filename);
+util::Status SaveFTI(const std::string& filename, proto::FTInstrument& inst);
 
 }  // namespace protones
 #endif // PROTONES_MIDI_FTI_H

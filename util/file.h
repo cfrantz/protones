@@ -110,8 +110,8 @@ class File {
     bool Write(const std::string& buf, int64_t len);
     bool Write(const void* buf, int64_t len);
     template<typename T>
-    bool Write(const T* item) {
-        return Write(item, sizeof(T));
+    bool Write(const T& item) {
+        return Write(&item, sizeof(T));
     }
 
     void Close();
