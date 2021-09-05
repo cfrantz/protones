@@ -48,9 +48,7 @@ class Envelope {
 class InstrumentPlayer {
   public:
     InstrumentPlayer(proto::FTInstrument *inst)
-      : instrument_(inst),
-      note_(0),
-      velocity_(0)
+      : instrument_(inst)
     {
         if (instrument_ != nullptr) {
             volume_ = Envelope(&instrument_->volume(), 15);
@@ -61,6 +59,7 @@ class InstrumentPlayer {
     }
 
     void NoteOn(uint8_t note, uint8_t velocity);
+    void PitchBend(uint16_t);
     void Release();
     void Step();
     uint8_t volume();
@@ -70,14 +69,16 @@ class InstrumentPlayer {
     uint8_t note() { return note_; }
     bool released() { return released_; }
     bool done();
+    void set_bend(double bend) { bend_ = bend; }
 
     Envelope* envelope(proto::Envelope_Kind kind);
     proto::FTInstrument *instrument() { return instrument_; }
 
   private:
     proto::FTInstrument *instrument_;
-    uint8_t note_;
-    uint8_t velocity_;
+    uint8_t note_ = 0;
+    uint8_t velocity_ = 0;
+    double bend_ = 1.0;
     bool released_ = false;
     Envelope volume_ = Envelope(nullptr, 15);
     Envelope arpeggio_ = Envelope(nullptr, 0);
@@ -98,12 +99,14 @@ class Channel {
     void Step();
     void NoteOn(uint8_t note, uint8_t velocity);
     void NoteOff(uint8_t note);
+    void PitchBend(uint16_t bend);
     void set_instrument(const std::string& name);
     InstrumentPlayer* now_playing(proto::FTInstrument* i);
   private:
     uint16_t OscBaseAddress(proto::MidiChannel::Oscillator osciallator);
 
     NES* nes_; 
+    double bend_ = 1.0;
     proto::MidiChannel config_;
     proto::FTInstrument* instrument_;
     std::vector<InstrumentPlayer> player_;
@@ -138,7 +141,7 @@ class MidiConnector : public EmulatedDevice {
     proto::FTInstrument* instrument(const std::string& name);
 
     static void InitNotes(double a440);
-    static int notes_[128];
+    static double notes_[128];
   private:
     void InitEnables();
     NES* nes_; 

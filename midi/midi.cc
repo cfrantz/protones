@@ -7,7 +7,9 @@
 
 namespace protones {
 
-int MidiConnector::notes_[128];
+double MidiConnector::notes_[128];
+// Lowest frequency we can create on the NES
+constexpr double NoteA0 = 27.5;
 
 void MidiConnector::InitNotes(double a440) {
     double a0 = a440 / 16.0;
@@ -131,6 +133,10 @@ void Channel::ProcessMessage(const std::vector<uint8_t>& message) {
         case 0x80: // Note Off
             NoteOff(message[1] + config_.note_offset());
             break;
+        case 0xE0: // Pitch Bend
+            PitchBend(message[1] | message[2] << 7);
+            break;
+        case 0xC0: // Program Change
         default:
             printf("Unhandled midi message:");
             for(const auto& data : message) {
@@ -145,16 +151,26 @@ void Channel::NoteOn(uint8_t note, uint8_t velocity) {
     if (config_.drumkit().empty()) {
         player_.emplace_back(instrument_);
         player_.back().NoteOn(note, velocity);
+        player_.back().set_bend(bend_);
     } else {
         auto drum = config_.drumkit().find(note);
         if (drum != config_.drumkit().end()) {
             player_.emplace_back(nes_->midi()->instrument(drum->second.patch()));
             player_.back().NoteOn(drum->second.period(), velocity);
+            player_.back().set_bend(bend_);
         } else {
             fprintf(stderr, "Unknown drum patch for midi note %d\n", note);
         }
     }
     printf("player_ size = %d\n", (int)player_.size());
+}
+
+void Channel::PitchBend(uint16_t bend) {
+    double b = 2.0 * (double(bend - 8192) / 8192.0) / 12.0;
+    bend_ = std::pow(2.0, b);
+    for(auto & p : player_) {
+        p.set_bend(bend_);
+    }
 }
 
 void Channel::NoteOff(uint8_t note) {
@@ -429,9 +445,10 @@ uint8_t InstrumentPlayer::duty() {
 
 uint16_t InstrumentPlayer::timer() {
     int note = note_ + arpeggio_.value();
-    int freq = MidiConnector::notes_[note] + pitch_.value();
-    if (freq == 0) return 0;
-    int t = (NES::frequency / (16 * freq)) - 1;
+    double freq = MidiConnector::notes_[note] * bend_ + double(pitch_.value());
+    if (freq < NoteA0) return 0;
+    const double CPU = double(NES::frequency);
+    int t = (CPU / (16.0 * freq)) - 1.0;
     if (t > 2047) t = 0;
     return t;
 }
