@@ -54,54 +54,53 @@ class Zelda2(app.EmulatorHooks):
     def MenuBar(self):
         """Hook into the menubar and some menus."""
         if bimpy.begin_menu("Goto"):
-            if bimpy.menu_item("Palace 1"):
+            if bimpy.menu_item("Palace 1", ""):
                 self.z2goto(4, 0, 3, 4, 0, 52, 0)
-            elif bimpy.menu_item("Palace 2"):
+            elif bimpy.menu_item("Palace 2", ""):
                 self.z2goto(4, 0, 3, 4, 1, 53, 0xe)
-            elif bimpy.menu_item("Palace 3"):
+            elif bimpy.menu_item("Palace 3", ""):
                 self.z2goto(4, 0, 4, 5, 2, 54, 0)
-            elif bimpy.menu_item("Palace 4"):
+            elif bimpy.menu_item("Palace 4", ""):
                 self.z2goto(4, 1, 4, 8, 0, 52, 0xf)
-            elif bimpy.menu_item("Palace 5"):
+            elif bimpy.menu_item("Palace 5", ""):
                 self.z2goto(4, 2, 3, 8, 0, 52, 0x23)
-            elif bimpy.menu_item("Palace 6"):
+            elif bimpy.menu_item("Palace 6", ""):
                 self.z2goto(4, 2, 4, 8, 1, 53, 0x24)
-            elif bimpy.menu_item("Palace 7"):
+            elif bimpy.menu_item("Palace 7", ""):
                 self.z2goto(5, 2, 5, 9, 2, 54, 0)
-            elif bimpy.menu_item("Rauru"):
+            elif bimpy.menu_item("Rauru", ""):
                 self.z2goto(3, 0, 1, 0, 0xf8, 45, 2)
-            elif bimpy.menu_item("Ruto"):
+            elif bimpy.menu_item("Ruto", ""):
                 self.z2goto(3, 0, 1, 1, 0xf8, 47, 5)
-            elif bimpy.menu_item("Saria"):
+            elif bimpy.menu_item("Saria", ""):
                 self.z2goto(3, 0, 1, 2, 0xf8, 49, 8)
-            elif bimpy.menu_item("Mido"):
+            elif bimpy.menu_item("Mido", ""):
                 self.z2goto(3, 0, 1, 3, 0xf8, 51, 11)
-            elif bimpy.menu_item("Nabooru"):
+            elif bimpy.menu_item("Nabooru", ""):
                 self.z2goto(3, 2, 2, 4, 0xf8, 45, 14)
-            elif bimpy.menu_item("Darunia"):
+            elif bimpy.menu_item("Darunia", ""):
                 self.z2goto(3, 2, 2, 5, 0xf8, 47, 17)
-            elif bimpy.menu_item("New Kasuto"):
+            elif bimpy.menu_item("New Kasuto", ""):
                 self.z2goto(3, 2, 2, 6, 0xf8, 49, 20)
-            elif bimpy.menu_item("Old Kasuto"):
+            elif bimpy.menu_item("Old Kasuto", ""):
                 self.z2goto(3, 2, 2, 7, 0xf8, 51, 23)
-            elif bimpy.menu_item("T-Bird Fight"):
+            elif bimpy.menu_item("T-Bird Fight", ""):
                 self.z2goto(5, 2, 5, 9, 2, 54, 53)
-            elif bimpy.menu_item("Dark Link Fight"):
+            elif bimpy.menu_item("Dark Link Fight", ""):
                 self.z2goto(5, 2, 5, 9, 2, 54, 54)
             bimpy.end_menu()
         if bimpy.begin_menu("Cheats"):
-            if bimpy.menu_item("Cheats", selected=self.cheats.visible.value):
-                self.cheats.visible.value = not self.cheats.visible.value
-            if bimpy.menu_item("Disable Encounters", selected=self.disable_encounters.value):
-                self.disable_encounters.value = not self.disable_encounters.value
+            if bimpy.menu_item("Cheats", "", selected=self.cheats.visible):
+                pass
+            if bimpy.menu_item("Disable Encounters", "", selected=self.disable_encounters):
                 self.DisableEncounters(self.disable_encounters.value)
-            if bimpy.menu_item("Show Hitboxes", selected=self.hitbox_visible.value):
-                self.hitbox_visible.value = not self.hitbox_visible.value
-            if bimpy.menu_item("Memory Values", selected=self.memory.visible.value):
-                self.memory.visible.value = not self.memory.visible.value
-            if bimpy.menu_item("RNG", selected=self.rng.visible.value):
-                self.rng.visible.value = not self.rng.visible.value
-            if bimpy.menu_item("Exec Profile", selected=self.execution.visible.value):
+            if bimpy.menu_item("Show Hitboxes", "", selected=self.hitbox_visible):
+                pass
+            if bimpy.menu_item("Memory Values", "", selected=self.memory.visible):
+                pass
+            if bimpy.menu_item("RNG", "", selected=self.rng.visible):
+                pass
+            if bimpy.menu_item("Exec Profile", "", selected=self.execution.visible):
                 self.execution.Enable(not self.execution.visible.value)
             bimpy.end_menu()
 

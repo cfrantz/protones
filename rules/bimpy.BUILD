@@ -2,8 +2,12 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "bimpy",
+    defines = [
+        "IMGUI_DEFINE_MATH_OPERATORS",
+    ],
     srcs = [
-        "bimpy.cpp",
+        "sources/bimpy.cpp",
+        "sources/runtime_error.h",
     ],
     deps = [
         "@imgui_git//:imgui",

@@ -33,7 +33,7 @@ new_git_repository(
     name = "imgui_git",
     build_file = "//rules:imgui.BUILD",
     remote = "https://github.com/ocornut/imgui.git",
-    tag = "v1.60",
+    tag = "v1.74",
 )
 
 bind(
@@ -49,13 +49,13 @@ bind(
 ######################################################################
 # bimpy (python bindings for imgui)
 ######################################################################
-new_patched_http_archive(
+new_git_repository(
     name = "com_github_bimpy",
+    remote = "https://github.com/podgorskiy/bimpy.git",
     build_file = "//rules:bimpy.BUILD",
-    patch = "//rules:bimpy.patch",
-    sha256 = "f691eaf43ece6b5e7b85b0419c12753ad2512a860a5abe88f70a3ebdd3871b20",
-    strip_prefix = "bimpy-54fa78cec38b48770a486ac41404e08465c789e0",
-    urls = ["https://github.com/podgorskiy/bimpy/archive/54fa78cec38b48770a486ac41404e08465c789e0.zip"],
+    tag = "v0.1.0",
+    patches = ["//rules:bimpy.patch"],
+    patch_args = ["-p1"],
 )
 
 ######################################################################

@@ -92,7 +92,7 @@ class EnemyHitbox(object):
             if bimpy.is_item_active():
                 self.dragging = True
                 if bimpy.is_mouse_dragging():
-                    delta = bimpy.get_io().mouse_delta / scale
+                    delta = bimpy.getio().mouse_delta / scale
                     self.xpos += delta.x
                     self.ypos += delta.y
             else:
@@ -184,7 +184,7 @@ class LinkHitbox(object):
         if bimpy.is_item_active():
             self.dragging = True
             if bimpy.is_mouse_dragging():
-                delta = bimpy.get_io().mouse_delta / scale
+                delta = bimpy.getio().mouse_delta / scale
                 self.xpos += delta.x
                 self.ypos += delta.y
         else:

@@ -251,7 +251,7 @@ void ProtoNES::DrawPreferences() {
 }
 
 void ProtoNES::Draw() {
-    ImGui::SetNextWindowSize(ImVec2(500,300), ImGuiSetCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(500,300), ImGuiCond_FirstUseEver);
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Open", "Ctrl+O")) {
@@ -302,7 +302,8 @@ save_as:
             if (ImGui::MenuItem("Save State")) {
                 SaveSlot(save_state_slot_);
             }
-            ImGui::AlignFirstTextHeightToWidgets();
+            //ImGui::AlignFirstTextHeightToWidgets();
+            ImGui::AlignTextToFramePadding();
             ImGui::Text("Save Slot"); ImGui::SameLine();
             ImGui::PushItemWidth(64);
             ImGui::Combo("##saveslot", &save_state_slot_,
@@ -370,13 +371,13 @@ save_as:
     console_->Draw();
 
     ImGuiIO& io = ImGui::GetIO();
-    ImGui::SetNextWindowPos(ImVec2(0, 20.0f));
+    ImGui::SetNextWindowPos(ImVec2(0, 0.0f));
     ImVec2 imgsz(256.0f * scale_ * aspect_, 240.0f *scale_);
     ImGui::SetNextWindowSize(imgsz);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
-    ImGui::Begin("nesimg", nullptr, ImVec2(0, 0), 0.0f,
+    ImGui::Begin("nesimg", nullptr,
                  ImGuiWindowFlags_NoTitleBar |
                  ImGuiWindowFlags_NoResize |
                  ImGuiWindowFlags_NoMove |
