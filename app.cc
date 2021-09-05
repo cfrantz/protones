@@ -41,6 +41,7 @@
 
 DEFINE_bool(focus, false, "Whether joystick events require window focus");
 DECLARE_double(volume);
+DECLARE_string(midi);
 
 namespace protones {
 namespace py = pybind11;
@@ -319,7 +320,7 @@ save_as:
         if (ImGui::BeginMenu("Edit")) {
             ImGui::MenuItem("Debug Console", nullptr, &console_->visible());
             ImGui::MenuItem("Preferences", nullptr, &preferences_);
-            ImGui::MenuItem("Midi Setup", nullptr, &midi_setup_->visible());
+            ImGui::MenuItem("Midi Setup", nullptr, &midi_setup_->visible(), !FLAGS_midi.empty());
             ImGui::MenuItem("State History", nullptr, &history_enabled_);
             hook_.attr("EditMenu")();
             ImGui::EndMenu();
