@@ -4,6 +4,8 @@
 #include <vector>
 
 #include "imwidget/imwidget.h"
+#include "midi/midi.h"
+#include "proto/fti.pb.h"
 
 namespace protones {
 
@@ -19,6 +21,8 @@ class MidiSetup : public ImWindowBase {
       current_port_(0)
     {}
     bool Draw() override;
+    void DrawEnvelope(proto::Envelope* envelope, proto::Envelope_Kind kind, InstrumentPlayer *player);
+
   private:
     void GetPortNames();
 
@@ -27,6 +31,8 @@ class MidiSetup : public ImWindowBase {
     int ports_;
     int current_port_;
     std::vector<std::string> portnames_;
+    std::string current_channel_;
+    std::string current_instrument_;
     const char* names_[128];
 };
 

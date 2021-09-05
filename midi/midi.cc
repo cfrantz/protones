@@ -194,6 +194,17 @@ uint16_t Channel::OscBaseAddress(proto::MidiChannel::Oscillator oscillator) {
     }
 }
 
+void Channel::set_instrument(const std::string& name) {
+    instrument_ = nes_->midi()->instrument(name);
+}
+
+InstrumentPlayer* Channel::now_playing(proto::FTInstrument *i) {
+    for(auto& p : player_) {
+        if (p.instrument() == i) return &p;
+    }
+    return nullptr;
+}
+
 void Channel::Step() {
     int osc = 0;
     size_t nplayer = 0;
@@ -286,10 +297,12 @@ void Channel::Step() {
 int8_t Envelope::value() {
     if (envelope_ == nullptr
         || envelope_->sequence_size() == 0
+        || frame_ < 0
         || state_ == STATE_OFF) {
         return value_;
     }
-    return envelope_->sequence(frame_);
+    value_ = envelope_->sequence(frame_);
+    return value_;
 }
 
 void Envelope::Step() {
@@ -298,6 +311,7 @@ void Envelope::Step() {
             break;
 
         case STATE_ON:
+            frame_ += 1;
             if (envelope_ != nullptr) {
                 if (frame_ == envelope_->release()) {
                     // We've reached the release point, but aren't released
@@ -313,7 +327,6 @@ void Envelope::Step() {
                     break;
                 }
             }
-            frame_ += 1;
             break;
 
         case STATE_RELEASE:
@@ -323,13 +336,15 @@ void Envelope::Step() {
     if (envelope_ != nullptr
         && envelope_->kind() != proto::Envelope_Kind_UNKNOWN
         && frame_ >= envelope_->sequence_size()) {
-        Reset(STATE_OFF);
+        state_ = STATE_OFF;
     }
 }
 
 void Envelope::Reset(int state) {
     state_ = state;
-    frame_ = 0;
+    // We always `Step` before retrieving the `value`, so frame should
+    // be initialized to one less than the first value we want.
+    frame_ = -1;
     value_ = state == STATE_OFF ? 0 : default_;
 }
 
@@ -341,11 +356,25 @@ void Envelope::Release() {
     if (envelope_ != nullptr
         && envelope_->kind() != proto::Envelope_Kind_UNKNOWN) {
         if (envelope_->release() >= 0) {
-            frame_ = envelope_->release();
+            // We always `Step` before retrieving the `value`, so frame should
+            // be initialized to one less than the first value we want.
+            frame_ = envelope_->release() - 1;
         }
         state_ = STATE_RELEASE;
     } else {
         state_ = STATE_OFF;
+    }
+}
+
+Envelope* InstrumentPlayer::envelope(proto::Envelope_Kind kind) {
+    switch(kind) {
+        case proto::Envelope_Kind_VOLUME: return &volume_;
+        case proto::Envelope_Kind_ARPEGGIO: return &arpeggio_;
+        case proto::Envelope_Kind_PITCH: return &pitch_;
+        case proto::Envelope_Kind_HIPITCH: return nullptr;
+        case proto::Envelope_Kind_DUTY: return &duty_;
+        default:
+            return nullptr;
     }
 }
 
@@ -399,7 +428,8 @@ uint8_t InstrumentPlayer::duty() {
 }
 
 uint16_t InstrumentPlayer::timer() {
-    int freq = MidiConnector::notes_[note_] + pitch_.value();
+    int note = note_ + arpeggio_.value();
+    int freq = MidiConnector::notes_[note] + pitch_.value();
     if (freq == 0) return 0;
     int t = (NES::frequency / (16 * freq)) - 1;
     if (t > 2047) t = 0;

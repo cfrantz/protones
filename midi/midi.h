@@ -24,7 +24,7 @@ class Envelope {
     Envelope(const proto::Envelope* e, int8_t def)
       : envelope_(e),
       state_(STATE_OFF),
-      frame_(0),
+      frame_(-1),
       default_(def),
       value_(0)
       {}
@@ -36,6 +36,7 @@ class Envelope {
     void Step();
 
     bool done() { return state_ == STATE_OFF; }
+    int frame() { return frame_; }
   private:
     const proto::Envelope* envelope_;
     int state_;
@@ -69,6 +70,10 @@ class InstrumentPlayer {
     uint8_t note() { return note_; }
     bool released() { return released_; }
     bool done();
+
+    Envelope* envelope(proto::Envelope_Kind kind);
+    proto::FTInstrument *instrument() { return instrument_; }
+
   private:
     proto::FTInstrument *instrument_;
     uint8_t note_;
@@ -93,6 +98,8 @@ class Channel {
     void Step();
     void NoteOn(uint8_t note, uint8_t velocity);
     void NoteOff(uint8_t note);
+    void set_instrument(const std::string& name);
+    InstrumentPlayer* now_playing(proto::FTInstrument* i);
   private:
     uint16_t OscBaseAddress(proto::MidiChannel::Oscillator osciallator);
 
@@ -101,6 +108,7 @@ class Channel {
     proto::FTInstrument* instrument_;
     std::vector<InstrumentPlayer> player_;
     std::map<uint16_t, uint8_t> last_timer_hi_;
+    friend class MidiSetup;
 }; 
 
 
@@ -141,6 +149,7 @@ class MidiConnector : public EmulatedDevice {
     std::map<std::string, proto::FTInstrument> instrument_;
 
     static constexpr double TRT = std::pow(2.0, 1.0/12.0);
+    friend class MidiSetup;
 };
 
 }  // namespace protones
