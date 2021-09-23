@@ -98,10 +98,10 @@ void MidiConnector::LoadConfig(const std::string& filename) {
     }
 
     channel_.clear();
-    for(const auto& channel : config_.channel()) {
+    for(auto& channel : *config_.mutable_channel()) {
         channel_.emplace(channel.name(),
                 std::make_unique<Channel>(nes_,
-                                          channel,
+                                          &channel,
                                           instrument(channel.instrument())));
     }
 }
@@ -113,6 +113,10 @@ proto::FTInstrument* MidiConnector::instrument(const std::string& name) {
     } else {
         return nullptr;
     }
+}
+
+const std::string& MidiConnector::midi_program(int32_t program) {
+    return (*config_.mutable_midi_program())[program];
 }
 
 void Channel::ProcessMessage(const std::vector<uint8_t>& message) {
@@ -128,15 +132,24 @@ void Channel::ProcessMessage(const std::vector<uint8_t>& message) {
 
     switch(op) {
         case 0x90: // Note On
-            NoteOn(message[1] + config_.note_offset(), message[2]);
+            NoteOn(message[1] + chanconfig_->note_offset(), message[2]);
             break;
         case 0x80: // Note Off
-            NoteOff(message[1] + config_.note_offset());
+            NoteOff(message[1] + chanconfig_->note_offset());
             break;
         case 0xE0: // Pitch Bend
             PitchBend(message[1] | message[2] << 7);
             break;
         case 0xC0: // Program Change
+        {
+            // Midi messsage index program numbers zero-based, but all human
+            // readable docs/interfaces index program numbers one-based.
+            const auto& inst_name = nes_->midi()->midi_program(message[1]+1);
+            set_instrument(inst_name);
+            fprintf(stderr, "channel %d: program_change %d -> %s\n",
+                    message[0] & 0xF, message[1], inst_name.c_str());
+        }
+            break;
         default:
             printf("Unhandled midi message:");
             for(const auto& data : message) {
@@ -148,13 +161,13 @@ void Channel::ProcessMessage(const std::vector<uint8_t>& message) {
 }
 
 void Channel::NoteOn(uint8_t note, uint8_t velocity) {
-    if (config_.drumkit().empty()) {
+    if (chanconfig_->drumkit().empty()) {
         player_.emplace_back(instrument_);
         player_.back().NoteOn(note, velocity);
         player_.back().set_bend(bend_);
     } else {
-        auto drum = config_.drumkit().find(note);
-        if (drum != config_.drumkit().end()) {
+        auto drum = chanconfig_->drumkit().find(note);
+        if (drum != chanconfig_->drumkit().end()) {
             player_.emplace_back(nes_->midi()->instrument(drum->second.patch()));
             player_.back().NoteOn(drum->second.period(), velocity);
             player_.back().set_bend(bend_);
@@ -162,7 +175,6 @@ void Channel::NoteOn(uint8_t note, uint8_t velocity) {
             fprintf(stderr, "Unknown drum patch for midi note %d\n", note);
         }
     }
-    printf("player_ size = %d\n", (int)player_.size());
 }
 
 void Channel::PitchBend(uint16_t bend) {
@@ -174,9 +186,9 @@ void Channel::PitchBend(uint16_t bend) {
 }
 
 void Channel::NoteOff(uint8_t note) {
-    if (!config_.drumkit().empty()) {
-        auto drum = config_.drumkit().find(note);
-        if (drum != config_.drumkit().end()) {
+    if (!chanconfig_->drumkit().empty()) {
+        auto drum = chanconfig_->drumkit().find(note);
+        if (drum != chanconfig_->drumkit().end()) {
             note = drum->second.period();
         }
     }
@@ -186,7 +198,6 @@ void Channel::NoteOff(uint8_t note) {
             break;
         }
     }
-
 }
 
 uint16_t Channel::OscBaseAddress(proto::MidiChannel::Oscillator oscillator) {
@@ -203,6 +214,8 @@ uint16_t Channel::OscBaseAddress(proto::MidiChannel::Oscillator oscillator) {
             return 0x4008;
         case proto::MidiChannel_Oscillator_NOISE:
             return 0x400c;
+        case proto::MidiChannel_Oscillator_DMC:
+            return 0x4010;
         default:
             fprintf(stderr, "Unknown oscillator type %d\n",
                     static_cast<int>(oscillator));
@@ -211,6 +224,7 @@ uint16_t Channel::OscBaseAddress(proto::MidiChannel::Oscillator oscillator) {
 }
 
 void Channel::set_instrument(const std::string& name) {
+    chanconfig_->set_instrument(name);
     instrument_ = nes_->midi()->instrument(name);
 }
 
@@ -228,11 +242,11 @@ void Channel::Step() {
     for(auto& p : player_) {
         nplayer++;
         p.Step();
-        proto::MidiChannel::Oscillator oscillator = config_.oscillator(osc++);
-        if (nplayer < player_.size() && osc == config_.oscillator_size()) {
+        proto::MidiChannel::Oscillator oscillator = chanconfig_->oscillator(osc++);
+        if (nplayer < player_.size() && osc == chanconfig_->oscillator_size()) {
             // Pseudo-polyphony: If there are more players that oscillators,
             // skip until the last one.
-            osc = config_.oscillator_size() - 1;
+            osc = chanconfig_->oscillator_size() - 1;
             continue;
         }
 
@@ -276,8 +290,8 @@ void Channel::Step() {
     }
 
     // Silence any unprogrammed oscillator
-    for(; osc < config_.oscillator_size(); osc++) {
-        proto::MidiChannel::Oscillator oscillator = config_.oscillator(osc);
+    for(; osc < chanconfig_->oscillator_size(); osc++) {
+        proto::MidiChannel::Oscillator oscillator = chanconfig_->oscillator(osc);
         uint16_t base = OscBaseAddress(oscillator);
         switch(oscillator) {
             case proto::MidiChannel_Oscillator_MMC5_PULSE1:

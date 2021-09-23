@@ -36,3 +36,38 @@ cc_library(
         "@rtmidi_git//:rtmidi",
     ],
 )
+
+cc_binary(
+    name = "midi_convert",
+    srcs = ["midi_convert.cc"],
+    deps = [
+        "//proto:midi_convert",
+        "//external:gflags",
+        "@midifile_git//:midifile",
+    ],
+)
+
+cc_binary(
+    name = "proto_player",
+    srcs = ["proto_player.cc"],
+    deps = [
+        "//proto:midi_convert",
+        "//util:file",
+        "//external:gflags",
+        "@rtmidi_git//:rtmidi",
+    ],
+)
+
+cc_binary(
+    name = "proto_convert",
+    srcs = ["proto_convert.cc"],
+    deps = [
+        ":fti",
+        "//proto:fti",
+        "//proto:midi",
+        "//proto:midi_convert",
+        "//util:file",
+        "//external:gflags",
+        "@com_google_absl//absl/strings",
+    ],
+)

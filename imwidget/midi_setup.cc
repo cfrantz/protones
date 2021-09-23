@@ -173,6 +173,11 @@ bool MidiSetup::Draw() {
         current_channel_ = midi->config_.channel(0).name();
         current_instrument_ = midi->config_.channel(0).instrument();
     }
+    ImGui::SameLine();
+    if (ImGui::Button("MIDI Panic")) {
+        midi->MidiPanic();
+    }
+
     ImGui::PushItemWidth(400);
     if (ImGui::Combo("Midi Port", &current_port_, names_, ports_)) {
             port->closePort();

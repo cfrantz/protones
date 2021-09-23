@@ -15,7 +15,7 @@ message MidiChannel {
         PULSE2 = 2;
         TRIANGLE = 3;
         NOISE = 4;
-        DMC_NOT_YET = 5;
+        DMC = 5;  // Not yet!
         MMC5_PULSE1 = 6;
         MMC5_PULSE2 = 7;
     }
@@ -42,4 +42,6 @@ message MidiConfig {
     repeated MidiChannel channel = 2;
     // FamiTracker Instruments (instrument name to filename mapping).
     map<string, string> instruments = 3;
+    // Mapping of midi program numbers to instrument names.
+    map<int32, string> midi_program = 4;
 }

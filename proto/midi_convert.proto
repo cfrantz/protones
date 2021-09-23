@@ -1,0 +1,62 @@
+syntax = "proto3";
+package proto;
+// Protobufs for converting between MIDI and another representation.
+
+// Encodes Note events.
+message Note {
+    enum Kind {
+        NONE = 0;
+        ON = 1;
+        OFF = 2;
+    }
+    // The kind of the note event.
+    Kind kind = 1;
+    // MIDI Note number.
+    int32 note = 2;
+    // MIDI velocity.
+    int32 velocity = 3;
+}
+
+// Encodes other kinds of MIDI events.
+message OtherEvent {
+    oneof event {
+        // MIDI program change message.
+        int32 program_change = 1;
+    }
+}
+
+// Encodes events which happen within a Frame (ie: a single NES frame).
+message Frame {
+    int32 frame = 1;
+    Note note = 2;
+    repeated OtherEvent other = 3;
+}
+
+// Encodes all of the frame events within a single measure.
+message Measure {
+    repeated Frame frames = 1;
+}
+
+// Encodes all of the unique measures within a track.
+message Track {
+    // Track name.
+    string name = 1;
+    // Track number (ie: midi channel number).
+    int32 number = 2;
+    // Unique measures within this track.
+    repeated Measure measures = 3;
+    // The sequence of measures in this track.
+    repeated int32 sequence = 4;
+}
+
+message TimeSignature {
+    int32 numerator = 1;
+    int32 denominator = 2;
+}
+
+message Song {
+    string title = 1;
+    double bpm = 2;
+    TimeSignature time_signature = 3;
+    repeated Track tracks = 4;
+}

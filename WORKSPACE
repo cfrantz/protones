@@ -165,6 +165,17 @@ new_git_repository(
 )
 
 ######################################################################
+# midifile
+######################################################################
+new_git_repository(
+    name = "midifile_git",
+    build_file = "//rules:midifile.BUILD",
+    remote = "https://github.com/craigsapp/midifile.git",
+    commit = "de6aa0c8f82f9dff29b62dba013a65c9034d633d",
+    shallow_since = "1624599610 -0700",
+)
+
+######################################################################
 # compilers for windows
 ######################################################################
 

@@ -89,9 +89,9 @@ class InstrumentPlayer {
 
 class Channel {
   public:
-    Channel(NES* nes, const proto::MidiChannel& config, proto::FTInstrument* instrument)
+    Channel(NES* nes, proto::MidiChannel* config, proto::FTInstrument* instrument)
       : nes_(nes),
-      config_(config),
+      chanconfig_(config),
       instrument_(instrument)
     {}
     
@@ -102,12 +102,13 @@ class Channel {
     void PitchBend(uint16_t bend);
     void set_instrument(const std::string& name);
     InstrumentPlayer* now_playing(proto::FTInstrument* i);
+    void MidiPanic() { player_.clear(); }
   private:
     uint16_t OscBaseAddress(proto::MidiChannel::Oscillator osciallator);
 
     NES* nes_; 
     double bend_ = 1.0;
-    proto::MidiChannel config_;
+    proto::MidiChannel* chanconfig_;
     proto::FTInstrument* instrument_;
     std::vector<InstrumentPlayer> player_;
     std::map<uint16_t, uint8_t> last_timer_hi_;
@@ -137,8 +138,12 @@ class MidiConnector : public EmulatedDevice {
     void ProcessMessages();
     void ProcessMessage(const std::vector<uint8_t>& message);
     void LoadConfig(const std::string& filename);
+    void MidiPanic() {
+        for(auto& c : channel_) { c.second->MidiPanic(); }
+    }
 
     proto::FTInstrument* instrument(const std::string& name);
+    const std::string& midi_program(int32_t program);
 
     static void InitNotes(double a440);
     static double notes_[128];
