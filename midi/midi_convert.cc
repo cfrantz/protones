@@ -134,6 +134,7 @@ void ConvertTrack(const smf::MidiFile& midi, proto::Song* song, int tnum) {
     OptimizeTrack(track);
 }
 
+// Convert a midi file to proto-representation.
 proto::Song ConvertFile(const std::string& filename) {
     smf::MidiFile midi(filename);
 

@@ -16,6 +16,19 @@ DEFINE_string(config, "", "MIDI configuration textproto file");
 
 namespace converter {
 
+// asm-level "measure" opcodes.
+enum CFplayer: uint8_t {
+    // Delay events: 0x80 - 0xFF
+    END = 0x00,
+    // Volume events: 0x01 - 0x10 (set vol to value & 0x0F).
+    NOTE_OFF = 0x11,
+    // Undefined: 0x12 - 0x1F
+    PROGRAM_CHANGE = 0x20,
+    // Note On events: 0x21 - 0x77 (midi note A0 through B7)
+    // Undefined: 0x78 - 0x7F.
+};
+
+// Prints a string using only valid symbol characters ([0-9A-Fa-F_]).
 std::string Symbol(const std::string& str) {
     std::string sym;
     for(char ch : str) {
@@ -31,13 +44,118 @@ std::string Symbol(const std::string& str) {
     return sym;
 }
 
+// Remember which instruments get used by converted songs.
+// Map midi program (instrument) numbers to a local (asm) instrument number.
+class InstrumentManager {
+  public:
+    void LoadConfig(proto::MidiConfig* config) {
+        config_ = config;
+        instrument_.clear();
+        for(const auto& inst : config_->instruments()) {
+            auto fti = protones::LoadFTI(inst.second);
+            if (fti.ok()) {
+                instrument_.emplace(inst.first, fti.ValueOrDie());
+            } else {
+                fprintf(stderr, "Error loading '%s': %s\n",
+                        inst.first.c_str(),
+                        fti.status().ToString().c_str());
+            }
+        }
+    }
+    
+    int32_t UseInstrument(int32_t program) {
+        // Midi messages zero-index program numbers, but all user
+        // docs/interfaces one-index them.
+        program += 1;
+        std::string instname = (*config_->mutable_midi_program())[program];
+        if (instname.empty()) {
+            fprintf(stderr, "Undefined midi program number %d\n", program);
+            return -1;
+        }
+        size_t i;
+        for(i=0; i < used_.size(); ++i) {
+            if (used_[i] == instname)
+                return int32_t(i);
+        }
+        used_.push_back(instname);
+        return int32_t(i);
+    }
+
+    std::string EnvName(const std::string& name, proto::Envelope_Kind kind) {
+        const char *type;
+        switch(kind) {
+            case proto::Envelope_Kind_VOLUME: type = "volume"; break;
+            case proto::Envelope_Kind_ARPEGGIO: type = "arpeggio"; break;
+            case proto::Envelope_Kind_PITCH: type = "pitch"; break;
+            case proto::Envelope_Kind_HIPITCH: type = "hipitch"; break;
+            case proto::Envelope_Kind_DUTY: type = "duty"; break;
+            default:
+                fprintf(stderr, "Don't know how to deal with envelope kind %d\n", kind);
+                type = "unknown";
+        }
+        return Symbol(absl::StrCat("env_", name, "_", type));
+    }
+
+    bool EnvEmpty(const proto::Envelope* env) {
+        return env->sequence_size() == 0;
+    }
+
+    void RenderEnvelope(const std::string& name, const proto::Envelope* env) {
+        if (EnvEmpty(env))
+            return;
+
+        printf("%s:\n", EnvName(name, env->kind()).c_str());
+        printf("    .BYT $%02x,$%02x,$%02x",
+                env->sequence_size() & 0xFF,
+                env->loop() & 0xFF,
+                env->release() & 0xFF);
+        for(const auto& val : env->sequence()) {
+            printf(",$%02x", val & 0xFF);
+        }
+        printf("\n");
+    }
+
+    void Render() {
+        for (const auto& name : used_) {
+            const auto& instrument = instrument_[name];
+            RenderEnvelope(name, &instrument.volume());
+            RenderEnvelope(name, &instrument.arpeggio());
+            RenderEnvelope(name, &instrument.pitch());
+            RenderEnvelope(name, &instrument.duty());
+        }
+        printf("instruments_table:\n");
+        for (const auto& name : used_) {
+            const auto& instrument = instrument_[name];
+            const auto& v = &instrument.volume();
+            const auto& a = &instrument.arpeggio();
+            const auto& p = &instrument.pitch();
+            const auto& d = &instrument.duty();
+            printf("    .WORD %s,%s,%s,%s\n",
+                    EnvEmpty(v) ? "0" : EnvName(name, v->kind()).c_str(),
+                    EnvEmpty(a) ? "0" : EnvName(name, a->kind()).c_str(),
+                    EnvEmpty(p) ? "0" : EnvName(name, p->kind()).c_str(),
+                    EnvEmpty(d) ? "0" : EnvName(name, d->kind()).c_str());
+        }
+
+    }
+
+  private:
+    proto::MidiConfig* config_;
+    std::map<std::string, proto::FTInstrument> instrument_;
+    // List of insrtuments used.
+    std::vector<std::string> used_;
+};
+
+// Convert a Track to it's assembly level representation.
 class TrackPlayer {
   public:
-    TrackPlayer(const proto::Track* track, int measure_frames)
+    TrackPlayer(const proto::Track* track, InstrumentManager* manager, int measure_frames)
       : track_(track),
+        manager_(manager),
         measure_frames_(measure_frames)
       {}
 
+    // Add a delay opcode to the asm representation.
     void RenderDelay(std::vector<uint8_t>* m, int delay) {
         while(delay) {
             int d = std::min(delay, 128);
@@ -46,6 +164,33 @@ class TrackPlayer {
         }
     }
 
+    // Add non-note opcodes to the asm-representation.
+    // This includes:
+    // - Program Change
+    void RenderOther(const proto::Frame* frame, std::vector<uint8_t> *m) {
+        for (const auto& other : frame->other()) {
+            switch(other.event_case()) {
+                case proto::OtherEvent::EventCase::EVENT_NOT_SET:
+                    break;
+                case proto::OtherEvent::EventCase::kProgramChange:
+                {
+                    int32_t p = manager_->UseInstrument(other.program_change());
+                    if (p >= 0) {
+                        m->push_back(CFplayer::PROGRAM_CHANGE);
+                        // pre-multiply the instrument number by 8 so the
+                        // asm player doesn't have to.
+                        m->push_back(uint8_t(p << 3));
+                    }
+                }
+                    break;
+                default:
+                    fprintf(stderr, "Unknown `other` event %s\n",
+                            other.DebugString().c_str());
+            }
+        }
+    }
+
+    // Convert a measure into asm-representation.
     void RenderMeasures() {
         uint8_t last_volume = 0;
         for(const auto& measure : track_->measures()) {
@@ -54,6 +199,7 @@ class TrackPlayer {
             int last_frame = 0;
 
             for(const auto& frame : measure.frames()) {
+                RenderOther(&frame, &m);
                 const auto& note = frame.note();
                 if (note.kind() == proto::Note_Kind_NONE) continue;
 
@@ -68,14 +214,14 @@ class TrackPlayer {
                     }
                     m.push_back(note.note() + note_offset_);
                 } else if (note.kind() == proto::Note_Kind_OFF) {
-                    m.push_back(0x17);
+                    m.push_back(CFplayer::NOTE_OFF);
                 } else {
                     //error
                 }
             }
 
             RenderDelay(&m, measure_frames_ - last_frame);
-            m.push_back(0);
+            m.push_back(CFplayer::END);
         }
     }
 
@@ -90,6 +236,7 @@ class TrackPlayer {
         return Symbol(absl::StrCat(songname, "_", track_->name(), "_data"));
     }
 
+    // Print the asm-representation of a rendered track.
     void ToText(const std::string& songname) {
         size_t mn = 0;
         std::string name = DataName(songname);
@@ -128,6 +275,7 @@ class TrackPlayer {
         }
     }
 
+    // Render a track to assembly.
     void Render(const std::string& songname) {
         RenderMeasures();
         ToText(songname);
@@ -137,6 +285,7 @@ class TrackPlayer {
 
   private:
     const proto::Track *track_;
+    InstrumentManager* manager_;
     int measure_frames_;
     int seqnum_ = 0;
     int frame_ = 0;
@@ -144,11 +293,13 @@ class TrackPlayer {
     std::vector<std::vector<uint8_t>> measures_;
 };
 
+// Renders an entire song to the asm-representation.
 class SongPlayer {
   public:
     SongPlayer()
       {}
 
+    // Reads a textpb-representation of the song.
     bool Load(const std::string& filename) {
         std::string buffer;
         if (!File::GetContents(filename, &buffer)) {
@@ -165,11 +316,16 @@ class SongPlayer {
         }
         player_.clear();
         for(const auto& track : song_.tracks()) {
-            player_.emplace(track.number(), TrackPlayer(&track, MeasureFrames()));
+            player_.emplace(track.number(),
+                            TrackPlayer(&track,
+                                        &manager_,
+                                        MeasureFrames()));
         }
         return true;
     }
 
+    // Read the midi config file which contains the channel and instrument
+    // mappings.
     void LoadConfig(const std::string& filename) {
         std::string data;
         if (!File::GetContents(filename, &data)) {
@@ -184,19 +340,10 @@ class SongPlayer {
         }
 
         config_ = config;
-        instrument_.clear();
-        for(const auto& inst : config_.instruments()) {
-            auto fti = protones::LoadFTI(inst.second);
-            if (fti.ok()) {
-                instrument_.emplace(inst.first, fti.ValueOrDie());
-            } else {
-                fprintf(stderr, "Error loading '%s': %s\n",
-                        inst.first.c_str(),
-                        fti.status().ToString().c_str());
-            }
-        }
+        manager_.LoadConfig(&config_);
     }
 
+    // Compute the number of frames in a measure.
     int MeasureFrames() {
         double bps = song_.bpm() / 60.0;
         double beat = 1.0 / bps;
@@ -205,6 +352,8 @@ class SongPlayer {
         return frames;
     }
 
+    // Print the song tracks in "naive" ordering, which is the smae order 
+    // they appear in the proto file.
     void NaiveOrder(const std::string& title) {
         printf("    .BYT %d, 0\n", song_.tracks_size());
         for(auto& pair : player_) {
@@ -212,6 +361,9 @@ class SongPlayer {
         }
     }
 
+    // Print the song tracks in "config" ordering, which is the order of the
+    // channels defined in the config (which should match the ordering of
+    // the APU channels on the NES).
     void ConfigOrder(const std::string& title) {
         printf("    .BYT %d, 0\n", config_.channel_size());
         for(const auto& channel : config_.channel()) {
@@ -230,6 +382,7 @@ class SongPlayer {
         }
     }
 
+    // Render the song to asm-representation.
     void Render() {
         std::string title = Symbol(song_.title());
         printf("%s:\n", title.c_str());
@@ -243,10 +396,15 @@ class SongPlayer {
         }
     }
 
+    // Render the known instruments to asm-representation.
+    void RenderInstruments() {
+        manager_.Render();
+    }
+
   private:
     proto::Song song_;
     proto::MidiConfig config_;
-    std::map<std::string, proto::FTInstrument> instrument_;
+    InstrumentManager manager_;
     std::map<int32_t, TrackPlayer> player_;
 };
 
@@ -269,9 +427,14 @@ int main(int argc, char *argv[]) {
     if (!FLAGS_config.empty()) {
         sp.LoadConfig(FLAGS_config);
     }
-    if (argc > 1) {
-        sp.Load(argv[1]);
-        sp.Render();
+    if (argc >= 1) {
+        for(int i=1; i<argc; ++i) {
+            sp.Load(argv[i]);
+            sp.Render();
+        }
+        printf("\n\n");
+        sp.RenderInstruments();
     }
+
     return 0;
 }
