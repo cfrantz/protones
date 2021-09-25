@@ -104,11 +104,25 @@ class InstrumentManager {
         if (EnvEmpty(env))
             return;
 
+        // The layout of the envelope data is:
+        // LABEL:
+        //     .BYT <length>, <loop-index>, <release-index>, <data ...>
+        // Because the data is offset 3-bytes from the label, the length
+        // and loop/release indices are offset by 3 byte.
+
+        uint8_t size = env->sequence_size() + 3;
+        // If no loop point, then the loop point is the last element in
+        // the sequence.
+        int32_t loop = env->loop();
+        if (loop < 0) loop = env->sequence_size() - 1;
+        loop += 3;
+        // If no release point, then relase is 0, which is detected as an
+        // invalid index in the asm player.
+        int32_t release = env->release();
+        release = (release < 0) ? 0 : release + 3;
+
         printf("%s:\n", EnvName(name, env->kind()).c_str());
-        printf("    .BYT $%02x,$%02x,$%02x",
-                env->sequence_size() & 0xFF,
-                env->loop() & 0xFF,
-                env->release() & 0xFF);
+        printf("    .BYT $%02x,$%02x,$%02x", size, loop, release);
         for(const auto& val : env->sequence()) {
             printf(",$%02x", val & 0xFF);
         }
@@ -123,7 +137,8 @@ class InstrumentManager {
             RenderEnvelope(name, &instrument.pitch());
             RenderEnvelope(name, &instrument.duty());
         }
-        printf("instruments_table:\n");
+        printf(".export _instruments_table\n");
+        printf("_instruments_table:\n");
         for (const auto& name : used_) {
             const auto& instrument = instrument_[name];
             const auto& v = &instrument.volume();
@@ -385,7 +400,8 @@ class SongPlayer {
     // Render the song to asm-representation.
     void Render() {
         std::string title = Symbol(song_.title());
-        printf("%s:\n", title.c_str());
+        printf(".export _%s\n", title.c_str());
+        printf("_%s:\n", title.c_str());
         if (config_.channel().empty()) {
             NaiveOrder(title);
         } else {
