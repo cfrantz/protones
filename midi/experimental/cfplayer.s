@@ -132,8 +132,10 @@ init_thi_prev:
 ;==============================================================================
 _music_nmi_update:
 .proc _cfplayer_update_frame
+    sta $4100
     jsr play_music_frame
     jsr set_apu_regs
+    sta $4101
     rts
 .endproc
 
@@ -254,35 +256,6 @@ note_event:
 .endproc
     
 ;==============================================================================
-; Play a musical note.
-; Note in A
-; Channel in X
-; Destroys A, Y.
-; TODO: need to handle noise and DMC channels.
-;==============================================================================
-.proc play_note
-    tay
-timer_low:
-    lda     note_table_lsb,y        ; low byte of timer
-    sta     apu_shadow_tlo,x
-timer_high:
-    lda     apu_shadow_thi,x        ; check if we should rewrite timer_hi
-    and     #$F8                    ; clear length-counter bits
-    cmp     note_table_msb,y        ; same as high byte of timer?
-    beq     ctrl_reg                ; yes: skip timer_hi
-    lda     note_table_msb,y        ; high byte of timer
-    sta     apu_shadow_thi,x
-ctrl_reg:    
-    lda     channel_volume,x
-    ora     #$30
-    sta     apu_shadow_ctrl,x
-sweep_reg:
-    lda     #0
-    sta     apu_shadow_sweep,x
-    rts
-.endproc    
-
-;==============================================================================
 ; Process an instrument envelope
 ; Envelope number in A (0-3)
 ; Channel in X
@@ -378,10 +351,6 @@ volume_envelope:
     tay
     beq     volume_value            ; Invalid index -> volume 0.
     lda     (ptr2),y                ; get volume value
-    asl                             ; todo: premultiply vol env in converter
-    asl
-    asl
-    asl
 volume_value:
     ora     channel_volume,x
     tay
@@ -526,12 +495,9 @@ mmc5_skip_thi:
     
 
 ; Note tables
-; The first 33 bytes of the note tables are unused.
-; Note 33 (0x21) is MIDI note A0.
-note_table_lsb:
-        .byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00 ; Not Used
-        .byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00 ; Not Used
-        .byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $f1, $7f, $13 ; Octave 0
+note_table_lsb = _note_table_lsb - $21
+_note_table_lsb:
+        .byte                                              $f1, $7f, $13 ; Octave 0
         .byte $ad, $4d, $f3, $9d, $4c, $00, $b8, $74, $34, $f8, $bf, $89 ; Octave 1
         .byte $56, $26, $f9, $ce, $a6, $80, $5c, $3a, $1a, $fb, $df, $c4 ; Octave 2
         .byte $ab, $93, $7c, $67, $52, $3f, $2d, $1c, $0c, $fd, $ef, $e1 ; Octave 3
@@ -540,10 +506,9 @@ note_table_lsb:
         .byte $34, $31, $2f, $2c, $29, $27, $25, $23, $21, $1f, $1d, $1b ; Octave 6
         .byte $1a, $18, $17, $15, $14, $13, $12, $11, $10, $0f, $0e, $0d ; Octave 7
 
-note_table_msb:
-        .byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00 ; Not Used
-        .byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00 ; Not Used
-        .byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $07, $07, $07 ; Octave 0
+note_table_msb = _note_table_msb - $21
+_note_table_msb:
+        .byte                                              $07, $07, $07 ; Octave 0
         .byte $06, $06, $05, $05, $05, $05, $04, $04, $04, $03, $03, $03 ; Octave 1
         .byte $03, $03, $02, $02, $02, $02, $02, $02, $02, $01, $01, $01 ; Octave 2
         .byte $01, $01, $01, $01, $01, $01, $01, $01, $01, $00, $00, $00 ; Octave 3

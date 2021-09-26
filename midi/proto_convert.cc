@@ -182,7 +182,12 @@ class InstrumentManager {
 
         printf("%s:\n", EnvName(name, env->kind()).c_str());
         printf("    .BYT $%02x,$%02x,$%02x", size, loop, release);
-        for(const auto& val : env->sequence()) {
+        for(int32_t val : env->sequence()) {
+            if (env->kind() == proto::Envelope_Kind_VOLUME) {
+                // Adjust the volume to the upper nybble so we don't have
+                // to do it in the player.
+                val <<= 4;
+            }
             printf(",$%02x", val & 0xFF);
         }
         printf("\n");
