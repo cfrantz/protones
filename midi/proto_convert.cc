@@ -72,6 +72,10 @@ class InstrumentManager {
             fprintf(stderr, "Undefined midi program number %d\n", program);
             return -1;
         }
+        return UseInstrumentByName(instname);
+    }
+
+    int32_t UseInstrumentByName(const std::string& instname) {
         size_t i;
         for(i=0; i < used_.size(); ++i) {
             if (used_[i] == instname)
@@ -79,6 +83,61 @@ class InstrumentManager {
         }
         used_.push_back(instname);
         return int32_t(i);
+    }
+
+    bool IsDrumChannel(int32_t chan) {
+        // In midi files, channel numbers are zero based, but in all user
+        // docs/interfaces, they're one-based.
+        chan += 1;
+        for(const auto& c : config_->channel()) {
+            if (c.channel() == chan) {
+                if (c.drumkit_size() > 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    const proto::MidiChannel* DrumChannel(int32_t chan) {
+        // In midi files, channel numbers are zero based, but in all user
+        // docs/interfaces, they're one-based.
+        chan += 1;
+        for(const auto& c : config_->channel()) {
+            if (c.channel() == chan) {
+                if (c.drumkit_size() > 0) {
+                    return &c;
+                } else {
+                    fprintf(stderr, "Found drum channel, but no drumkit!\n");
+                }
+            }
+        }
+        return nullptr;
+    }
+
+    int32_t UseDrum(size_t chan, uint8_t midi_note) {
+        // Already know the mapping for this drum sound?
+        auto note = drum_notes_.find(midi_note);
+        if (note != drum_notes_.end()) {
+            return note->second;
+        }
+
+        const proto::MidiChannel* c = DrumChannel(chan);
+        auto drum = c->drumkit().find(midi_note);
+        if (drum == c->drumkit().end()) {
+            fprintf(stderr, "No drum sound defined for midi note %d\n", midi_note);
+            return -1;
+        }
+
+        // Remap MIDI drum note numbers to consecutive integers starting at
+        // 0x21.  This lets us build a compact table describing how which
+        // patch (instrument/envelope) and period should be used with the
+        // noise channel.
+        drum_patch_.push_back(UseInstrumentByName(drum->second.patch()));
+        drum_period_.push_back(drum->second.period());
+        int32_t n = drum_notes_.size() + 0x21;
+        drum_notes_[midi_note] = n;
+        return n;
     }
 
     std::string EnvName(const std::string& name, proto::Envelope_Kind kind) {
@@ -137,7 +196,7 @@ class InstrumentManager {
             RenderEnvelope(name, &instrument.pitch());
             RenderEnvelope(name, &instrument.duty());
         }
-        printf(".export _instruments_table\n");
+        printf("\n.export _instruments_table\n");
         printf("_instruments_table:\n");
         for (const auto& name : used_) {
             const auto& instrument = instrument_[name];
@@ -152,6 +211,17 @@ class InstrumentManager {
                     EnvEmpty(d) ? "0" : EnvName(name, d->kind()).c_str());
         }
 
+        printf("\n.export _drum_period\n");
+        printf("_drum_period:\n");
+        for(const auto& period : drum_period_) {
+            printf("    .BYTE $%02x\n", period);
+        }
+        printf("\n.export _drum_patch\n");
+        printf("_drum_patch:\n");
+        for(const auto& patch : drum_patch_) {
+            printf("    .BYTE $%02x\n", patch << 3);
+        }
+
     }
 
   private:
@@ -159,6 +229,10 @@ class InstrumentManager {
     std::map<std::string, proto::FTInstrument> instrument_;
     // List of insrtuments used.
     std::vector<std::string> used_;
+
+    std::map<uint8_t, uint8_t> drum_notes_;
+    std::vector<uint8_t> drum_period_;
+    std::vector<uint8_t> drum_patch_;
 };
 
 // Convert a Track to it's assembly level representation.
@@ -168,7 +242,9 @@ class TrackPlayer {
       : track_(track),
         manager_(manager),
         measure_frames_(measure_frames)
-      {}
+    {
+        drum_channel_ = manager_->IsDrumChannel(track_->number());
+    }
 
     // Add a delay opcode to the asm representation.
     void RenderDelay(std::vector<uint8_t>* m, int delay) {
@@ -227,7 +303,11 @@ class TrackPlayer {
                         m.push_back(volume ? volume : 0x10);
                         last_volume = volume;
                     }
-                    m.push_back(note.note() + note_offset_);
+                    if (drum_channel_) {
+                        m.push_back(manager_->UseDrum(track_->number(), note.note()));
+                    } else {
+                        m.push_back(note.note() + note_offset_);
+                    }
                 } else if (note.kind() == proto::Note_Kind_OFF) {
                     m.push_back(CFplayer::NOTE_OFF);
                 } else {
@@ -306,6 +386,7 @@ class TrackPlayer {
     int frame_ = 0;
     int note_offset_ = 0;
     std::vector<std::vector<uint8_t>> measures_;
+    bool drum_channel_;
 };
 
 // Renders an entire song to the asm-representation.

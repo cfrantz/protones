@@ -23,6 +23,13 @@
 ; Imported symbols
 ;==============================================================================
 .import _instruments_table
+.import _drum_period
+.import _drum_patch
+
+; The drum note numbers get remapped starting at note $21.  Subtract $21
+; so we load from the start of each table.
+drum_period = _drum_period - $21
+drum_patch = _drum_patch - $21
 
 ; Number of channels:
 ; NES:
@@ -122,7 +129,6 @@ init_thi_prev:
 .endproc
 ;==============================================================================
 ; Update the sound engine for this frame
-; 
 ;==============================================================================
 _music_nmi_update:
 .proc _cfplayer_update_frame
@@ -350,6 +356,11 @@ done:
 ; Channel in X
 ;==============================================================================
 .proc process_envelopes
+    cpx     #3                      ; Drum channel?
+    bne     volume
+    ldy     channel_note,x
+    lda     drum_patch,y
+    sta     channel_instrument,x
 volume:
     lda     #ENV_VOLUME
     jsr     load_envelope_ptr       ; load the pointer
@@ -388,8 +399,6 @@ volume_done:
 duty:
     cpx     #2                      ; no duty for triangle
     beq     arpeggio
-    cpx     #3                      ; no duty for noise
-    beq     arpeggio
     lda     #ENV_DUTY
     jsr     load_envelope_ptr       ; load the pointer
     beq     duty_value              ; if null, no processing
@@ -423,6 +432,12 @@ arpeggio_value:
     clc
     adc     channel_note,x          ; arp value + note_value
     tay
+    cpx     #3                      ; drum channel?
+    bne     arpeggio_standard
+    lda     drum_period,y
+    sta     apu_shadow_tlo,x
+    jmp     pitch
+arpeggio_standard:
     lda     note_table_lsb,y
     sta     apu_shadow_tlo,x
     lda     note_table_msb,y
