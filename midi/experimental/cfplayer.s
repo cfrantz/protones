@@ -109,11 +109,9 @@ channel_owner:          .res NUM_CHANNELS   ; whether music or SFX own the chan
 _sfx_delay:             .res NUM_SFX
 _sfx_now_playing:       .res NUM_SFX*2
 
-apu_shadow_regs:
-apu_shadow_ctrl:        .res NUM_CHANNELS
-apu_shadow_sweep:       .res NUM_CHANNELS
-apu_shadow_tlo:         .res NUM_CHANNELS
-apu_shadow_thi:         .res NUM_CHANNELS
+apu_shadow_ctrl:        .res 1
+apu_shadow_tlo:         .res 1
+apu_shadow_thi:         .res 1
 _bss_length = * - _bss_start
 apu_thi_prev:           .res NUM_CHANNELS
 
@@ -155,8 +153,7 @@ _music_nmi_update:
 .proc _cfplayer_update_frame
     sta $4100
     jsr play_sfx_frame
-    ;jsr play_music_frame
-    jsr set_apu_regs
+    jsr play_music_frame
     sta $4101
     rts
 .endproc
@@ -282,7 +279,7 @@ note_event:
 
 ;==============================================================================
 ; Process an instrument envelope
-; Envelope number in A (0-3)
+; Envelope number * 2 in A (0,2,4,6)
 ; Channel in X
 ;==============================================================================
 .proc load_envelope_ptr
@@ -309,8 +306,7 @@ done:
 ;==============================================================================
 .proc process_envelope_state
     cmp     #2                      ; First valid env index is 3.
-                                    ; We permit 2 because we start at index "-1"
-    bcs     check_state
+    bcs     check_state             ; We permit 2 because we start at index "-1"
     lda     #0
     rts
 check_state:
@@ -350,7 +346,7 @@ done:
 .endproc
 
 ;==============================================================================
-; Process envelopes and store music data to apu_shadow registers
+; Process envelopes and store music data to apu shadow registers
 ; Channel in X
 ;==============================================================================
 .proc process_envelopes
@@ -375,13 +371,11 @@ volume_envelope:
     sta     channel_env_vol,x
     tay
     beq     volume_value            ; Invalid index -> volume 0.
-    lda     (ptr2),y                ; get volume value
+    lda     (ptr2),y                ; get volume value from envelope
 volume_value:
-    ldy     channel_owner,x         ; does music own the channel?
-    bne     volume_done
-    ora     channel_volume,x
+    ora     channel_volume,x        ; multiply env vol by chan vol
     tay
-    lda     volume_table,y          ; multiply env vol by chan vol
+    lda     volume_table,y          ; multiply using lookup table
     cpx     #2                      ; triangle channel
     bne     volume_store
     tay                             ; save volume value
@@ -390,9 +384,7 @@ volume_value:
     beq     volume_store
     lda     #$FF                    ; triangle "on" volume value
 volume_store:
-    sta     apu_shadow_ctrl,x
-    lda     #0                      ; clear the sweep register
-    sta     apu_shadow_sweep,x
+    sta     apu_shadow_ctrl
 volume_done:
 
 duty:
@@ -410,12 +402,10 @@ duty_index:
     tay
     lda     (ptr2),y                ; get duty envelope value
 duty_value:
-    ldy     channel_owner,x         ; does music own the channel?
-    bne     duty_done
     tay
     lda     duty_table,y            ; transform to apu regs pattern
-    ora     apu_shadow_ctrl,x
-    sta     apu_shadow_ctrl,x
+    ora     apu_shadow_ctrl
+    sta     apu_shadow_ctrl
 duty_done:
 
 arpeggio:
@@ -431,21 +421,19 @@ arpeggio_index:
     tay
     lda     (ptr2),y                ; get arp envelope value
 arpeggio_value:
-    ldy     channel_owner,x         ; does music own the channel?
-    bne     arpeggio_done
     clc
     adc     channel_note,x          ; arp value + note_value
     tay
     cpx     #3                      ; drum channel?
     bne     arpeggio_standard
     lda     drum_period,y
-    sta     apu_shadow_tlo,x
+    sta     apu_shadow_tlo
     jmp     arpeggio_done
 arpeggio_standard:
     lda     note_table_lsb,y
-    sta     apu_shadow_tlo,x
+    sta     apu_shadow_tlo
     lda     note_table_msb,y
-    sta     apu_shadow_thi,x
+    sta     apu_shadow_thi
 arpeggio_done:
 
 pitch:
@@ -458,17 +446,15 @@ pitch_envelope:
     sta     channel_env_pitch,x
     beq     pitch_done              ; invalid pitch index?
 pitch_index:
-    ldy     channel_owner,x         ; does music own the channel?
-    bne     pitch_done
     tay
     lda     (ptr2),y                ; get pitch envelope value
 pitch_value:
     clc
-    adc     apu_shadow_tlo,x
-    sta     apu_shadow_tlo,x
+    adc     apu_shadow_tlo
+    sta     apu_shadow_tlo
     lda     #0
-    adc     apu_shadow_thi,x
-    sta     apu_shadow_thi,x
+    adc     apu_shadow_thi
+    sta     apu_shadow_thi
 pitch_done:
 
     lda     channel_env_state,x     ; Is the state is release?
@@ -476,6 +462,42 @@ pitch_done:
     bne     done
     inc     channel_env_state,x     ; yes, release->releasing
 done:
+
+    ldy     channel_owner,x         ; does music own the channel?
+    bne     regs_done               ; no: no writes to APU
+    txa
+    asl
+    asl
+    tay                             ; y = apu_chan * 4
+    cpx     #5                      ; MMC5 channels?
+    bcs     mmc5_regs               ; yes: branch
+    lda     apu_shadow_ctrl
+    sta     $4000,y                 ; volume, duty & control
+    lda     #0
+    sta     $4001,y                 ; sweep
+    lda     apu_shadow_tlo
+    sta     $4002,y                 ; timer low
+    lda     apu_shadow_thi
+    cmp     apu_thi_prev,x          ; same timer_hi value as last time?
+    beq     regs_done               ; yes: skip to avoid phase reset
+    sta     $4003,y                 ; timer high
+    sta     apu_thi_prev,x
+    rts
+mmc5_regs:
+    ; Note: MMC5 regs minus 20 because the channel number (5 or greater)
+    ; is already offset by 20 bytes (chan 5 * 4 bytes).
+    lda     apu_shadow_ctrl
+    sta     $5000-20,y              ; volume, duty & control
+    lda     #0
+    sta     $5001-20,y              ; sweep
+    lda     apu_shadow_tlo
+    sta     $5002-20,y              ; timer low
+    lda     apu_shadow_thi
+    cmp     apu_thi_prev,x
+    beq     regs_done
+    sta     $5003-20,y              ; timer high
+    sta     apu_thi_prev,x
+regs_done:
     rts
 .endproc
 
@@ -558,8 +580,7 @@ loop:
     sta     channel_owner,x         ; take ownership of the channel
     lda     (ptr1),y                ; register value to write
     ldy     reg_index               ; apu register to write
-    ldx     sfx_reg_table,y         ; apu_reg -> shadow_reg
-    sta     apu_shadow_regs,x       ; write to shadow regs
+    sta     $4000,y                 ; write to APU regs
     tya
     and     #3                      ; allow phase reset for SFX
     cmp     #3
@@ -590,71 +611,6 @@ save_delay:
 done:
     rts
 .endproc
-
-;==============================================================================
-; Set APU regs to the shadow values
-; Destroys A, X, Y.
-;==============================================================================
-.proc set_apu_regs
-    ldx     #0
-    ldy     #0
-apu_regs:
-    lda     apu_shadow_ctrl,x
-    sta     $4000,y
-    lda     apu_shadow_sweep,x
-    sta     $4001,y
-    lda     apu_shadow_tlo,x
-    sta     $4002,y
-    lda     apu_shadow_thi,x
-    cpx     #3                      ; noise/dmc don't have timer hi issues.
-    bcs     apu_write_hi
-    cmp     apu_thi_prev,x          ; otherwise, check last value to avoid phase reset
-    beq     apu_skip_thi
-apu_write_hi:
-    sta     $4003,y
-    sta     apu_thi_prev,x
-apu_skip_thi:
-    iny
-    iny
-    iny
-    iny
-    inx
-    cpx     #5
-    bcc     apu_regs
-    ldy     #0
-mmc5_regs:
-    lda     apu_shadow_ctrl,x
-    sta     $5000,y
-    lda     apu_shadow_sweep,x
-    sta     $5001,y
-    lda     apu_shadow_tlo,x
-    sta     $5002,y
-    lda     apu_shadow_thi,x
-    cmp     apu_thi_prev,x
-    beq     mmc5_skip_thi
-    sta     $5003,y
-    sta     apu_thi_prev,x
-mmc5_skip_thi:
-    iny
-    iny
-    iny
-    iny
-    inx
-    cpx     #7
-    bcc     mmc5_regs
-    rts
-.endproc
-
-; Mapping from native register index to shadow_reg index.
-sfx_reg_table:
-    .byte 0, 7,  14, 21
-    .byte 1, 8,  15, 22
-    .byte 2, 9,  16, 23
-    .byte 3, 10, 17, 24
-    .byte 4, 11, 18, 25
-    .byte 5, 12, 19, 26
-    .byte 6, 13, 20, 27
-
 
 ; Note tables
 note_table_lsb = _note_table_lsb - $21
