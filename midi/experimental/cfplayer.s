@@ -5,6 +5,7 @@
 .export _cfplayer_init
 .export _cfplayer_update_frame
 .export _cfplayer_now_playing
+.export _sfx_now_playing
 .export _music_nmi_update
 
 .export channel_delay
@@ -18,6 +19,18 @@
 .export process_envelopes
 .export process_envelope_state
 .export load_envelope_ptr
+.export channel_delay
+.export channel_seq_pos
+.export channel_meas_pos
+.export channel_note
+.export channel_volume
+.export channel_instrument
+.export channel_env_state
+.export channel_env_vol
+.export channel_env_arp
+.export channel_env_pitch
+.export channel_env_duty
+.export channel_owner
 
 ;==============================================================================
 ; Imported symbols
@@ -36,11 +49,12 @@ drum_patch = _drum_patch - $21
 ;  0 = Pulse 0
 ;  1 = Pulse 1
 ;  2 = Triangle
-;  3 = Noise 
+;  3 = Noise
 ;  4 = DMC
 ;  5 = MMC5 Pulse 0
 ;  6 = MMC5 Pulse 1
 NUM_CHANNELS=7
+NUM_SFX=4
 
 ;==============================================================================
 ; Opcodes in the measure "command list"
@@ -75,7 +89,7 @@ _cfplayer_now_playing:  .res 2
 ptr1:                   .res 2
 ptr2:                   .res 2
 tmp1:                   .res 1
-nr_tracks:              .res 1
+tmp2:                   .res 1
 
 .BSS
 _bss_start:
@@ -90,7 +104,12 @@ channel_env_vol:        .res NUM_CHANNELS   ; position within vol envelope
 channel_env_arp:        .res NUM_CHANNELS   ; position within arp envelope
 channel_env_pitch:      .res NUM_CHANNELS   ; position within pitch envelope
 channel_env_duty:       .res NUM_CHANNELS   ; position within duty envelope
+channel_owner:          .res NUM_CHANNELS   ; whether music or SFX own the chan
 
+_sfx_delay:             .res NUM_SFX
+_sfx_now_playing:       .res NUM_SFX*2
+
+apu_shadow_regs:
 apu_shadow_ctrl:        .res NUM_CHANNELS
 apu_shadow_sweep:       .res NUM_CHANNELS
 apu_shadow_tlo:         .res NUM_CHANNELS
@@ -101,7 +120,7 @@ apu_thi_prev:           .res NUM_CHANNELS
 .CODE
 ;==============================================================================
 ; Initialize the player
-; 
+;
 ;==============================================================================
 .proc _cfplayer_init
     lda     #0
@@ -129,11 +148,14 @@ init_thi_prev:
 .endproc
 ;==============================================================================
 ; Update the sound engine for this frame
+;
+; Play pending sfx first, then music.
 ;==============================================================================
 _music_nmi_update:
 .proc _cfplayer_update_frame
     sta $4100
-    jsr play_music_frame
+    jsr play_sfx_frame
+    ;jsr play_music_frame
     jsr set_apu_regs
     sta $4101
     rts
@@ -141,20 +163,23 @@ _music_nmi_update:
 
 ;==============================================================================
 ; Play music for this frame.
-; 
+;
 ;==============================================================================
 .proc play_music_frame
+    ; must remain valid during the entire music player.
+    nr_tracks = tmp2
+
     lda     _cfplayer_now_playing+1       ;high-byte of now_playing pointer
     beq     done                    ; if it's zero, it can't be a song
     ldy     #0
     ldx     #0
     lda     (_cfplayer_now_playing),y     ; number of tracks
     sta     nr_tracks
-loop:    
+loop:
     txa                             ; X is the track number.
     asl                             ; Convert track number to ptr offset
     tay                             ; (track = (track * 2) + 2
-    iny                             ; 
+    iny                             ;
     iny
     lda     (_cfplayer_now_playing),y     ; track ptr low
     sta     ptr1+0
@@ -200,7 +225,7 @@ load_sequence:
     and     #$7f                    ; negative value: loop to (value&0x7f).
     sta     channel_seq_pos,x       ; go to that sequence position
     jmp     load_sequence
-load_measure:    
+load_measure:
     beq     done                    ; zero terminator? yes: done.
     asl                             ; measure number to pointer offset
     tay
@@ -209,7 +234,7 @@ load_measure:
     iny
     lda     (ptr1),y                ; measure ptr hi
     sta     ptr2+1
-    
+
 load_music_event:
     ldy     channel_meas_pos,x
     inc     channel_meas_pos,x
@@ -254,7 +279,7 @@ note_event:
     sta     channel_env_state,x
     bne     load_music_event        ; get next music event
 .endproc
-    
+
 ;==============================================================================
 ; Process an instrument envelope
 ; Envelope number in A (0-3)
@@ -272,7 +297,7 @@ note_event:
 done:
     rts
 .endproc
-    
+
 ;==============================================================================
 ; Advance envelope state
 ; Envelope pos in A
@@ -288,7 +313,7 @@ done:
     bcs     check_state
     lda     #0
     rts
-check_state:    
+check_state:
     ldy     channel_env_state,x     ; state: 0-off, 1-on, 2-rel, 3-releasing
     beq     done                    ; state off, envelope done
 check_on:
@@ -323,7 +348,7 @@ done:
     tya
     rts
 .endproc
-    
+
 ;==============================================================================
 ; Process envelopes and store music data to apu_shadow registers
 ; Channel in X
@@ -352,25 +377,30 @@ volume_envelope:
     beq     volume_value            ; Invalid index -> volume 0.
     lda     (ptr2),y                ; get volume value
 volume_value:
+    ldy     channel_owner,x         ; does music own the channel?
+    bne     volume_done
     ora     channel_volume,x
     tay
     lda     volume_table,y          ; multiply env vol by chan vol
     cpx     #2                      ; triangle channel
-    bne     volume_done
+    bne     volume_store
     tay                             ; save volume value
     lda     #$80                    ; triangle zero volume value
     cpy     #0
-    beq     volume_done
+    beq     volume_store
     lda     #$FF                    ; triangle "on" volume value
-volume_done:
+volume_store:
     sta     apu_shadow_ctrl,x
+    lda     #0                      ; clear the sweep register
+    sta     apu_shadow_sweep,x
+volume_done:
 
 duty:
     cpx     #2                      ; no duty for triangle
-    beq     arpeggio
+    beq     duty_done
     lda     #ENV_DUTY
     jsr     load_envelope_ptr       ; load the pointer
-    beq     duty_value              ; if null, no processing
+    beq     duty_value              ; if null no processing
 duty_envelope:
     lda     channel_env_duty,x
     jsr     process_envelope_state
@@ -380,10 +410,13 @@ duty_index:
     tay
     lda     (ptr2),y                ; get duty envelope value
 duty_value:
+    ldy     channel_owner,x         ; does music own the channel?
+    bne     duty_done
     tay
     lda     duty_table,y            ; transform to apu regs pattern
     ora     apu_shadow_ctrl,x
     sta     apu_shadow_ctrl,x
+duty_done:
 
 arpeggio:
     lda     #ENV_ARPEGGIO
@@ -398,6 +431,8 @@ arpeggio_index:
     tay
     lda     (ptr2),y                ; get arp envelope value
 arpeggio_value:
+    ldy     channel_owner,x         ; does music own the channel?
+    bne     arpeggio_done
     clc
     adc     channel_note,x          ; arp value + note_value
     tay
@@ -405,12 +440,13 @@ arpeggio_value:
     bne     arpeggio_standard
     lda     drum_period,y
     sta     apu_shadow_tlo,x
-    jmp     pitch
+    jmp     arpeggio_done
 arpeggio_standard:
     lda     note_table_lsb,y
     sta     apu_shadow_tlo,x
     lda     note_table_msb,y
     sta     apu_shadow_thi,x
+arpeggio_done:
 
 pitch:
     lda     #ENV_PITCH
@@ -422,6 +458,8 @@ pitch_envelope:
     sta     channel_env_pitch,x
     beq     pitch_done              ; invalid pitch index?
 pitch_index:
+    ldy     channel_owner,x         ; does music own the channel?
+    bne     pitch_done
     tay
     lda     (ptr2),y                ; get pitch envelope value
 pitch_value:
@@ -442,6 +480,118 @@ done:
 .endproc
 
 ;==============================================================================
+; Play sound effects
+;
+; Higher numbered SFX channels have higher priority, so we start at the
+; last channel and count down.
+; SFX channels are arranged so that:
+;   0 -> music (not an SFX channel)
+;   1..4 -> SFX channels
+; The "sfx_*" variables are arranged so that abs,x/y addressing just works.
+;==============================================================================
+
+sfx_delay = _sfx_delay-1
+sfx_now_playing = _sfx_now_playing-2
+
+.proc play_sfx_frame
+    ldx #NUM_SFX                    ; last SFX channel
+loop:
+    txa
+    asl
+    tay                             ; y = x * 2
+    lda     sfx_now_playing,y       ; copy the pointer to ptr1 in ZP
+    sta     ptr1+0
+    lda     sfx_now_playing+1,y
+    beq     next                    ; if the hibyte is zero then no effect
+    sta     ptr1+1
+
+    jsr     process_sfx             ; process the SFX data
+
+    txa
+    asl
+    tay                             ; y = x * 2
+    lda     ptr1+0
+    sta     sfx_now_playing,y       ; copy the ZP pointer back to RAM
+    lda     ptr1+1
+    sta     sfx_now_playing+1,y
+next:
+    dex                             ; next sfx channel
+    bne     loop
+done:
+    rts
+.endproc
+
+
+.macro inc16 addr
+    .local done
+    inc     addr
+    bne     done
+    inc     addr+1
+done:
+.endmacro
+
+;==============================================================================
+; Process the SFX data and write to the apu shadow regs
+;==============================================================================
+.proc process_sfx
+    reg_index = tmp1
+    sfx_chan = tmp2
+
+    inc     sfx_delay,x             ; time to process the next event?
+    bmi     done                    ; negative means delay
+loop:
+    ldy     #0
+    lda     (ptr1),y                ; next sfx byte
+    bmi     save_delay              ; negative values are delays
+    beq     terminate               ; zero byte is the terminator
+    stx     sfx_chan                ; save SFX channel
+    inc16   ptr1                    ; increment pointer
+    and     #$1F                    ; keep apu reg index
+    sta     reg_index
+    lsr
+    lsr
+    tax                             ; apu channel in X
+    lda     sfx_chan
+    cmp     channel_owner,x
+    bcc     regs_done               ; if cur_sfx_chan < owner, done
+
+    sta     channel_owner,x         ; take ownership of the channel
+    lda     (ptr1),y                ; register value to write
+    ldy     reg_index               ; apu register to write
+    ldx     sfx_reg_table,y         ; apu_reg -> shadow_reg
+    sta     apu_shadow_regs,x       ; write to shadow regs
+    tya
+    and     #3                      ; allow phase reset for SFX
+    cmp     #3
+    bne     regs_done
+    lda     #$FF
+    sta     apu_thi_prev,x
+regs_done:
+    ldx     sfx_chan                ; get SFX channel back into X
+    inc     ptr1+0                  ; inc ptr and process next SFX byte
+    bne     loop
+    inc     ptr1+1
+    bne     loop
+terminate:
+    sta     ptr1+1                  ; null out the pointer
+    ldy     #NUM_CHANNELS-1
+termloop:
+    lda     channel_owner,y
+    cmp     sfx_chan
+    lda     #0
+    sta     channel_owner,y         ; release ownership on channels
+termnext:
+    dey
+    bpl     termloop
+    rts
+save_delay:
+    sta     sfx_delay,x
+    inc16   ptr1
+done:
+    rts
+.endproc
+
+;==============================================================================
 ; Set APU regs to the shadow values
 ; Destroys A, X, Y.
 ;==============================================================================
@@ -456,8 +606,11 @@ apu_regs:
     lda     apu_shadow_tlo,x
     sta     $4002,y
     lda     apu_shadow_thi,x
-    cmp     apu_thi_prev,x
+    cpx     #3                      ; noise/dmc don't have timer hi issues.
+    bcs     apu_write_hi
+    cmp     apu_thi_prev,x          ; otherwise, check last value to avoid phase reset
     beq     apu_skip_thi
+apu_write_hi:
     sta     $4003,y
     sta     apu_thi_prev,x
 apu_skip_thi:
@@ -491,8 +644,17 @@ mmc5_skip_thi:
     bcc     mmc5_regs
     rts
 .endproc
-    
-    
+
+; Mapping from native register index to shadow_reg index.
+sfx_reg_table:
+    .byte 0, 7,  14, 21
+    .byte 1, 8,  15, 22
+    .byte 2, 9,  16, 23
+    .byte 3, 10, 17, 24
+    .byte 4, 11, 18, 25
+    .byte 5, 12, 19, 26
+    .byte 6, 13, 20, 27
+
 
 ; Note tables
 note_table_lsb = _note_table_lsb - $21
