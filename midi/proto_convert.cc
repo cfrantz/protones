@@ -413,7 +413,12 @@ class SongPlayer {
         }
 
         if (song_.title().empty()) {
-            song_.set_title(File::Basename(filename));
+            std::string title = File::Basename(filename);
+            size_t ext = title.rfind(".");
+            if (ext != std::string::npos) {
+                title = title.substr(0, ext);
+            }
+            song_.set_title(title);
         }
         player_.clear();
         for(const auto& track : song_.tracks()) {

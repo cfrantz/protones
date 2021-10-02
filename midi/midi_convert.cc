@@ -136,7 +136,12 @@ void ConvertTrack(const smf::MidiFile& midi, proto::Song* song, int tnum) {
 
 // Convert a midi file to proto-representation.
 proto::Song ConvertFile(const std::string& filename) {
-    smf::MidiFile midi(filename);
+    smf::MidiFile midi;
+    bool result = midi.read(filename);
+    if (!result) {
+        fprintf(stderr, "Could not read %s\n", filename.c_str());
+        exit(1);
+    }
 
     midi.doTimeAnalysis();
     int tracks = midi.getTrackCount();

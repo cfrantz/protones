@@ -3,34 +3,31 @@
 ;==============================================================================
 
 .export _cfplayer_init
+.export _cfplayer_silence
+.export _cfplayer_reset_song
 .export _cfplayer_update_frame
 .export _cfplayer_now_playing
 .export _sfx_now_playing
 .export _music_nmi_update
 
-.export channel_delay
-.export channel_seq_pos
-.export channel_meas_pos
-.export channel_volume
-
 ;==============================================================================
 ; Exports for debug
 ;==============================================================================
-.export process_envelopes
-.export process_envelope_state
-.export load_envelope_ptr
-.export channel_delay
-.export channel_seq_pos
-.export channel_meas_pos
-.export channel_note
-.export channel_volume
-.export channel_instrument
-.export channel_env_state
-.export channel_env_vol
-.export channel_env_arp
-.export channel_env_pitch
-.export channel_env_duty
-.export channel_owner
+; .export process_envelopes
+; .export process_envelope_state
+; .export load_envelope_ptr
+; .export channel_delay
+; .export channel_seq_pos
+; .export channel_meas_pos
+; .export channel_note
+; .export channel_volume
+; .export channel_instrument
+; .export channel_env_state
+; .export channel_env_vol
+; .export channel_env_arp
+; .export channel_env_pitch
+; .export channel_env_duty
+; .export channel_owner
 
 ;==============================================================================
 ; Imported symbols
@@ -73,9 +70,9 @@ PROGRAM_CHANGE = $20
 ; Channel envelope states
 ;==============================================================================
 ENV_OFF = 0
-ENV_ON = 1
-ENV_RELEASE = 2
-ENV_RELEASING = 3
+ENV_ON = 2
+ENV_RELEASE = 3
+ENV_RELEASING = 4
 ;==============================================================================
 ; Envelope pointer indicies
 ;==============================================================================
@@ -99,7 +96,7 @@ channel_meas_pos:       .res NUM_CHANNELS
 channel_note:           .res NUM_CHANNELS
 channel_volume:         .res NUM_CHANNELS
 channel_instrument:     .res NUM_CHANNELS
-channel_env_state:      .res NUM_CHANNELS   ; state: 0-noteoff, 1-on, 2-release
+channel_env_state:      .res NUM_CHANNELS   ; state: ENV_ constants.
 channel_env_vol:        .res NUM_CHANNELS   ; position within vol envelope
 channel_env_arp:        .res NUM_CHANNELS   ; position within arp envelope
 channel_env_pitch:      .res NUM_CHANNELS   ; position within pitch envelope
@@ -137,13 +134,49 @@ init_thi_prev:
     sta     apu_thi_prev,x
     bne     init_thi_prev
 
+    jsr     _cfplayer_silence
     lda     #$1f                ; All APU channels enabled
     sta     $4015
     lda     #3                  ; MMC5 Pulse channels enabled
     sta     $5015
     rts
-
 .endproc
+
+;==============================================================================
+; Silence all sound channels
+;
+;==============================================================================
+.proc _cfplayer_silence
+    lda     #$30                    ; Pulse/Noise zero volume value
+    sta     $4000
+    sta     $4004
+    sta     $400c
+    sta     $5000
+    sta     $5004
+    lda     #$80                    ; triangle zero volume value
+    sta     $4008
+    rts
+.endproc
+
+;==============================================================================
+; Reset player variables for processig a song
+;
+;==============================================================================
+.proc _cfplayer_reset_song
+    jsr     _cfplayer_silence
+    lda     #0
+    ldx     #NUM_CHANNELS
+loop:
+    dex
+    sta     channel_delay,x
+    sta     channel_seq_pos,x
+    sta     channel_meas_pos,x
+    sta     channel_instrument,x
+    sta     channel_env_state,x
+    bne     loop
+    rts
+.endproc
+
 ;==============================================================================
 ; Update the sound engine for this frame
 ;
@@ -151,10 +184,8 @@ init_thi_prev:
 ;==============================================================================
 _music_nmi_update:
 .proc _cfplayer_update_frame
-    sta $4100
     jsr play_sfx_frame
     jsr play_music_frame
-    sta $4101
     rts
 .endproc
 
@@ -221,7 +252,7 @@ load_sequence:
     bpl     load_measure            ; positive values: measure number.
     and     #$7f                    ; negative value: loop to (value&0x7f).
     sta     channel_seq_pos,x       ; go to that sequence position
-    jmp     load_sequence
+    bpl     load_sequence           ; branch always: will be positive after AND.
 load_measure:
     beq     done                    ; zero terminator? yes: done.
     asl                             ; measure number to pointer offset
@@ -267,13 +298,12 @@ note_off_event:
     bne     load_music_event        ; get next music event
 note_event:
     sta     channel_note,x          ; Save the note
-    lda     #2                      ; Reset envelopes
-    sta     channel_env_vol,x
-    sta     channel_env_arp,x
-    sta     channel_env_pitch,x
-    sta     channel_env_duty,x
     lda     #ENV_ON                 ; Set the state to NoteOn
     sta     channel_env_state,x
+    sta     channel_env_vol,x       ; Reset envelopes:
+    sta     channel_env_arp,x       ; ENV_ON happens to be the correct value.
+    sta     channel_env_pitch,x
+    sta     channel_env_duty,x
     bne     load_music_event        ; get next music event
 .endproc
 
@@ -315,7 +345,6 @@ check_state:
 check_on:
     cpy     #ENV_ON
     bne     check_release
-    iny
     cmp     (ptr2),y                ; at release point?
     beq     loop_point              ; yes, go to loop point
     ldy     #0
@@ -447,12 +476,15 @@ pitch_envelope:
     beq     pitch_done              ; invalid pitch index?
 pitch_index:
     tay
+    ldy     #0
     lda     (ptr2),y                ; get pitch envelope value
+    bpl     pitch_value             ; sign-extend pitch value
+    ldy     #$FF
 pitch_value:
     clc
     adc     apu_shadow_tlo
     sta     apu_shadow_tlo
-    lda     #0
+    tya
     adc     apu_shadow_thi
     sta     apu_shadow_thi
 pitch_done:
