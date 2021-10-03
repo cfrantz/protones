@@ -121,6 +121,15 @@ void Mem::write_byte(uint16_t addr, uint8_t v) {
         fputc(v, stdout);
     } else if (addr == 0x401a) {
         printf("hexout = %02x\n", v);
+    } else if ((addr & 0xFF00) == 0x4100) {
+        int n = (addr & 0x00FF) / 2;
+        if (addr & 1) {
+            uint64_t tm = nes_->cpu_cycles() - counters_[n];
+            double percent = 100.0 * double(tm) / 29780.0;
+            printf("Cycle Counter %d: %6" PRIu64 " (%.02f%%)\n", n, tm, percent);
+        } else {
+            counters_[n] = nes_->cpu_cycles();
+        }
     } else if (addr >= 0x5000) {
         nes_->mapper()->Write(addr, v);
     } else {

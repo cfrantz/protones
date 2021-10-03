@@ -53,6 +53,8 @@ class Mem : public EmulatedDevice {
     uint8_t ppuram_[4096];
     uint8_t palette_[32];
 
+    uint64_t counters_[128];
+
     std::vector<std::string> custom_memdump_;
     friend class MemDebug;
 };

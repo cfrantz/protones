@@ -101,7 +101,7 @@ class Zelda2(app.EmulatorHooks):
             if bimpy.menu_item("RNG", "", selected=self.rng.visible):
                 pass
             if bimpy.menu_item("Exec Profile", "", selected=self.execution.visible):
-                self.execution.Enable(not self.execution.visible.value)
+                self.execution.Enable(self.execution.visible.value)
             bimpy.end_menu()
 
     def EmulateFrame(self):

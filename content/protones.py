@@ -55,9 +55,15 @@ class EmulatorHooks(object):
     def __init__(self, root=None):
         """Get the root ProtoNES object."""
         self.root = root or app.root()
+        self.framecb = None
+
+    def SetFrameCallback(self, cb=None):
+        self.framecb = cb
 
     def EmulateFrame(self):
         """Emulate a single frame."""
+        if self.framecb is not None:
+            self.framecb()
         return self.root.nes.EmulateFrame()
 
     def GetPythonConsole(self):

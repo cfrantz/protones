@@ -4,6 +4,7 @@
 #
 ######################################################################
 import app
+import json
 
 _addr = 0x8000
 _length = 64
@@ -82,7 +83,8 @@ def PrintStack(sp):
 
 
 def PrintMemCb(cpu, addr, val):
-    print("pc=%04x accessed addr %04x val=%02x" % (cpu.pc, addr, val))
+    print("frame=%6d pc=%04x accessed addr %04x val=%02x" % (
+        app.root().nes.frame(), cpu.pc, addr, val))
     return val
 
 def PrintExecCb(cpu):
@@ -105,4 +107,91 @@ def WriteWatch(addr, on=True):
 def ExecWatch(addr, on=True):
     app.root().nes.cpu.SetExecCallback(addr, PrintExecCb if on else None)
 
+def ExecDebugDot(addr, color=None):
+    def _debug_dot(cpu):
+        app.root().nes.SetDebugDot(color)
+        return cpu.pc
+    app.root().nes.cpu.SetExecCallback(addr, None if color is None else _debug_dot)
+
+def ExecCycleCounter(a1=0, a2=0, n=0):
+    nes = app.root().nes
+    def _start(cpu):
+        nes.mem[0x4100 + n*2] = 1
+        return cpu.pc
+    def _end(cpu):
+        nes.mem[0x4100 + n*2 + 1] = 1
+        return cpu.pc
+    nes.cpu.SetExecCallback(a1, _start if a1 else None)
+    nes.cpu.SetExecCallback(a2, _end if a1 else None)
+
+def WatchAPU(on=True):
+    for reg in range(0x4000, 0x4014):
+        WriteWatch(reg, on)
+
+class APULogger(object):
+
+    def __init__(self):
+        self.frame = {}
+        self.first = 0
+        self.reg = 0
+        self.val = 0
+        for reg in range(0x4000, 0x4014):
+            app.root().nes.cpu.SetWriteCallback(reg, self.watcher)
+        mem = app.root().nes.mem
+        mem[0xeb] = 0x80
+
+    def watcher(self, cpu, addr, val):
+        frame = app.root().nes.frame()
+        if self.first == 0:
+            self.first = frame
+
+        frame -= self.first
+        if frame not in self.frame:
+            self.frame[frame] = {"frame": frame}
+
+        self.frame[frame][addr - 0x4000] = val
+        return val
+
+    def trigger(self, reg, val):
+        mem = app.root().nes.mem
+        self.reg = reg
+        self.val = val
+        self.frame = {}
+        self.first = 0
+        mem[reg] = val
+
+    def save(self):
+        fn = 'effect_%02X%02X.json' % (self.reg, self.val)
+        with open(fn, 'wt') as f:
+            f.write(json.dumps(list(self.frame.values()), indent=4))
+
+class APUPlayer(object):
+
+    def __init__(self):
+        self.frame = {}
+        self.first = 0
+        app.root().hook.SetFrameCallback(self.callback)
+        self.sweep = True
+
+    def callback(self):
+        frame = app.root().nes.frame()
+        if frame in self.frame:
+            f = self.frame[frame]
+            mem = app.root().nes.mem
+            for (k, v) in f.items():
+                try:
+                    k = int(k)
+                    if not self.sweep and k in (1,5):
+                        continue
+                    mem[0x4000+k] = v
+                except:
+                    pass
+
+    def play(self, fn):
+        frame = app.root().nes.frame() + 1
+        self.frame = {}
+        with open(fn, 'rt') as f:
+            data = json.load(f)
+            for d in data:
+                self.frame[frame+d['frame']] = d
 
