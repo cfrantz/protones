@@ -1,0 +1,226 @@
+name: "Title Screen Config"
+channel {
+    name: "Piano1"
+    channel: 1
+    oscillator: [
+        PULSE1
+    ]
+    #instrument: "piano"
+    instrument: "blank"
+}
+channel {
+    name: "Piano2"
+    channel: 2
+    oscillator: [
+        PULSE2
+    ]
+    #instrument: "piano"
+    instrument: "blank"
+}
+channel {
+    name: "Bass"
+    channel: 3
+    note_offset: 12
+    oscillator: [
+        TRIANGLE
+    ]
+    instrument: "blank"
+}
+channel {
+    name: "Drums"
+    channel: 4
+    oscillator: [
+        NOISE
+    ]
+    drumkit: [
+        { key: 36 value: { patch: "hat" period: 0xe }},      # Kick
+        { key: 38 value: { patch: "snare" period: 0x6 }},    # Snare
+        { key: 41 value: { patch: "snare" period: 0xc }},    # Low Tom
+        { key: 45 value: { patch: "snare" period: 0xb }},    # Mid Tom
+        { key: 47 value: { patch: "snare" period: 0xa }},    # Mid Tom 2
+        { key: 48 value: { patch: "snare" period: 0x9 }},    # High Tom
+        { key: 50 value: { patch: "snare" period: 0x8 }},    # High Tom 2
+        { key: 49 value: { patch: "snare" period: 0x2 }},    # Crash
+        { key: 57 value: { patch: "snare" period: 0x3 }},    # Crash 2
+        { key: 42 value: { patch: "hat" period: 0x2 }}       # Closed HH
+    ]
+}
+channel {
+    name: "DMC Samples"
+    channel: 15
+    oscillator: [
+        DMC
+    ]
+    instrument: "blank"
+}
+channel {
+    name: "Violin"
+    channel: 5
+    oscillator: [
+        MMC5_PULSE1
+    ]
+    #instrument: "fade_in"
+    instrument: "blank"
+}
+channel {
+    name: "Guitar"
+    channel: 6
+    oscillator: [
+        MMC5_PULSE2
+    ]
+    instrument: "blank"
+}
+instruments: [
+    { key: "blank" value: "content/fti/00_blank.fti" },
+    { key: "snare" value: "content/fti/03_snare.fti" },
+    { key: "hat" value: "content/fti/04_hat.fti" },
+    { key: "trikick" value: "content/fti/05_trikick.fti" },
+    { key: "2 1" value: "content/fti/07_2_1.fti" },
+    { key: "open_hat" value: "content/fti/08_open_hat.fti" },
+    { key: "load_drum" value: "content/fti/09_loud_drum.fti" },
+    { key: "ahh" value: "content/fti/0b_ahh.fti" },
+    { key: "0 2" value: "content/fti/0d_0_2.fti" },
+    { key: "fade_in" value: "content/fti/0e_fade_in.fti" },
+    { key: "timpani_dpcm" value: "content/fti/10_timpani_dpcm.fti" },
+    { key: "marching_snare" value: "content/fti/11_marching_snare.fti" },
+    { key: "noise_hat" value: "content/fti/12_p_noise_hat.fti" },
+    { key: "arp" value: "content/fti/13_arp.fti" },
+    { key: "sea" value: "content/fti/15_sea_2_1.fti" },
+    { key: "hat" value: "content/fti/16_hat_2.fti" },
+    { key: "crash" value: "content/fti/17_crash.fti" },
+    { key: "piano" value: "content/fti/18_piano.fti" },
+    { key: "snare2" value: "content/fti/19_snare_2.fti" },
+    { key: "shaker" value: "content/fti/1d_shaker.fti" },
+    { key: "huge_snare" value: "content/fti/1f_huge_snare.fti" },
+    { key: "snare3" value: "content/fti/22_snare_3.fti" }
+]
+midi_program: [
+    {   key:1 value: "piano" },            # Acoustic Grand Piano
+    {   key:2 value: "" },            # Bright Acoustic Piano
+    {   key:3 value: "" },            # Electric Grand Piano
+    {   key:4 value: "" },            # Honky-tonk Piano
+    {   key:5 value: "" },            # Electric Piano 1
+    {   key:6 value: "" },            # Electric Piano 2
+    {   key:7 value: "" },            # Harpsichord
+    {   key:8 value: "" },            # Clavinet
+    {   key:9 value: "" },            # Celesta
+    {  key:10 value: "" },            # Glockenspiel
+    {  key:11 value: "" },            # Music Box
+    {  key:12 value: "" },            # Vibraphone
+    {  key:13 value: "" },            # Marimba
+    {  key:14 value: "" },            # Xylophone
+    {  key:15 value: "" },            # Tubular Bells
+    {  key:16 value: "" },            # Dulcimer
+    {  key:17 value: "" },            # Drawbar Organ
+    {  key:18 value: "" },            # Percussive Organ
+    {  key:19 value: "" },            # Rock Organ
+    {  key:20 value: "" },            # Church Organ
+    {  key:21 value: "" },            # Reed Organ
+    {  key:22 value: "" },            # Accordion
+    {  key:23 value: "" },            # Harmonica
+    {  key:24 value: "" },            # Tango Accordion
+    {  key:25 value: "" },            # Acoustic Guitar (nylon)
+    {  key:26 value: "" },            # Acoustic Guitar (steel)
+    {  key:27 value: "" },            # Electric Guitar (jazz)
+    {  key:28 value: "blank" },            # Electric Guitar (clean)
+    {  key:29 value: "" },            # Electric Guitar (muted)
+    {  key:30 value: "" },            # Overdriven Guitar
+    {  key:31 value: "" },            # Distortion Guitar
+    {  key:32 value: "" },            # Guitar harmonics
+    {  key:33 value: "" },            # Acoustic Bass
+    {  key:34 value: "" },            # Electric Bass (finger)
+    {  key:35 value: "blank" },            # Electric Bass (pick)
+    {  key:36 value: "" },            # Fretless Bass
+    {  key:37 value: "" },            # Slap Bass 1
+    {  key:38 value: "" },            # Slap Bass 2
+    {  key:39 value: "" },            # Synth Bass 1
+    {  key:40 value: "" },            # Synth Bass 2
+    {  key:41 value: "fade_in" },            # Violin
+    {  key:42 value: "" },            # Viola
+    {  key:43 value: "" },            # Cello
+    {  key:44 value: "" },            # Contrabass
+    {  key:45 value: "" },            # Tremolo Strings
+    {  key:46 value: "" },            # Pizzicato Strings
+    {  key:47 value: "" },            # Orchestral Harp
+    {  key:48 value: "" },            # Timpani
+    {  key:49 value: "" },            # String Ensemble 1
+    {  key:50 value: "" },            # String Ensemble 2
+    {  key:51 value: "" },            # Synth Strings 1
+    {  key:52 value: "" },            # Synth Strings 2
+    {  key:53 value: "" },            # Choir Aahs
+    {  key:54 value: "" },            # Voice Oohs
+    {  key:55 value: "" },            # Synth Voice
+    {  key:56 value: "" },            # Orchestra Hit
+    {  key:57 value: "" },            # Trumpet
+    {  key:58 value: "" },            # Trombone
+    {  key:59 value: "" },            # Tuba
+    {  key:60 value: "" },            # Muted Trumpet
+    {  key:61 value: "" },            # French Horn
+    {  key:62 value: "" },            # Brass Section
+    {  key:63 value: "" },            # Synth Brass 1
+    {  key:64 value: "" },            # Synth Brass 2
+    {  key:65 value: "" },            # Soprano Sax
+    {  key:66 value: "" },            # Alto Sax
+    {  key:67 value: "" },            # Tenor Sax
+    {  key:68 value: "" },            # Baritone Sax
+    {  key:69 value: "" },            # Oboe
+    {  key:70 value: "" },            # English Horn
+    {  key:71 value: "" },            # Bassoon
+    {  key:72 value: "" },            # Clarinet
+    {  key:73 value: "" },            # Piccolo
+    {  key:74 value: "" },            # Flute
+    {  key:75 value: "" },            # Recorder
+    {  key:76 value: "" },            # Pan Flute
+    {  key:77 value: "" },            # Blown Bottle
+    {  key:78 value: "" },            # Shakuhachi
+    {  key:79 value: "" },            # Whistle
+    {  key:80 value: "" },            # Ocarina
+    {  key:81 value: "" },            # Lead 1 (square)
+    {  key:82 value: "" },            # Lead 2 (sawtooth)
+    {  key:83 value: "" },            # Lead 3 (calliope)
+    {  key:84 value: "" },            # Lead 4 (chiff)
+    {  key:85 value: "" },            # Lead 5 (charang)
+    {  key:86 value: "" },            # Lead 6 (voice)
+    {  key:87 value: "" },            # Lead 7 (fifths)
+    {  key:88 value: "" },            # Lead 8 (bass + lead)
+    {  key:89 value: "" },            # Pad 1 (new age)
+    {  key:90 value: "" },            # Pad 2 (warm)
+    {  key:91 value: "" },            # Pad 3 (polysynth)
+    {  key:92 value: "" },            # Pad 4 (choir)
+    {  key:93 value: "" },            # Pad 5 (bowed)
+    {  key:94 value: "" },            # Pad 6 (metallic)
+    {  key:95 value: "" },            # Pad 7 (halo)
+    {  key:96 value: "" },            # Pad 8 (sweep)
+    {  key:97 value: "" },            # FX 1 (rain)
+    {  key:98 value: "" },            # FX 2 (soundtrack)
+    {  key:99 value: "" },            # FX 3 (crystal)
+    { key:100 value: "" },            # FX 4 (atmosphere)
+    { key:101 value: "" },            # FX 5 (brightness)
+    { key:102 value: "" },            # FX 6 (goblins)
+    { key:103 value: "" },            # FX 7 (echoes)
+    { key:104 value: "" },            # FX 8 (sci-fi)
+    { key:105 value: "" },            # Sitar
+    { key:106 value: "" },            # Banjo
+    { key:107 value: "" },            # Shamisen
+    { key:108 value: "" },            # Koto
+    { key:109 value: "" },            # Kalimba
+    { key:110 value: "" },            # Bag pipe
+    { key:111 value: "" },            # Fiddle
+    { key:112 value: "" },            # Shanai
+    { key:113 value: "" },            # Tinkle Bell
+    { key:114 value: "" },            # Agogo
+    { key:115 value: "" },            # Steel Drums
+    { key:116 value: "" },            # Woodblock
+    { key:117 value: "" },            # Taiko Drum
+    { key:118 value: "" },            # Melodic Tom
+    { key:119 value: "" },            # Synth Drum
+    { key:120 value: "" },            # Reverse Cymbal
+    { key:121 value: "" },            # Guitar Fret Noise
+    { key:122 value: "" },            # Breath Noise
+    { key:123 value: "" },            # Seashore
+    { key:124 value: "" },            # Bird Tweet
+    { key:125 value: "" },            # Telephone Ring
+    { key:126 value: "" },            # Helicopter
+    { key:127 value: "" },            # Applause
+    { key:128 value: "" }             # Gunshot
+]
