@@ -1,14 +1,15 @@
-#include <gflags/gflags.h>
 #include "imapp.h"
+
 #include "imgui.h"
 #include "util/os.h"
 #include "util/gamecontrollerdb.h"
 #include "util/logging.h"
 #include "util/imgui_impl_sdl.h"
+#include "absl/flags/flag.h"
 #include "absl/strings/str_cat.h"
 
-DEFINE_double(hidpi, 1.0, "HiDPI scaling factor");
-DEFINE_string(controller_db, "", "Path to the SDL gamecontrollerdb.txt file");
+ABSL_FLAG(double, hidpi, 1.0, "HiDPI scaling factor");
+ABSL_FLAG(std::string, controller_db, "", "Path to the SDL gamecontrollerdb.txt file");
 
 
 ImApp* ImApp::singleton_;
@@ -41,7 +42,7 @@ ImApp::ImApp(const std::string& name, int width, int height)
     // Setup ImGui binding
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
-    ImGui_ImplSdl_SetHiDPIScale(FLAGS_hidpi);
+    ImGui_ImplSdl_SetHiDPIScale(absl::GetFlag(FLAGS_hidpi));
     ImGui_ImplSdlGL2_Init(window_);
     clear_color_ = ImColor(0, 16, 64);
     //fpsmgr_.SetRate(60);
@@ -58,12 +59,12 @@ ImApp::~ImApp() {
 }
 
 void ImApp::InitControllers() {
-    if (FLAGS_controller_db.empty()) {
+    if (absl::GetFlag(FLAGS_controller_db).empty()) {
         SDL_RWops* f = SDL_RWFromConstMem(kGameControllerDB,
                                           kGameControllerDB_len);
         SDL_GameControllerAddMappingsFromRW(f, 1);
     } else {
-        SDL_GameControllerAddMappingsFromFile(FLAGS_controller_db.c_str());
+        SDL_GameControllerAddMappingsFromFile(absl::GetFlag(FLAGS_controller_db).c_str());
     }
 
     int controllers = 0;

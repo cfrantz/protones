@@ -2,12 +2,12 @@
 #define Z2UTIL_IPS_IPS_H
 
 #include <string>
-#include "util/statusor.h"
+#include "absl/status/statusor.h"
 
 namespace ips {
 
 std::string CreatePatch(const std::string& original, const std::string& modified);
-StatusOr<std::string> ApplyPatch(const std::string& original, const std::string& patch);
+absl::StatusOr<std::string> ApplyPatch(const std::string& original, const std::string& patch);
 
 }  // namespace
 

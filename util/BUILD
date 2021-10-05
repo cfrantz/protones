@@ -59,7 +59,9 @@ cc_library(
         "file.h",
     ],
     deps = [
-        ":status",
+        ":posix_status",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -73,7 +75,7 @@ cc_library(
         "logging.h",
     ],
     deps = [
-        "//external:gflags",
+        "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -93,16 +95,15 @@ cc_library(
 )
 
 cc_library(
-    name = "status",
+    name = "posix_status",
     srcs = [
-        "status.cc",
+        "posix_status.cc",
     ],
     hdrs = [
-        "status.h",
-        "statusor.h",
+        "posix_status.h",
     ],
     deps = [
-        "@com_google_protobuf//:protobuf",
+        "@com_google_absl//absl/status",
     ],
 )
 

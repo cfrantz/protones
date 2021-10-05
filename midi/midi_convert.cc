@@ -1,14 +1,16 @@
 #include <cstdio>
 #include <string>
-#include <gflags/gflags.h>
 
+#include "absl/flags/flag.h"
+#include "absl/flags/parse.h"
+#include "absl/flags/usage.h"
 #include "MidiFile.h"
 #include "proto/midi_convert.pb.h"
 #include "google/protobuf/util/message_differencer.h"
 
-DEFINE_double(bpm, 0.0, "BPM (overrides MIDI file)");
-DEFINE_string(time_signature, "", "Time Signature (overrides MIDI file");
-DEFINE_double(fps, 60.0, "Target frames per second");
+ABSL_FLAG(double, bpm, 0.0, "BPM (overrides MIDI file)");
+ABSL_FLAG(std::string, time_signature, "", "Time Signature (overrides MIDI file");
+ABSL_FLAG(double, fps, 60.0, "Target frames per second");
 
 namespace converter {
 
@@ -18,7 +20,7 @@ int CalculateMeasureFrames(const smf::MidiFile& midi, const proto::TimeSignature
     double bps = bpm / 60.0;
     double beat = 1.0 / bps;
     double measure = tsig.numerator() * beat;
-    int frames = (measure * FLAGS_fps + 0.5);
+    int frames = (measure * absl::GetFlag(FLAGS_fps) + 0.5);
     return frames;
 }
 
@@ -122,7 +124,7 @@ void ConvertTrack(const smf::MidiFile& midi, proto::Song* song, int tnum) {
             measure_frames = CalculateMeasureFrames(midi, tsig, tempo);
         } else {
             int mnum = 0, fnum = 0;
-            int frame = (event.seconds * FLAGS_fps + 0.5);
+            int frame = (event.seconds * absl::GetFlag(FLAGS_fps) + 0.5);
             if (measure_frames != 0) {
                 mnum = frame / measure_frames;
                 fnum = frame % measure_frames;
@@ -164,11 +166,11 @@ Flags:
 )ZZZ";
 
 int main(int argc, char *argv[]) {
-    gflags::SetUsageMessage(kUsage);
-    gflags::ParseCommandLineFlags(&argc, &argv, true);
+    absl::SetProgramUsageMessage(kUsage);
+    auto args = absl::ParseCommandLine(argc, argv);
 
-    if (argc > 1) {
-        proto::Song song = converter::ConvertFile(argv[1]);
+    for(size_t i=1; i<args.size(); ++i) {
+        proto::Song song = converter::ConvertFile(args[i]);
         printf("%s\n", song.DebugString().c_str());
     }
     return 0;

@@ -1,9 +1,9 @@
-#include <gflags/gflags.h>
-
 #include "nes/fm2.h"
+
+#include "absl/flags/flag.h"
 #include "nes/controller.h"
 
-DEFINE_int32(fm2_predelay, 0, "Number of frames of pre-delay on fm2 inputs.");
+ABSL_FLAG(int, fm2_predelay, 0, "Number of frames of pre-delay on fm2 inputs.");
 namespace protones {
 
 FM2Movie::FM2Movie(NES* nes) :
@@ -20,7 +20,7 @@ void FM2Movie::Load(const std::string& filename) {
     FILE *fp;
     char buf[256];
     int n = 0;
-    int predelay = FLAGS_fm2_predelay;
+    int predelay = absl::GetFlag(FLAGS_fm2_predelay);
 
     fp = fopen(filename.c_str(), "r");
     if (fp == nullptr) {

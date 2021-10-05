@@ -1,14 +1,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstdint>
-#include <gflags/gflags.h>
 
+#include "absl/flags/flag.h"
 #include "nes/cartridge.h"
 #include "util/crc.h"
 #include "util/os.h"
 #include "util/file.h"
 
-DEFINE_bool(sram_on_disk, true, "Save SRAM to disk.");
+ABSL_FLAG(bool, sram_on_disk, true, "Save SRAM to disk.");
 
 namespace protones {
 
@@ -82,7 +82,7 @@ void Cartridge::LoadFile(const std::string& filename) {
 
     sram_filename_ = os::path::DataPath({
             File::Basename(filename) + ".sram" });
-    if (FLAGS_sram_on_disk && header_.sram && !nes_->has_movie()) {
+    if (absl::GetFlag(FLAGS_sram_on_disk) && header_.sram && !nes_->has_movie()) {
         if ((fp = fopen(sram_filename_.c_str(), "rb")) != nullptr) {;
             if (fread(sram_, sramlen_, 1, fp) == 0) {
                 fprintf(stderr, "Couldn't read SRAM.\n");
@@ -103,7 +103,7 @@ void Cartridge::Emulate() {
 }
 
 void Cartridge::SaveSram() {
-    if (!FLAGS_sram_on_disk)
+    if (!absl::GetFlag(FLAGS_sram_on_disk))
         return;
     if (!header_.sram)
         return;

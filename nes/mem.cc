@@ -1,10 +1,10 @@
 #include <fstream>
-#include <gflags/gflags.h>
 #include "imgui.h"
 
 #include "nes/mem.h"
 #include "nes/pbmacro.h"
 
+#include "absl/flags/flag.h"
 #include "nes/cpu6502.h"
 #include "nes/apu.h"
 #include "nes/cartridge.h"
@@ -12,7 +12,7 @@
 #include "nes/mapper.h"
 #include "nes/ppu.h"
 
-DEFINE_string(memdump, "", "Custom memory dump textfile.");
+ABSL_FLAG(std::string, memdump, "", "Custom memory dump textfile.");
 namespace protones {
 
 Mem::Mem(NES* nes)
@@ -216,12 +216,12 @@ void Mem::HexDump(int addr, int len) {
 
 bool Mem::ReadMemDump() {
     static bool once;
-    if (FLAGS_memdump.empty())
+    if (absl::GetFlag(FLAGS_memdump).empty())
         return false;
     if (once)
         return true;
 
-    std::ifstream input(FLAGS_memdump);
+    std::ifstream input(absl::GetFlag(FLAGS_memdump));
     std::string line;
 
     while(getline(input, line)) {

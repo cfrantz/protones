@@ -1,15 +1,15 @@
 #include <string.h>
-#include <gflags/gflags.h>
 #include <SDL2/SDL.h>
 #include "imgui.h"
 
+#include "absl/flags/flag.h"
 #include "util/os.h"
 #include "nes/apu.h"
 #include "nes/nes.h"
 #include "nes/mapper.h"
 
-DEFINE_double(volume, 0.2, "Sound volume");
-DEFINE_bool(lock_framerate_to_audio, true,
+ABSL_FLAG(double, volume, 0.2, "Sound volume");
+ABSL_FLAG(bool, lock_framerate_to_audio, true,
             "Lock the framerate to audio playback");
 namespace protones {
 
@@ -32,7 +32,7 @@ static void init_tables() {
 
 APU::APU(NES *nes)
     : nes_(nes),
-    pulse_({{nes, 1}, {nes, 2}}),
+    pulse_{{nes, 1}, {nes, 2}},
     triangle_(nes),
     noise_(nes),
     dmc_(nes),
@@ -40,7 +40,7 @@ APU::APU(NES *nes)
     frame_period_(0),
     frame_value_(0),
     frame_irq_(0),
-    volume_(FLAGS_volume),
+    volume_(absl::GetFlag(FLAGS_volume)),
     data_{0, },
     len_(0) {
         mutex_ = SDL_CreateMutex();
@@ -147,7 +147,7 @@ void APU::Emulate() {
     int s1 = int(c1 / NES::sample_rate);
     int s2 = int(c2 / NES::sample_rate);
     if (s1 != s2) {
-        if (FLAGS_lock_framerate_to_audio) {
+        if (absl::GetFlag(FLAGS_lock_framerate_to_audio)) {
 #if 1
             SDL_LockMutex(mutex_);
             while(len_ == BUFFERLEN) {

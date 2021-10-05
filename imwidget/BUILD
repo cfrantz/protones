@@ -14,13 +14,13 @@ cc_library(
         "imwidget.h",
     ],
     deps = [
-        "//external:gflags",
         "//external:imgui",
         "//util:fpsmgr",
         "//util:gamecontrollerdb",
         "//util:imgui_sdl_opengl",
         "//util:logging",
         "//util:os",
+        "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -97,12 +97,12 @@ cc_library(
     hdrs = ["midi_setup.h"],
     deps = [
         ":base",
-        "//midi:fti",
-        "//midi:midi",
-        "//nes:nes-interface",
-        "//proto:fti",
         "//external:imgui",
         "//external:nfd",
+        "//midi",
+        "//midi:fti",
+        "//nes:nes-interface",
+        "//proto:fti",
     ],
 )
 

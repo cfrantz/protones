@@ -2,13 +2,13 @@
 #define PROTONES_MIDI_FTI_H
 
 #include "proto/fti.pb.h"
-#include "util/status.h"
-#include "util/statusor.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
 
 namespace protones {
 
-StatusOr<proto::FTInstrument> LoadFTI(const std::string& filename);
-util::Status SaveFTI(const std::string& filename, proto::FTInstrument& inst);
+absl::StatusOr<proto::FTInstrument> LoadFTI(const std::string& filename);
+absl::Status SaveFTI(const std::string& filename, proto::FTInstrument& inst);
 
 }  // namespace protones
 #endif // PROTONES_MIDI_FTI_H

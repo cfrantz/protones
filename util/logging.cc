@@ -1,10 +1,10 @@
 #include <stdarg.h>
 #include "util/logging.h"
 
-#include <gflags/gflags.h>
+#include "absl/flags/flag.h"
 
-DEFINE_int32(loglevel, 4, "Logging level");
-DEFINE_string(logfile, "", "Log to file");
+ABSL_FLAG(int, loglevel, 4, "Logging level");
+ABSL_FLAG(std::string, logfile, "", "Log to file");
 
 namespace logging {
 
@@ -30,11 +30,11 @@ void logging_init() {
         return;
 
     bool initerror = false;
-    loglevel = LogLevel(FLAGS_loglevel);
-    if (FLAGS_logfile.empty()) {
+    loglevel = LogLevel(absl::GetFlag(FLAGS_loglevel));
+    if (absl::GetFlag(FLAGS_logfile).empty()) {
         logfp = stderr;
     } else {
-        logfp = fopen(FLAGS_logfile.c_str(), "w");
+        logfp = fopen(absl::GetFlag(FLAGS_logfile).c_str(), "w");
         if (logfp == nullptr) {
             initerror = true;
             logfp = stderr;
@@ -42,7 +42,7 @@ void logging_init() {
     }
     logfp_isatty = isatty(fileno(logfp));
     if (initerror) {
-        LOG(FATAL, "Could not open ", FLAGS_logfile, " for writing.");
+        LOG(FATAL, "Could not open ", absl::GetFlag(FLAGS_logfile), " for writing.");
     }
 }
 

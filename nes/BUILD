@@ -55,13 +55,13 @@ cc_library(
     ],
     deps = [
         ":base",
-        ":nes-interface",
         ":mapper",
+        ":nes-interface",
         ":pbmacro",
-        "//util:os",
-        "//proto:apu",
-        "//external:gflags",
         "//external:imgui",
+        "//proto:apu",
+        "//util:os",
+        "@com_google_absl//absl/flags:flag",
     ],
 )
 
@@ -72,11 +72,11 @@ cc_library(
     deps = [
         ":base",
         ":nes-interface",
-        "//external:gflags",
         "//proto:mappers",
         "//util:crc",
         "//util:file",
         "//util:os",
+        "@com_google_absl//absl/flags:flag",
     ],
 )
 
@@ -101,8 +101,8 @@ cc_library(
         ":base",
         ":nes-interface",
         ":pbmacro",
-        "//external:gflags",
         "//proto:cpu6502",
+        "@com_google_absl//absl/flags:flag",
     ],
 )
 
@@ -116,7 +116,7 @@ cc_binary(
         ":cpu6502",
         ":mem",
         ":nes",
-        "//external:gflags",
+        "@com_google_absl//absl/flags:flag",
     ],
 )
 
@@ -128,7 +128,7 @@ cc_library(
         ":base",
         ":controller",
         ":nes-interface",
-        "//external:gflags",
+        "@com_google_absl//absl/flags:flag",
     ],
 )
 
@@ -178,8 +178,8 @@ cc_library(
     name = "nes",
     srcs = ["nes.cc"],
     deps = [
-        ":base",
         ":apu",
+        ":base",
         ":cartridge",
         ":controller",
         ":cpu6502",
@@ -189,8 +189,8 @@ cc_library(
         ":mem",
         ":nes-interface",
         ":ppu",
-        "//midi:midi",
         "//external:imgui",
+        "//midi",
         "//proto:config",
         "//util:config",
     ],

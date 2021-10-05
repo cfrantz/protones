@@ -49,7 +49,7 @@ cc_library(
         "//util:imgui_sdl_opengl",
         "//util:os",
         "//util:logging",
-        "//external:gflags",
+        "@com_google_absl//absl/flags:flag",
 
         # TODO(cfrantz): on ubuntu 16 with MIR, there is a library conflict
         # between MIR (linked with protobuf 2.6.1) and this program,
@@ -111,12 +111,14 @@ cc_binary(
     }),
     deps = [
         ":app",
-        "//external:gflags",
         "//proto:config",
         "//util:config",
         "//util:file",
         "//util:os",
         "@com_github_bimpy//:bimpy",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/flags:usage",
         "@pybind11_git//:pybind11",
     ],
 )

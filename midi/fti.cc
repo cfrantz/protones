@@ -7,12 +7,12 @@
 
 namespace protones {
 namespace {
-util::Status Error(std::string err) {
-        return util::Status(util::error::Code::INVALID_ARGUMENT, err);
+absl::Status Error(std::string err) {
+    return absl::InvalidArgumentError(err);
 }
 }
 
-util::Status ParseEnvelope(File* file, proto::Envelope* env) {
+absl::Status ParseEnvelope(File* file, proto::Envelope* env) {
     uint32_t count;
     if (!file->Read(&count)) {
         return Error("Couldn't read Envelope::count field");
@@ -61,10 +61,10 @@ util::Status ParseEnvelope(File* file, proto::Envelope* env) {
     env->set_loop(loop);
     env->set_release(release);
 
-    return util::Status();
+    return absl::OkStatus();
 }
 
-util::Status ParseBasicFTI(File* file, proto::FTInstrument* inst) {
+absl::Status ParseBasicFTI(File* file, proto::FTInstrument* inst) {
     uint8_t count;
     if (!file->Read(&count)) {
         return Error("Couldn't read count field");
@@ -92,10 +92,10 @@ util::Status ParseBasicFTI(File* file, proto::FTInstrument* inst) {
             env->set_kind(static_cast<proto::Envelope::Kind>(i+1));
         }
     }
-    return util::Status();
+    return absl::OkStatus();
 }
 
-StatusOr<proto::FTInstrument> ParseFTI(File* file) {
+absl::StatusOr<proto::FTInstrument> ParseFTI(File* file) {
     proto::FTInstrument inst;
 
     std::string sig;
@@ -127,7 +127,7 @@ StatusOr<proto::FTInstrument> ParseFTI(File* file) {
         return Error("Couldn't read name field");
     }
 
-    util::Status status;
+    absl::Status status;
     switch(inst.kind()) {
         case proto::FTInstrument_Kind_NES2A03:
         case proto::FTInstrument_Kind_VRC6:
@@ -141,7 +141,7 @@ StatusOr<proto::FTInstrument> ParseFTI(File* file) {
     return inst;
 }
 
-util::Status SaveEnvelope(File* file, const proto::Envelope* env) {
+absl::Status SaveEnvelope(File* file, const proto::Envelope* env) {
     // count
     file->Write(static_cast<uint32_t>(env->sequence_size()));
     file->Write(env->loop());
@@ -157,10 +157,10 @@ util::Status SaveEnvelope(File* file, const proto::Envelope* env) {
     for(const auto& val : env->sequence()) {
         file->Write(static_cast<int8_t>(val));
     }
-    return util::Status();
+    return absl::OkStatus();
 }
 
-util::Status SaveBasicFTI(File* file, const proto::FTInstrument& inst) {
+absl::Status SaveBasicFTI(File* file, const proto::FTInstrument& inst) {
     file->Write(static_cast<uint8_t>(5));
 
     for(size_t i=0; i<5; i++) {
@@ -182,16 +182,16 @@ util::Status SaveBasicFTI(File* file, const proto::FTInstrument& inst) {
             }
         }
     }
-    return util::Status();
+    return absl::OkStatus();
 }
 
-util::Status SaveFTInstrument(File* file, proto::FTInstrument& inst) {
+absl::Status SaveFTInstrument(File* file, proto::FTInstrument& inst) {
     file->Write("FTI2.4", 6);
     file->Write(static_cast<uint8_t>(inst.kind()));
     file->Write(static_cast<uint32_t>(inst.name().size()));
     file->Write(inst.name().data(), inst.name().size());
 
-    util::Status status;
+    absl::Status status;
     switch(inst.kind()) {
         case proto::FTInstrument_Kind_NES2A03:
         case proto::FTInstrument_Kind_VRC6:
@@ -201,10 +201,10 @@ util::Status SaveFTInstrument(File* file, proto::FTInstrument& inst) {
         default:
             return Error("Expansion not supported");
     }
-    return util::Status();
+    return absl::OkStatus();
 }
 
-StatusOr<proto::FTInstrument> LoadFTI(const std::string& filename) {
+absl::StatusOr<proto::FTInstrument> LoadFTI(const std::string& filename) {
     if (absl::EndsWith(filename, ".textpb")
         || absl::EndsWith(filename, ".textproto")
         || absl::EndsWith(filename, ".txt")) {
@@ -226,7 +226,7 @@ StatusOr<proto::FTInstrument> LoadFTI(const std::string& filename) {
     }
 }
 
-util::Status SaveFTI(const std::string& filename, proto::FTInstrument& inst) {
+absl::Status SaveFTI(const std::string& filename, proto::FTInstrument& inst) {
     if (absl::EndsWith(filename, ".textpb")
         || absl::EndsWith(filename, ".textproto")
         || absl::EndsWith(filename, ".txt")) {
@@ -235,7 +235,7 @@ util::Status SaveFTI(const std::string& filename, proto::FTInstrument& inst) {
         if (!File::SetContents(filename, buffer)) {
             return Error("Unable to write FTI file");
         }
-        return util::Status();
+        return absl::OkStatus();
     } else {
         auto f = File::Open(filename, "wb");
         if (!f) {

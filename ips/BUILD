@@ -9,7 +9,7 @@ cc_library(
         "ips.h",
     ],
     deps = [
-        "//util:status",
+        "@com_google_absl//absl/status:statusor",
     ],
 )
 
@@ -18,8 +18,10 @@ cc_binary(
     srcs = ["ipspatch.cc"],
     deps = [
         ":ips",
-        "//external:gflags",
         "//util:file",
-        "//util:status",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/status",
     ],
 )

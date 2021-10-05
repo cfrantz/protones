@@ -1,13 +1,13 @@
 #include <cstdint>
 #include <cstdio>
 #include <string>
-#include <gflags/gflags.h>
 
+#include "absl/flags/flag.h"
 #include "nes/cpu6502.h"
 #include "nes/mem.h"
 
-DEFINE_int32(end, 0, "End address");
-DEFINE_int64(max_cycles, 0, "Maxiumum number of cycles to emulate");
+ABSL_FLAG(int32_t, end, 0, "End address");
+ABSL_FLAG(int64_t, max_cycles, 0, "Maxiumum number of cycles to emulate");
 
 class Memory: public protones::Mem {
   public:
@@ -34,9 +34,9 @@ protones::Cpu cpu;
 
 int main(int argc, char *argv[]) {
     printf("argc=%d argv=%p\n", argc, argv);
-    gflags::ParseCommandLineFlags(&argc, &argv, true);
+    auto args = absl::ParseCommandLine(argc, argv);
 
-    mem.Load(argv[1], 0x400);
+    mem.Load(args[1], 0x400);
     cpu.memory(&mem);
     cpu.set_pc(0x400);
 
@@ -49,8 +49,8 @@ int main(int argc, char *argv[]) {
         printf("%s\n   %-40s %lu (0x%lx)\n", state.c_str(), instr.c_str(), cpu.cycles(), cpu.cycles());
 
         cpu.Emulate();
-        if (cpu.pc() == FLAGS_end ||
-            (FLAGS_max_cycles && cpu.cycles() >= FLAGS_max_cycles)) {
+        if (cpu.pc() == absl::GetFlag(FLAGS_end) ||
+            (absl::GetFlag(FLAGS_max_cycles) && cpu.cycles() >= absl::GetFlag(FLAGS_max_cycles))) {
             printf("SUCCESS!\n");
             break;
         }

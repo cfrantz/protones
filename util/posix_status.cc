@@ -2,7 +2,7 @@
 #include <string>
 #include <errno.h>
 
-#include "absl/status/status.h"
+#include "util/posix_status.h"
 
 namespace util {
 namespace error {
@@ -19,7 +19,7 @@ std::map<int, absl::StatusCode> posix_errors = {
     { EBUSY, absl::StatusCode::kUnavailable },
     { ECANCELED, absl::StatusCode::kCancelled },
     { ECHILD, absl::StatusCode::kNotFound },
-    { ECONNkAborted, absl::StatusCode::kAborted },
+    { ECONNABORTED, absl::StatusCode::kAborted },
     { ECONNREFUSED, absl::StatusCode::kUnknown },
     { ECONNRESET, absl::StatusCode::kUnknown },
     { EDEADLK, absl::StatusCode::kUnknown },
@@ -84,7 +84,7 @@ std::map<int, absl::StatusCode> posix_errors = {
     { EBADRQC, absl::StatusCode::kInvalidArgument },
     { EBADSLT, absl::StatusCode::kInvalidArgument },
     { ECHRNG, absl::StatusCode::kOutOfRange },
-    { ECOMM, absl::StatusCode::INTERNAL },
+    { ECOMM, absl::StatusCode::kInternal },
     { EDQUOT, absl::StatusCode::kUnknown },
     { EHOSTDOWN, absl::StatusCode::kUnknown },
     { EIDRM, absl::StatusCode::kUnknown },

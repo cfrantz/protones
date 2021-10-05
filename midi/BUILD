@@ -2,12 +2,13 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "fti",
-    hdrs = ["fti.h"],
     srcs = ["fti.cc"],
+    hdrs = ["fti.h"],
     deps = [
-        "//util:file",
-        "//util:status",
         "//proto:fti",
+        "//util:file",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -28,10 +29,10 @@ cc_library(
     deps = [
         ":fti",
         "//nes:base",
-        "//nes:nes-interface",
         "//nes:mem",
-        "//proto:midi",
+        "//nes:nes-interface",
         "//proto:fti",
+        "//proto:midi",
         "//util:file",
         "@rtmidi_git//:rtmidi",
     ],
@@ -42,7 +43,9 @@ cc_binary(
     srcs = ["midi_convert.cc"],
     deps = [
         "//proto:midi_convert",
-        "//external:gflags",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/flags:usage",
         "@midifile_git//:midifile",
     ],
 )
@@ -53,7 +56,9 @@ cc_binary(
     deps = [
         "//proto:midi_convert",
         "//util:file",
-        "//external:gflags",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/flags:usage",
         "@rtmidi_git//:rtmidi",
     ],
 )
@@ -67,7 +72,10 @@ cc_binary(
         "//proto:midi",
         "//proto:midi_convert",
         "//util:file",
-        "//external:gflags",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/flags:usage",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
     ],
 )

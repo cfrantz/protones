@@ -2,12 +2,12 @@
 #include <cstdint>
 #define __STDC_FORMAT_MACROS 1
 #include <inttypes.h>
-#include <gflags/gflags.h>
+#include "absl/flags/flag.h"
 #include "nes/cpu6502.h"
 #include "nes/pbmacro.h"
 
-DEFINE_bool(trace, false, "Enable per cycle CPU tracing");
-DEFINE_string(rwlog, "", "Save memory access info to a file");
+ABSL_FLAG(bool, trace, false, "Enable per cycle CPU tracing");
+ABSL_FLAG(std::string, rwlog, "", "Save memory access info to a file");
 
 namespace protones {
 
@@ -23,9 +23,9 @@ void Cpu::Branch(uint16_t addr) {
 }
 
 void Cpu::SaveRwLog() {
-    if (FLAGS_rwlog.empty())
+    if (absl::GetFlag(FLAGS_rwlog).empty())
         return;
-    FILE* fp = fopen(FLAGS_rwlog.c_str(), "wb");
+    FILE* fp = fopen(absl::GetFlag(FLAGS_rwlog).c_str(), "wb");
     fwrite(rwlog_, 1, sizeof(rwlog_), fp);
     fclose(fp);
 }
@@ -155,7 +155,7 @@ void Cpu::Flush() {
 void Cpu::Emit(const char *buf, int how) {
     static uint64_t last_ts;
     uint64_t ts = cycles_;
-    if (!FLAGS_trace)
+    if (!absl::GetFlag(FLAGS_trace))
         return;
     if (how < 0) {
         int n = -how;
@@ -177,7 +177,7 @@ void Cpu::Emit(const char *buf, int how) {
 
 
 void Cpu::Trace() {
-    if (!FLAGS_trace)
+    if (!absl::GetFlag(FLAGS_trace))
         return;
     std::string s = CpuState();
     Emit(s.c_str(), -8);

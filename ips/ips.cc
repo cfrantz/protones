@@ -2,8 +2,8 @@
 #include <string>
 
 #include "ips/ips.h"
-#include "util/status.h"
-#include "util/statusor.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
 
 namespace ips {
 namespace {
@@ -33,7 +33,7 @@ int32_t read_uint(const std::string& p, size_t offset, size_t len) {
 }
 }  // namespace
 
-std::string CreatePatch(const string& original, const string& modified) {
+std::string CreatePatch(const std::string& original, const std::string& modified) {
     std::string patch = "PATCH";
     size_t len = original.size();
     size_t i;
@@ -68,15 +68,14 @@ std::string CreatePatch(const string& original, const string& modified) {
     return patch;
 }
 
-StatusOr<std::string> ApplyPatch(const string& original,
-                                 const string& patch) {
+absl::StatusOr<std::string> ApplyPatch(const std::string& original,
+                                 const std::string& patch) {
     size_t i = 0;
     int32_t offset, len;
     bool rle_chunk;
 
     if (patch.substr(i, 5) != "PATCH") {
-        return util::Status(util::error::Code::INVALID_ARGUMENT,
-                            "Bad IPS header");
+        return absl::InvalidArgumentError("Bad IPS header");
     }
     i += 5;
     std::string modified = original;
@@ -84,12 +83,12 @@ StatusOr<std::string> ApplyPatch(const string& original,
         if (patch.substr(i, 3) == "EOF")
             break;
         if ((offset = read_uint(patch, i, 3)) < 0) {
-            return util::Status(util::error::Code::INVALID_ARGUMENT,
+            return absl::InvalidArgumentError(
                                 "Premature end of patch reading offset");
         }
         i += 3;
         if ((len = read_uint(patch, i, 2)) < 0) {
-            return util::Status(util::error::Code::INVALID_ARGUMENT,
+            return absl::InvalidArgumentError(
                                 "Premature end of patch reading length");
         }
         i += 2;
@@ -97,7 +96,7 @@ StatusOr<std::string> ApplyPatch(const string& original,
         if (rle_chunk) {
             // An RLE chunk specifies a number of repeated bytes
             if ((len = read_uint(patch, i, 2)) < 0) {
-                return util::Status(util::error::Code::INVALID_ARGUMENT,
+                return absl::InvalidArgumentError(
                                     "Premature end of patch reading RLE size");
             }
             i += 2;
@@ -109,7 +108,7 @@ StatusOr<std::string> ApplyPatch(const string& original,
 
         for(int32_t j=0; j<len; j++) {
             if (i >= patch.size()) {
-                return util::Status(util::error::Code::INVALID_ARGUMENT,
+                return absl::InvalidArgumentError(
                                 "Premature end of patch reading data");
             }
             modified[offset+j] = patch.at(i);

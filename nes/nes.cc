@@ -1,11 +1,10 @@
-
-#include <gflags/gflags.h>
 #include <unistd.h>
 #include "imgui.h"
 #include "google/protobuf/text_format.h"
 
 #include "nes/nes.h"
 
+#include "absl/flags/flag.h"
 #include "nes/cpu6502.h"
 #include "nes/apu.h"
 #include "nes/cartridge.h"
@@ -18,9 +17,9 @@
 #include "proto/config.pb.h"
 #include "util/config.h"
 
-DEFINE_string(fm2, "", "FM2 Movie file.");
-DEFINE_string(midi, "", "Midi configuration textpb.");
-DEFINE_double(fps, 60.0988, "Desired NES fps.");
+ABSL_FLAG(std::string, fm2, "", "FM2 Movie file.");
+ABSL_FLAG(std::string, midi, "", "Midi configuration textpb.");
+ABSL_FLAG(double, fps, 60.0988, "Desired NES fps.");
 namespace protones {
 
 using namespace std::placeholders;
@@ -76,8 +75,8 @@ NES::NES() :
 
     midi_ = new MidiConnector(this);
     devices_.emplace_back(midi_);
-    if (!FLAGS_midi.empty()) {
-        midi_->LoadConfig(FLAGS_midi);
+    if (!absl::GetFlag(FLAGS_midi).empty()) {
+        midi_->LoadConfig(absl::GetFlag(FLAGS_midi));
     }
 
     controller_[0] = new Controller(this, 0);
@@ -108,8 +107,8 @@ void NES::Shutdown() {
 }
 
 void NES::LoadFile(const std::string& filename) {
-    if (!FLAGS_fm2.empty()) {
-        movie_->Load(FLAGS_fm2);
+    if (!absl::GetFlag(FLAGS_fm2).empty()) {
+        movie_->Load(absl::GetFlag(FLAGS_fm2));
         has_movie_ = true;
     }
     cart_->LoadFile(filename);
@@ -283,7 +282,7 @@ bool NES::EmulateFrame() {
         if (!step_) return true;
         step_ = false;
     }
-    double count = double(frequency) / FLAGS_fps - remainder_;
+    double count = double(frequency) / absl::GetFlag(FLAGS_fps) - remainder_;
     double eof = cpu_->cycles() + count;
     frame_profile_.clear();
 

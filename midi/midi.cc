@@ -89,7 +89,7 @@ void MidiConnector::LoadConfig(const std::string& filename) {
     for(const auto& inst : config_.instruments()) {
         auto fti = LoadFTI(inst.second);
         if (fti.ok()) {
-            instrument_.emplace(inst.first, fti.ValueOrDie());
+            instrument_.emplace(inst.first, fti.value());
         } else {
             fprintf(stderr, "Error loading '%s': %s\n",
                     inst.first.c_str(),

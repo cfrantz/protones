@@ -1,18 +1,23 @@
 #include <cstdio>
 #include <string>
 #include <memory>
-#include <gflags/gflags.h>
+#include <map>
 
 #include "proto/midi_convert.pb.h"
 #include "util/file.h"
 #include "google/protobuf/text_format.h"
+#include "absl/flags/flag.h"
+#include "absl/flags/parse.h"
+#include "absl/flags/usage.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "midi/fti.h"
 #include "proto/fti.pb.h"
 #include "proto/midi.pb.h"
 
-DEFINE_double(fps, 60.0, "Target frames per second");
-DEFINE_string(config, "", "MIDI configuration textproto file");
+ABSL_FLAG(double, fps, 60.0, "Target frames per second");
+ABSL_FLAG(std::string, config, "", "MIDI configuration textproto file");
+ABSL_FLAG(int, drumtable_size, -1, "Length of the drum period/patch table");
 
 namespace converter {
 
@@ -54,7 +59,7 @@ class InstrumentManager {
         for(const auto& inst : config_->instruments()) {
             auto fti = protones::LoadFTI(inst.second);
             if (fti.ok()) {
-                instrument_.emplace(inst.first, fti.ValueOrDie());
+                instrument_.emplace(inst.first, fti.value());
             } else {
                 fprintf(stderr, "Error loading '%s': %s\n",
                         inst.first.c_str(),
@@ -159,9 +164,10 @@ class InstrumentManager {
         return env->sequence_size() == 0;
     }
 
-    void RenderEnvelope(const std::string& name, const proto::Envelope* env) {
+    std::string RenderEnvelope(const std::string& name, const proto::Envelope* env) {
+        std::string r;
         if (EnvEmpty(env))
-            return;
+            return r;
 
         // The layout of the envelope data is:
         // LABEL:
@@ -180,53 +186,72 @@ class InstrumentManager {
         int32_t release = env->release();
         release = (release < 0) ? 0 : release + 3;
 
-        printf("%s:\n", EnvName(name, env->kind()).c_str());
-        printf("    .BYT $%02x,$%02x,$%02x", size, loop, release);
+        absl::StrAppendFormat(&r, "%s:\n", EnvName(name, env->kind()));
+        absl::StrAppendFormat(&r, "    .BYT $%02x,$%02x,$%02x", size, loop, release);
         for(int32_t val : env->sequence()) {
             if (env->kind() == proto::Envelope_Kind_VOLUME) {
                 // Adjust the volume to the upper nybble so we don't have
                 // to do it in the player.
                 val <<= 4;
             }
-            printf(",$%02x", val & 0xFF);
+            absl::StrAppendFormat(&r, ",$%02x", val & 0xFF);
         }
-        printf("\n");
+        absl::StrAppendFormat(&r, "\n");
+        return r;
     }
 
-    void Render() {
-        for (const auto& name : used_) {
-            const auto& instrument = instrument_[name];
-            RenderEnvelope(name, &instrument.volume());
-            RenderEnvelope(name, &instrument.arpeggio());
-            RenderEnvelope(name, &instrument.pitch());
-            RenderEnvelope(name, &instrument.duty());
-        }
-        printf("\n.export _instruments_table\n");
-        printf("_instruments_table:\n");
+    std::string RenderInstruments() {
+        std::string r;
+
+        absl::StrAppendFormat(&r, ".export _instruments_table\n");
+        absl::StrAppendFormat(&r, "_instruments_table:\n");
+        const std::string zero("0");
         for (const auto& name : used_) {
             const auto& instrument = instrument_[name];
             const auto& v = &instrument.volume();
             const auto& a = &instrument.arpeggio();
             const auto& p = &instrument.pitch();
             const auto& d = &instrument.duty();
-            printf("    .WORD %s,%s,%s,%s\n",
-                    EnvEmpty(v) ? "0" : EnvName(name, v->kind()).c_str(),
-                    EnvEmpty(a) ? "0" : EnvName(name, a->kind()).c_str(),
-                    EnvEmpty(p) ? "0" : EnvName(name, p->kind()).c_str(),
-                    EnvEmpty(d) ? "0" : EnvName(name, d->kind()).c_str());
+            absl::StrAppendFormat(&r, "    .WORD %s,%s,%s,%s\n",
+                    EnvEmpty(v) ? zero : EnvName(name, v->kind()).c_str(),
+                    EnvEmpty(a) ? zero : EnvName(name, a->kind()).c_str(),
+                    EnvEmpty(p) ? zero : EnvName(name, p->kind()).c_str(),
+                    EnvEmpty(d) ? zero : EnvName(name, d->kind()).c_str());
         }
 
-        printf("\n.export _drum_period\n");
-        printf("_drum_period:\n");
-        for(const auto& period : drum_period_) {
-            printf("    .BYTE $%02x\n", period);
+        absl::StrAppendFormat(&r, "\n");
+        for (const auto& name : used_) {
+            const auto& instrument = instrument_[name];
+            std::string v = RenderEnvelope(name, &instrument.volume());
+            std::string a = RenderEnvelope(name, &instrument.arpeggio());
+            std::string p = RenderEnvelope(name, &instrument.pitch());
+            std::string d = RenderEnvelope(name, &instrument.duty());
+            absl::StrAppend(&r, v, a, p, d);
         }
-        printf("\n.export _drum_patch\n");
-        printf("_drum_patch:\n");
-        for(const auto& patch : drum_patch_) {
-            printf("    .BYTE $%02x\n", patch << 3);
+        return r;
+    }
+
+    std::string RenderDrums(int len) {
+        std::string r;
+
+        absl::StrAppendFormat(&r, ".export _drum_period\n");
+        absl::StrAppendFormat(&r, "_drum_period:\n");
+        int sz = int(drum_period_.size());
+        int n = len == -1 ? sz : len;
+        for(int i=0; i<n; i++) {
+            uint8_t period = i < sz ? drum_period_[i] : 0x00;
+            absl::StrAppendFormat(&r, "    .BYTE $%02x\n", period);
         }
 
+        absl::StrAppendFormat(&r, ".export _drum_patch\n");
+        absl::StrAppendFormat(&r, "_drum_patch:\n");
+        sz = int(drum_patch_.size());
+        n = len == -1 ? sz : len;
+        for(int i=0; i<n; i++) {
+            uint8_t patch = i < sz ? drum_patch_[i] : 0x00;
+            absl::StrAppendFormat(&r, "    .BYTE $%02x\n", patch << 3);
+        }
+        return r;
     }
 
   private:
@@ -337,19 +362,17 @@ class TrackPlayer {
     }
 
     // Print the asm-representation of a rendered track.
-    void ToText(const std::string& songname) {
+    std::string ToText(const std::string& songname) {
+        std::string r;
         size_t mn = 0;
-        std::string name = DataName(songname);
-        printf("%s:\n", name.c_str());
-        printf("    .WORD %s\n", SequenceName(songname).c_str());
+        absl::StrAppendFormat(&r, "%s:\n", DataName(songname));
+        absl::StrAppendFormat(&r, "    .WORD %s\n", SequenceName(songname));
         for(mn=0; mn < measures_.size(); ++mn) {
-            std::string name = MeasureName(songname, mn+1);
-            printf("    .WORD %s\n", name.c_str());
+            absl::StrAppendFormat(&r, "    .WORD %s\n", MeasureName(songname, mn+1));
         }
 
-        name = SequenceName(songname);
-        printf("%s:\n", name.c_str());
-        printf("    .BYT ");
+        absl::StrAppendFormat(&r, "%s:\n", SequenceName(songname));
+        absl::StrAppendFormat(&r, "    .BYT ");
         size_t i = 0;
         for(auto val : track_->sequence()) {
             // In the protofile, sequences index into measures as zero-based,
@@ -357,28 +380,28 @@ class TrackPlayer {
             if (val >=0 && val <= 127) {
                 val += 1;
             }
-            printf("%c$%02x", i == 0 ? ' ' : ',', uint8_t(val));
+            absl::StrAppendFormat(&r, "%c$%02x", i == 0 ? ' ' : ',', uint8_t(val));
             ++i;
         }
-        printf(",$00\n");
+        absl::StrAppendFormat(&r, ",$00\n");
 
         mn = 0;
         for(const auto& measure : measures_) {
             ++mn;
-            std::string name = MeasureName(songname, mn);
-            printf("%s:\n", name.c_str());
-            printf("    .BYT ");
+            absl::StrAppendFormat(&r, "%s:\n", MeasureName(songname, mn));
+            absl::StrAppendFormat(&r, "    .BYT ");
             for(size_t i=0; i<measure.size(); ++i) {
-                printf("%c$%02x", i == 0 ? ' ' : ',', measure[i]);
+                absl::StrAppendFormat(&r, "%c$%02x", i == 0 ? ' ' : ',', measure[i]);
             }
-            printf("\n");
+            absl::StrAppendFormat(&r, "\n");
         }
+        return r;
     }
 
     // Render a track to assembly.
-    void Render(const std::string& songname) {
+    std::string Render(const std::string& songname) {
         RenderMeasures();
-        ToText(songname);
+        return ToText(songname);
     }
 
     void set_note_offset(int offset) { note_offset_ = offset; }
@@ -454,59 +477,69 @@ class SongPlayer {
         double bps = song_.bpm() / 60.0;
         double beat = 1.0 / bps;
         double measure = song_.time_signature().numerator() * beat;
-        int frames = (measure * FLAGS_fps + 0.5);
+        int frames = (measure * absl::GetFlag(FLAGS_fps) + 0.5);
         return frames;
     }
 
     // Print the song tracks in "naive" ordering, which is the smae order 
     // they appear in the proto file.
-    void NaiveOrder(const std::string& title) {
-        printf("    .BYT %d, 0\n", song_.tracks_size());
+    std::string NaiveOrder(const std::string& title) {
+        std::string r;
+        absl::StrAppendFormat(&r, "    .BYT %d, 0\n", song_.tracks_size());
         for(auto& pair : player_) {
-            printf("    .WORD %s\n", pair.second.DataName(title).c_str());
+            absl::StrAppendFormat(&r, "    .WORD %s\n", pair.second.DataName(title));
         }
+        return r;
     }
 
     // Print the song tracks in "config" ordering, which is the order of the
     // channels defined in the config (which should match the ordering of
     // the APU channels on the NES).
-    void ConfigOrder(const std::string& title) {
-        printf("    .BYT %d, 0\n", config_.channel_size());
+    std::string ConfigOrder(const std::string& title) {
+        std::string r;
+        absl::StrAppendFormat(&r, "    .BYT %d, 0\n", config_.channel_size());
         for(const auto& channel : config_.channel()) {
             // config uses 1-based MIDI channel numbers, while the player
             // uses zero-based channel numbers.
             auto it = player_.find(channel.channel() - 1);
             if (it != player_.end()) {
-                printf("    .WORD %s\n", it->second.DataName(title).c_str());
+                absl::StrAppendFormat(&r, "    .WORD %s\n", it->second.DataName(title));
 
                 // Kindof hacky: we set config parameters in the player here
                 // because we haven't "rendered" the data in the player yet.
                 it->second.set_note_offset(channel.note_offset());
             } else {
-                printf("    .WORD 0\n");
+                absl::StrAppendFormat(&r, "    .WORD 0\n");
             }
         }
+        return r;
     }
 
     // Render the song to asm-representation.
-    void Render() {
+    std::string Render() {
+        std::string r;
         std::string title = Symbol(song_.title());
-        printf(".export _%s\n", title.c_str());
-        printf("_%s:\n", title.c_str());
+        absl::StrAppendFormat(&r, ".export _%s\n", title);
+        absl::StrAppendFormat(&r, "_%s:\n", title);
         if (config_.channel().empty()) {
-            NaiveOrder(title);
+            absl::StrAppend(&r, NaiveOrder(title));
         } else {
-            ConfigOrder(title);
+            absl::StrAppend(&r, ConfigOrder(title));
         }
         for(auto& pair : player_) {
-            pair.second.Render(title);
+            absl::StrAppend(&r, pair.second.Render(title));
         }
+        return r;
     }
 
     // Render the known instruments to asm-representation.
-    void RenderInstruments() {
-        manager_.Render();
+    std::string RenderInstruments() {
+        std::string inst = manager_.RenderInstruments();
+        std::string drums = manager_.RenderDrums(absl::GetFlag(FLAGS_drumtable_size));
+        return absl::StrCat(drums, "\n", inst);
     }
+
+    const std::string& title() { return song_.title(); }
 
   private:
     proto::Song song_;
@@ -518,7 +551,7 @@ class SongPlayer {
 }  // namespace converter
 
 const char kUsage[] =
-R"ZZZ(<optional flags> [proto-file]
+R"ZZZ(<optional flags> [proto-files ...]
 
 Description:
   Proto-MIDI file player.
@@ -527,21 +560,40 @@ Flags:
 )ZZZ";
 
 int main(int argc, char *argv[]) {
-    gflags::SetUsageMessage(kUsage);
-    gflags::ParseCommandLineFlags(&argc, &argv, true);
+    absl::SetProgramUsageMessage(kUsage);
+    auto args = absl::ParseCommandLine(argc, argv);
 
     converter::SongPlayer sp;
-    if (!FLAGS_config.empty()) {
-        sp.LoadConfig(FLAGS_config);
+    if (!absl::GetFlag(FLAGS_config).empty()) {
+        sp.LoadConfig(absl::GetFlag(FLAGS_config));
     }
-    if (argc >= 1) {
-        for(int i=1; i<argc; ++i) {
-            sp.Load(argv[i]);
-            sp.Render();
+    if (argc < 2) {
+        fprintf(stderr, "No files specified!");
+        return 1;
+    }
+
+    std::string song_table;
+    std::string songs;
+    absl::StrAppendFormat(&song_table, ".export _song_table\n");
+    absl::StrAppendFormat(&song_table, "_song_table:\n");
+    std::map<std::string, bool> rendered; 
+    for(size_t i=1; i<args.size(); ++i) {
+        std::string arg(args[i]);
+        if (arg.empty()) {
+            absl::StrAppendFormat(&song_table, "    .WORD 0\n");
+        } else {
+            sp.Load(arg);
+            absl::StrAppendFormat(&song_table, "    .WORD _%s\n", converter::Symbol(sp.title()));
+            if (!rendered[arg]) {
+                absl::StrAppend(&songs, sp.Render());
+                rendered[arg] = true;
+            }
         }
-        printf("\n\n");
-        sp.RenderInstruments();
     }
+    absl::PrintF("%s\n%s\n%s\n",
+                 song_table,
+                 sp.RenderInstruments(),
+                 songs);
 
     return 0;
 }

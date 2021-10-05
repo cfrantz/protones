@@ -1,16 +1,18 @@
 #include <cstdio>
 #include <string>
 #include <memory>
-#include <gflags/gflags.h>
 
+#include "absl/flags/flag.h"
+#include "absl/flags/parse.h"
+#include "absl/flags/usage.h"
 #include "RtMidi.h"
 #include "proto/midi_convert.pb.h"
 #include "util/file.h"
 #include "google/protobuf/text_format.h"
 
-DEFINE_double(fps, 60.0, "Target frames per second");
-DEFINE_bool(list, false, "List MIDI output ports and exit");
-DEFINE_int32(port, -1, "MIDI output port to use");
+ABSL_FLAG(double, fps, 60.0, "Target frames per second");
+ABSL_FLAG(bool, list, false, "List MIDI output ports and exit");
+ABSL_FLAG(int, port, -1, "MIDI output port to use");
 
 namespace player {
 
@@ -144,7 +146,7 @@ class SongPlayer {
         double bps = song_.bpm() / 60.0;
         double beat = 1.0 / bps;
         double measure = song_.time_signature().numerator() * beat;
-        int frames = (measure * FLAGS_fps + 0.5);
+        int frames = (measure * absl::GetFlag(FLAGS_fps) + 0.5);
         return frames;
     }
 
@@ -162,7 +164,7 @@ class SongPlayer {
     }
 
     void Play() {
-        int delay = 1000000.0 / FLAGS_fps;
+        int delay = 1000000.0 / absl::GetFlag(FLAGS_fps);
         while(!Done()) {
             Tick();
             usleep(delay);
@@ -187,23 +189,23 @@ Flags:
 )ZZZ";
 
 int main(int argc, char *argv[]) {
-    gflags::SetUsageMessage(kUsage);
-    gflags::ParseCommandLineFlags(&argc, &argv, true);
-    auto midiout = std::make_unique<RtMidiOut>();
+    absl::SetProgramUsageMessage(kUsage);
+    auto args = absl::ParseCommandLine(argc, argv);
 
-    if (FLAGS_list) {
+    auto midiout = std::make_unique<RtMidiOut>();
+    if (absl::GetFlag(FLAGS_list)) {
         player::ListOutputPorts(midiout.get());
         return 0;
     }
-    if (FLAGS_port == -1) {
+    if (absl::GetFlag(FLAGS_port) == -1) {
         fprintf(stderr, "Set --port to something (hint: see ports with --list)\n");
         return 1;
     }
 
-    midiout->openPort(FLAGS_port);
+    midiout->openPort(absl::GetFlag(FLAGS_port));
     player::SongPlayer sp(midiout.get());
-    if (argc > 1) {
-        sp.Load(argv[1]);
+    if (args.size() > 1) {
+        sp.Load(args[1]);
         sp.Play();
     }
     return 0;

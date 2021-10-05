@@ -4,9 +4,8 @@
 #include <memory>
 #include <thread>
 
-#include <gflags/gflags.h>
-#include <gflags/gflags_declare.h>
-
+#include "absl/flags/flag.h"
+#include "absl/flags/declare.h"
 #include "absl/memory/memory.h"
 #include "app.h"
 #include "imgui.h"
@@ -39,9 +38,9 @@
 #include "nfd.h"
 #endif
 
-DEFINE_bool(focus, false, "Whether joystick events require window focus");
-DECLARE_double(volume);
-DECLARE_string(midi);
+ABSL_FLAG(bool, focus, false, "Whether joystick events require window focus");
+ABSL_DECLARE_FLAG(double, volume);
+ABSL_DECLARE_FLAG(std::string, midi);
 
 namespace protones {
 namespace py = pybind11;
@@ -54,13 +53,13 @@ void ProtoNES::Init() {
     aspect_ = 1.2f;
     memset(frametime_, 0, sizeof(frametime_));
     ftp_ = 0;
-    volume_ = FLAGS_volume;
+    volume_ = absl::GetFlag(FLAGS_volume);
     preferences_ = false;
     pause_ = false;
     step_ = false;
 
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS,
-                FLAGS_focus ? "0" : "1");
+                absl::GetFlag(FLAGS_focus) ? "0" : "1");
     SDL_GL_SetSwapInterval(0);
 
     apu_debug_ = new APUDebug(nes_->apu());
@@ -320,7 +319,7 @@ save_as:
         if (ImGui::BeginMenu("Edit")) {
             ImGui::MenuItem("Debug Console", nullptr, &console_->visible());
             ImGui::MenuItem("Preferences", nullptr, &preferences_);
-            ImGui::MenuItem("Midi Setup", nullptr, &midi_setup_->visible(), !FLAGS_midi.empty());
+            ImGui::MenuItem("Midi Setup", nullptr, &midi_setup_->visible(), !absl::GetFlag(FLAGS_midi).empty());
             ImGui::MenuItem("State History", nullptr, &history_enabled_);
             hook_.attr("EditMenu")();
             ImGui::EndMenu();

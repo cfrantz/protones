@@ -1,12 +1,14 @@
 #include <cstdio>
 #include <string>
-#include <gflags/gflags.h>
+#include "absl/flags/flag.h"
+#include "absl/flags/parse.h"
+#include "absl/flags/usage.h"
 
 #include "ips/ips.h"
 #include "util/file.h"
 
-DEFINE_bool(create, false, "Create an IPS patch");
-DEFINE_bool(apply, false, "Apply an IPS patch");
+ABSL_FLAG(bool, create, false, "Create an IPS patch");
+ABSL_FLAG(bool, apply, false, "Apply an IPS patch");
 
 const char kUsage[] =
 R"ZZZ(<flags> [files...]
@@ -20,22 +22,22 @@ Usage:
 )ZZZ";
 
 int main(int argc, char *argv[]) {
-    gflags::SetUsageMessage(kUsage);
-    gflags::ParseCommandLineFlags(&argc, &argv, true);
+    absl::SetProgramUsageMessage(kUsage);
+    auto args = absl::ParseCommandLine(argc, argv);
     std::string original, modified, patch;
 
-    if (FLAGS_create && argc == 4) {
-        File::GetContents(argv[1], &original);
-        File::GetContents(argv[2], &modified);
+    if (absl::GetFlag(FLAGS_create) && args.size() == 4) {
+        File::GetContents(args[1], &original);
+        File::GetContents(args[2], &modified);
         patch = ips::CreatePatch(original, modified);
-        File::SetContents(argv[3], patch);
+        File::SetContents(args[3], patch);
         printf("Wrote patch to %s\n", argv[3]);
-    } else if (FLAGS_apply && argc == 4) {
-        File::GetContents(argv[1], &original);
-        File::GetContents(argv[2], &patch);
+    } else if (absl::GetFlag(FLAGS_apply) && args.size() == 4) {
+        File::GetContents(args[1], &original);
+        File::GetContents(args[2], &patch);
         auto mod = ips::ApplyPatch(original, patch);
         if (mod.ok()) {
-            File::SetContents(argv[3], mod.ValueOrDie());
+            File::SetContents(args[3], mod.value());
             printf("Applied patch and wrote new file %s\n", argv[3]);
         } else {
             printf("Error: %s\n", mod.status().ToString().c_str());

@@ -4,8 +4,9 @@ cc_binary(
     name = "pack_config",
     srcs = ["pack_config.cc"],
     deps = [
-        "//external:gflags",
         "//proto:config",
         "//util:config",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
     ],
 )
