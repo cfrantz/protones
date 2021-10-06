@@ -92,6 +92,7 @@ void ConvertTrack(const smf::MidiFile& midi, proto::Song* song, int tnum) {
     proto::TimeSignature tsig = song->time_signature();
     double tempo = song->bpm();
     int measure_frames = CalculateMeasureFrames(midi, tsig, tempo);
+    song->set_frames_per_measure(measure_frames);
 
     for(int evnum=0; evnum < midi[tnum].size(); ++evnum) {
         smf::MidiEvent event = midi[tnum][evnum];
@@ -113,6 +114,7 @@ void ConvertTrack(const smf::MidiFile& midi, proto::Song* song, int tnum) {
                         tnum, tsig.DebugString().c_str());
             }
             measure_frames = CalculateMeasureFrames(midi, tsig, tempo);
+            song->set_frames_per_measure(measure_frames);
         } else if (event.isTempo()) {
             tempo = event.getTempoBPM();
             if (song->bpm() == 0.0) {
@@ -122,6 +124,7 @@ void ConvertTrack(const smf::MidiFile& midi, proto::Song* song, int tnum) {
                         tnum, tempo);
             }
             measure_frames = CalculateMeasureFrames(midi, tsig, tempo);
+            song->set_frames_per_measure(measure_frames);
         } else {
             int mnum = 0, fnum = 0;
             int frame = (event.seconds * absl::GetFlag(FLAGS_fps) + 0.5);

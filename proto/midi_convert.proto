@@ -22,6 +22,10 @@ message OtherEvent {
     oneof event {
         // MIDI program change message.
         int32 program_change = 1;
+        // Some custom messages for a specific integration.
+        bool song_end = 100;
+        int32 next_song = 101;
+        bool restart_last_song = 102;
     }
 }
 
@@ -55,8 +59,15 @@ message TimeSignature {
 }
 
 message Song {
+    // Title of the song.
     string title = 1;
+    // Beats per minute.
     double bpm = 2;
+    // Time signature.
     TimeSignature time_signature = 3;
-    repeated Track tracks = 4;
+    // Number of frames per measure.  This is informational only; the
+    // converter programs never read this value.
+    int32 frames_per_measure = 4;
+    // Track data.
+    repeated Track tracks = 5;
 }

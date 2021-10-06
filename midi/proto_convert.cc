@@ -27,7 +27,10 @@ enum CFplayer: uint8_t {
     END = 0x00,
     // Volume events: 0x01 - 0x10 (set vol to value & 0x0F).
     NOTE_OFF = 0x11,
-    // Undefined: 0x12 - 0x1F
+    SONG_END = 0x12,
+    NEXT_SONG = 0x13,
+    RESTART_LAST_SONG = 0x14,
+    // Undefined: 0x14 - 0x1F
     PROGRAM_CHANGE = 0x20,
     // Note On events: 0x21 - 0x77 (midi note A0 through B7)
     // Undefined: 0x78 - 0x7F.
@@ -304,6 +307,21 @@ class TrackPlayer {
                     }
                 }
                     break;
+                case proto::OtherEvent::EventCase::kSongEnd:
+                    if (other.song_end()) {
+                        m->push_back(CFplayer::SONG_END);
+                    }
+                    break;
+                case proto::OtherEvent::EventCase::kRestartLastSong:
+                    if (other.restart_last_song()) {
+                        m->push_back(CFplayer::RESTART_LAST_SONG);
+                    }
+                    break;
+
+                case proto::OtherEvent::EventCase::kNextSong:
+                    m->push_back(CFplayer::NEXT_SONG);
+                    m->push_back(uint8_t(other.next_song()));
+                    break;
                 default:
                     fprintf(stderr, "Unknown `other` event %s\n",
                             other.DebugString().c_str());
@@ -320,12 +338,11 @@ class TrackPlayer {
             int last_frame = 0;
 
             for(const auto& frame : measure.frames()) {
+                RenderDelay(&m, frame.frame() - last_frame);
+                last_frame = frame.frame();
                 RenderOther(&frame, &m);
                 const auto& note = frame.note();
                 if (note.kind() == proto::Note_Kind_NONE) continue;
-
-                RenderDelay(&m, frame.frame() - last_frame);
-                last_frame = frame.frame();
                 if (note.kind() == proto::Note_Kind_ON) {
                     int volume = note.velocity() / 8;
                     if (volume != last_volume) {
@@ -374,6 +391,8 @@ class TrackPlayer {
         absl::StrAppendFormat(&r, "%s:\n", SequenceName(songname));
         absl::StrAppendFormat(&r, "    .BYT ");
         size_t i = 0;
+        fprintf(stderr, "INFO: %s length=%d\n",
+                SequenceName(songname).c_str(), track_->sequence_size());
         for(auto val : track_->sequence()) {
             // In the protofile, sequences index into measures as zero-based,
             // but are 1-based in the assembly.
