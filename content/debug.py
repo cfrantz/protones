@@ -5,6 +5,7 @@
 ######################################################################
 import app
 import json
+from collections.abc import Iterable
 
 _addr = 0x8000
 _length = 64
@@ -94,18 +95,26 @@ def PrintExecCb(cpu):
 
     return cpu.pc
 
-def ReadWatch(addr, on=True):
-    app.root().nes.cpu.SetReadCallback(addr, PrintMemCb if on else None)
+def ReadWatch(addr, on=PrintMemCb):
+    if isinstance(addr, Iterable):
+        for a in addr:
+            app.root().nes.cpu.SetReadCallback(a, on if on else None)
+    else:
+        app.root().nes.cpu.SetReadCallback(addr, on if on else None)
 
-def ReadWatchRange(start, end, on=True):
-    for a in range(start, end):
-        ReadWatch(a, on)
+def WriteWatch(addr, on=PrintMemCb):
+    if isinstance(addr, Iterable):
+        for a in addr:
+            app.root().nes.cpu.SetWriteCallback(a, on if on else None)
+    else:
+        app.root().nes.cpu.SetWriteCallback(addr, on if on else None)
 
-def WriteWatch(addr, on=True):
-    app.root().nes.cpu.SetWriteCallback(addr, PrintMemCb if on else None)
-
-def ExecWatch(addr, on=True):
-    app.root().nes.cpu.SetExecCallback(addr, PrintExecCb if on else None)
+def ExecWatch(addr, on=PrintExecCb):
+    if isinstance(addr, Iterable):
+        for a in addr:
+            app.root().nes.cpu.SetExecCallback(a, on if on else None)
+    else:
+        app.root().nes.cpu.SetExecCallback(addr, on if on else None)
 
 def ExecDebugDot(addr, color=None):
     def _debug_dot(cpu):
@@ -124,9 +133,8 @@ def ExecCycleCounter(a1=0, a2=0, n=0):
     nes.cpu.SetExecCallback(a1, _start if a1 else None)
     nes.cpu.SetExecCallback(a2, _end if a1 else None)
 
-def WatchAPU(on=True):
-    for reg in range(0x4000, 0x4014):
-        WriteWatch(reg, on)
+def WatchAPU(on=PrintMemCb):
+    WriteWatch(range(0x4000, 0x4014), on)
 
 class APULogger(object):
 
@@ -137,6 +145,7 @@ class APULogger(object):
         self.val = 0
         for reg in range(0x4000, 0x4014):
             app.root().nes.cpu.SetWriteCallback(reg, self.watcher)
+        app.root().nes.cpu.SetWriteCallback(0x4015, self.watcher)
         mem = app.root().nes.mem
         mem[0xeb] = 0x80
 
@@ -195,3 +204,27 @@ class APUPlayer(object):
             for d in data:
                 self.frame[frame+d['frame']] = d
 
+def printvals(name, addr, length):
+    mem = app.root().nes.mem
+    print("%20s:" % name, end='')
+    for i in range(length):
+        print(" %02x" % mem[addr+i], end='')
+    print()
+
+def cfplayercb(cpu, addr, val):
+    print("frame=%6d pc=%04x accessed addr %04x val=%02x" % (
+        app.root().nes.frame(), cpu.pc, addr, val))
+    a = 0x7a01
+    printvals("channel_delay", a, 7); a+=7
+    printvals("channel_seq_pos", a, 7); a+=7
+    printvals("channel_meas_pos", a, 7); a+=7
+    printvals("channel_note", a, 7); a+=7
+    printvals("channel_volume", a, 7); a+=7
+    printvals("channel_instrument", a, 7); a+=7
+    printvals("channel_env_state", a, 7); a+=7
+    printvals("channel_env_vol", a, 7); a+=7
+    printvals("channel_env_arp", a, 7); a+=7
+    printvals("channel_env_pitch", a, 7); a+=7
+    printvals("channel_env_duty", a, 7); a+=7
+    printvals("channel_owner", a, 7); a+=7
+    return val
