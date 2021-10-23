@@ -16,6 +16,19 @@ message Envelope {
     repeated int32 sequence = 4;
 }
 
+message DPCMAssignment {
+    int32 note = 1;
+    int32 sample = 2;
+    int32 pitch = 3;
+    bool loop = 4;
+}
+
+message DPCMSample {
+    string name = 1;
+    int32 size = 2;
+    bytes data = 3;
+}
+
 message FTInstrument {
     enum Kind {
         UNKNOWN = 0;
@@ -33,4 +46,6 @@ message FTInstrument {
     Envelope pitch = 5;
     Envelope hipitch = 6;
     Envelope duty = 7;
+    repeated DPCMAssignment dpcm = 8;
+    map<int32, DPCMSample> sample = 9;
 }

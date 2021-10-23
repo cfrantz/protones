@@ -157,7 +157,7 @@ midi_program: [
     {  key:60 value: "" },            # Muted Trumpet
     {  key:61 value: "" },            # French Horn
     {  key:62 value: "" },            # Brass Section
-    {  key:63 value: "" },            # Synth Brass 1
+    {  key:63 value: "blank" },            # Synth Brass 1
     {  key:64 value: "" },            # Synth Brass 2
     {  key:65 value: "" },            # Soprano Sax
     {  key:66 value: "" },            # Alto Sax

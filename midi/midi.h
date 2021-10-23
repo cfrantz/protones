@@ -47,8 +47,14 @@ class Envelope {
 
 class InstrumentPlayer {
   public:
-    InstrumentPlayer(proto::FTInstrument *inst)
-      : instrument_(inst)
+    InstrumentPlayer(NES* nes, proto::FTInstrument *inst)
+      : InstrumentPlayer(nes, inst, false)
+    {}
+
+    InstrumentPlayer(NES* nes, proto::FTInstrument *inst, bool dmc)
+      : nes_(nes),
+        instrument_(inst),
+        dmc_(dmc)
     {
         if (instrument_ != nullptr) {
             volume_ = Envelope(&instrument_->volume(), 15);
@@ -71,19 +77,30 @@ class InstrumentPlayer {
     bool done();
     void set_bend(double bend) { bend_ = bend; }
 
+    uint8_t dpcm_size() { return uint8_t(dpcm_size_ >> 4); }
+    uint8_t dpcm_rate() { return dpcm_rate_; }
+    uint8_t dpcm_addr() { return dpcm_addr_; }
+
     Envelope* envelope(proto::Envelope_Kind kind);
     proto::FTInstrument *instrument() { return instrument_; }
 
   private:
+    NES* nes_;
     proto::FTInstrument *instrument_;
     uint8_t note_ = 0;
     uint8_t velocity_ = 0;
     double bend_ = 1.0;
     bool released_ = false;
+    bool dmc_ = false;
     Envelope volume_ = Envelope(nullptr, 15);
     Envelope arpeggio_ = Envelope(nullptr, 0);
     Envelope pitch_ = Envelope(nullptr, 0);
     Envelope duty_ = Envelope(nullptr, 2);
+    proto::DPCMAssignment dpcm_;
+    int32_t dpcm_size_;
+    uint8_t dpcm_rate_;
+    uint8_t dpcm_addr_;
+    int32_t dpcm_per_frame_;
 };
 
 
@@ -94,7 +111,7 @@ class Channel {
       chanconfig_(config),
       instrument_(instrument)
     {}
-    
+
     void ProcessMessage(const std::vector<uint8_t>& message);
     void Step();
     void NoteOn(uint8_t note, uint8_t velocity);
@@ -106,14 +123,14 @@ class Channel {
   private:
     uint16_t OscBaseAddress(proto::MidiChannel::Oscillator osciallator);
 
-    NES* nes_; 
+    NES* nes_;
     double bend_ = 1.0;
     proto::MidiChannel* chanconfig_;
     proto::FTInstrument* instrument_;
     std::vector<InstrumentPlayer> player_;
     std::map<uint16_t, uint8_t> last_timer_hi_;
     friend class MidiSetup;
-}; 
+};
 
 
 class MidiConnector : public EmulatedDevice {
@@ -149,7 +166,7 @@ class MidiConnector : public EmulatedDevice {
     static double notes_[128];
   private:
     void InitEnables();
-    NES* nes_; 
+    NES* nes_;
     bool enabled_;
     std::unique_ptr<RtMidiIn> midi_;
     proto::MidiConfig config_;

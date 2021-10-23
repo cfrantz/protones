@@ -2,6 +2,7 @@
 #include "midi/midi.h"
 
 #include "nes/mem.h"
+#include "nes/cartridge.h"
 #include "util/file.h"
 #include "midi/fti.h"
 
@@ -10,6 +11,24 @@ namespace protones {
 double MidiConnector::notes_[128];
 // Lowest frequency we can create on the NES
 constexpr double NoteA0 = 27.5;
+constexpr double dmc_freq[] = {
+	4181.71,
+	4709.93,
+	5264.04,
+	5593.04,
+	6257.95,
+	7046.35,
+	7919.35,
+	8363.42,
+	9419.86,
+	11186.1,
+	12604.0,
+	13982.6,
+	16884.6,
+	21306.8,
+	24858.0,
+	33143.9,
+};
 
 void MidiConnector::InitNotes(double a440) {
     double a0 = a440 / 16.0;
@@ -25,7 +44,7 @@ void MidiConnector::InitNotes(double a440) {
 
 void MidiConnector::InitEnables() {
     // Enable all channels in the APU.
-    nes_->mem()->Write(0x4015, 0x1F);
+    nes_->mem()->Write(0x4015, 0x0F);
     // Enable the pulse channels in MMC5.
     nes_->mem()->Write(0x5015, 0x03);
 }
@@ -161,14 +180,21 @@ void Channel::ProcessMessage(const std::vector<uint8_t>& message) {
 }
 
 void Channel::NoteOn(uint8_t note, uint8_t velocity) {
+    bool isdmc = false;
+    for(const auto osc: chanconfig_->oscillator()) {
+        if (osc == proto::MidiChannel_Oscillator_DMC)
+            isdmc = true;
+    }
     if (chanconfig_->drumkit().empty()) {
-        player_.emplace_back(instrument_);
+        if (!isdmc || (isdmc && player_.size() == 0)) {
+            player_.emplace_back(nes_, instrument_, isdmc);
+        }
         player_.back().NoteOn(note, velocity);
         player_.back().set_bend(bend_);
     } else {
         auto drum = chanconfig_->drumkit().find(note);
         if (drum != chanconfig_->drumkit().end()) {
-            player_.emplace_back(nes_->midi()->instrument(drum->second.patch()));
+            player_.emplace_back(nes_, nes_->midi()->instrument(drum->second.patch()));
             player_.back().NoteOn(drum->second.period(), velocity);
             player_.back().set_bend(bend_);
         } else {
@@ -282,6 +308,14 @@ void Channel::Step() {
                     nes_->mem()->Write(base + 3, 0xF8);
                     last_timer_hi_[base+2] = p.note();
                 }
+                break;
+            case proto::MidiChannel_Oscillator_DMC:
+                // We cheat and use `base+1` to represent the main APU enable register
+                //if (last_timer_hi_[base+1] != p.done()) {
+                    //nes_->mem()->Write(0x4015, p.done() ? 0x0F : 0x1F);
+                    nes_->mem()->Write(0x4015, 0x1F);
+                    last_timer_hi_[base+1] = p.done();
+                //}
                 break;
             default:
                 fprintf(stderr, "Don't know how to program oscillator type %d\n",
@@ -411,10 +445,43 @@ Envelope* InstrumentPlayer::envelope(proto::Envelope_Kind kind) {
 void InstrumentPlayer::NoteOn(uint8_t note, uint8_t velocity) {
     note_ = note;
     velocity_ = velocity;
-    volume_.NoteOn();
-    arpeggio_.NoteOn();
-    pitch_.NoteOn();
-    duty_.NoteOn();
+    released_ = false;
+    if (!dmc_) {
+        volume_.NoteOn();
+        arpeggio_.NoteOn();
+        pitch_.NoteOn();
+        duty_.NoteOn();
+    } else {
+        if (!instrument_) {
+            fprintf(stderr, "No DPCM instrument for note %u\n", note);
+            return;
+        }
+        for (const auto& dpcm : instrument_->dpcm()) {
+            if (dpcm.note() == note) {
+                const auto it = instrument_->sample().find(dpcm.sample());
+                if (it != instrument_->sample().end()) {
+                    printf("Starting DMC: note=%d sample=%s\n", note, it->second.name().c_str());
+                    dpcm_ = dpcm;
+                    dpcm_size_ = it->second.data().size();
+                    dpcm_per_frame_ = dmc_freq[dpcm.pitch()] / 60.0988;
+                    // Hack - assume "do_nothing" ROM.
+                    // Load the sample into ROM address space
+                    uint32_t addr = (nes_->cartridge()->prglen() - 0x80 - dpcm_size_) & 0xFFF0;
+                    for(auto d : it->second.data()) {
+                        nes_->cartridge()->WritePrg(addr++, d);
+                    }
+                    dpcm_rate_ = uint8_t(dpcm.pitch()) | (dpcm.loop() ? 0x80 : 0);
+                    dpcm_addr_ = ((0xFF80 - dpcm_size_) & 0xFFF0) >> 6;
+                    nes_->mem()->Write(0x4015, 0x0F);
+                    nes_->mem()->Write(0x4010, dpcm_rate_);
+                    nes_->mem()->Write(0x4012, dpcm_addr_);
+                    nes_->mem()->Write(0x4013, uint8_t(dpcm_size_ >> 4));
+                    return;
+                }
+            }
+        }
+        fprintf(stderr, "No DPCM sample assigned to note %u\n", note);
+    }
 }
 
 void InstrumentPlayer::Release() {
@@ -423,6 +490,7 @@ void InstrumentPlayer::Release() {
     arpeggio_.Release();
     pitch_.Release();
     duty_.Release();
+    dpcm_size_ = -1;
 }
 
 void InstrumentPlayer::Step() {
@@ -430,13 +498,21 @@ void InstrumentPlayer::Step() {
     arpeggio_.Step();
     pitch_.Step();
     duty_.Step();
+    if (!dpcm_.loop() && dpcm_size_ > 0) {
+        dpcm_size_ -= dpcm_per_frame_;
+    }
 }
 
 bool InstrumentPlayer::done() {
-    return volume_.done() &&
-           arpeggio_.done() &&
-           pitch_.done() &&
-           duty_.done();
+    if (dmc_) {
+        //return dpcm_size_ <= 0;
+        return !released_;
+    } else {
+        return volume_.done() &&
+               arpeggio_.done() &&
+               pitch_.done() &&
+               duty_.done();
+    }
 }
 
 uint8_t InstrumentPlayer::volume() {

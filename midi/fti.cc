@@ -95,6 +95,58 @@ absl::Status ParseBasicFTI(File* file, proto::FTInstrument* inst) {
     return absl::OkStatus();
 }
 
+struct AssignmentData {
+    uint8_t index;
+    uint8_t sample;
+    uint8_t pitch;
+    uint8_t delta;
+};
+
+absl::Status ParseDPCM(File* file, proto::FTInstrument* inst) {
+    uint32_t assigned;
+    if (!file->Read(&assigned)) {
+        return Error("Couldn't read DPCM.assigned field");
+    }
+    for(uint32_t i=0; i<assigned; ++i) {
+        AssignmentData ad;
+        if (!file->Read(&ad)) {
+            return Error("Couldn't read DPCM.assignment_data field");
+        }
+        auto *dpcm = inst->add_dpcm();
+        dpcm->set_note(ad.index);
+        dpcm->set_sample(ad.sample - 1);
+        dpcm->set_pitch(ad.pitch & 0x7f);
+        dpcm->set_loop((ad.pitch & 0x80) != 0);
+    }
+    uint32_t count;
+    if (!file->Read(&count)) {
+        return Error("Couldn't read count field");
+    }
+    for(uint32_t i=0; i<count; ++i) {
+        uint32_t index, namelen, size;
+        proto::DPCMSample sample;
+        if (!file->Read(&index)) {
+            return Error("Couldn't read DPCM.sample.index field");
+        }
+        if (!file->Read(&namelen)) {
+            return Error("Couldn't read DPCM.sample.namelen field");
+        }
+        if (!file->Read(sample.mutable_name(), namelen)) {
+            return Error("Couldn't read DPCM.sample.name field");
+        }
+        if (!file->Read(&size)) {
+            return Error("Couldn't read DPCM.sample.size field");
+        }
+        if (!file->Read(sample.mutable_data(), size)) {
+            return Error("Couldn't read DPCM.sample.data field");
+        }
+        sample.set_size(int32_t(size));
+        (*inst->mutable_sample())[index] = sample;
+    }
+    return absl::OkStatus();
+}
+
+
 absl::StatusOr<proto::FTInstrument> ParseFTI(File* file) {
     proto::FTInstrument inst;
 
@@ -138,6 +190,10 @@ absl::StatusOr<proto::FTInstrument> ParseFTI(File* file) {
             return Error("Expansion not supported");
     }
 
+    if (inst.kind() == proto::FTInstrument_Kind_NES2A03) {
+        status = ParseDPCM(file, &inst);
+        //if (!status.ok()) return status;
+    }
     return inst;
 }
 
