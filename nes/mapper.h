@@ -12,6 +12,9 @@ namespace protones {
 class Mapper : public EmulatedDevice {
   public:
     using APUDevices = std::vector<APUDevice*>;
+    enum PseudoRegister {
+        CpuExecBank,
+    };
 
     Mapper(NES* nes) : nes_(nes) {}
     virtual uint8_t Read(uint16_t addr) = 0;
@@ -30,7 +33,7 @@ class Mapper : public EmulatedDevice {
     virtual void LoadState(proto::Mapper *state) {}
     virtual void SaveState(proto::Mapper *state) {}
     virtual void LoadEverdriveState(const uint8_t* state) {}
-    virtual uint8_t& RegisterValue(int reg) {
+    virtual uint8_t RegisterValue(PseudoRegister reg) {
         static uint8_t bogus = 0xff;
         return bogus;
     }

@@ -3,3 +3,4 @@ bazel-*
 *.nes
 *.nes.sram
 __pycache__
+midi/experimental/**

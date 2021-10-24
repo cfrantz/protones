@@ -8,18 +8,7 @@ class Execution(object):
         self.root = root;
         self.visible = bimpy.Bool()
         # Eight banks, plus a value to represent idle time.
-        self.bank = [0,0,0,0,0,0,0,0, 0]
-        self.labels = [
-            "Bank 0",
-            "Bank 1",
-            "Bank 2",
-            "Bank 3",
-            "Bank 4",
-            "Bank 5",
-            "Bank 6",
-            "Bank 7",
-            "Idle",
-        ]
+        self.bank = collections.defaultdict(int)
         self.total = 0
         self.known_idle = {
             0x9D59, 0x9DB0, 0xA73D, 0xA7B1, 0xAB73, 0xB08F, 0xD4B2,
@@ -30,23 +19,21 @@ class Execution(object):
 
 
     def Calculate(self):
-        self.bank = [0,0,0,0,0,0,0,0, 0]
+        self.bank = collections.defaultdict(int)
         self.cpuaddr.clear()
         self.total = 0
         for addr, cycles in self.root.nes.frame_profile.items():
             b = addr >> 16
             addr &= 0xFFFF
             if addr in self.known_idle:
-                b = 8
-            elif addr >= 0xC000:
-                b = 7
+                b = -1
 
             self.cpuaddr[addr] += cycles
             self.bank[b] += cycles
             self.total += cycles
 
     def _Enable(self):
-        self.bank = [0,0,0,0,0,0,0,0]
+        self.bank = collections.defaultdict(int)
 
     def _Disable(self):
         pass
@@ -65,11 +52,13 @@ class Execution(object):
         bimpy.begin('Zelda2 Execution Statistics')
         #bimpy.plot_histogram('', self.bank, 0, 'Bank', 0, 29000,
         #        graph_size=bimpy.Vec2(400, 100))
-        for i, count in enumerate(self.bank):
+        for i, count in sorted(self.bank.items()):
             frac = count / self.total
             bimpy.progress_bar(frac, bimpy.Vec2(400, 40), "")
             bimpy.same_line()
-            bimpy.text("%s: %.2f%%" % (self.labels[i], 100.0*frac))
+            if i == -1:
+                i = "Idle"
+            bimpy.text("%s: %.2f%%" % (i, 100.0*frac))
 
         pairs = sorted(self.cpuaddr.items(), key=lambda x:x[1], reverse=True)
         for addr, count in pairs[0:20]:

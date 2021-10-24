@@ -89,10 +89,9 @@ def PrintMemCb(cpu, addr, val):
     return val
 
 def PrintExecCb(cpu):
-    print("pc=%04x a=%02x x=%02x y=%02x sp=1%02x" % (
-        cpu.pc, cpu.a, cpu.x, cpu.y, cpu.sp))
+    print("frame=%6d pc=%04x a=%02x x=%02x y=%02x sp=1%02x" % (
+        app.root().nes.frame(), cpu.pc, cpu.a, cpu.x, cpu.y, cpu.sp))
     PrintStack(cpu.sp)
-
     return cpu.pc
 
 def ReadWatch(addr, on=PrintMemCb):

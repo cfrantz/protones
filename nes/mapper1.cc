@@ -2,7 +2,9 @@
 
 #include "imgui.h"
 #include "nes/cartridge.h"
+#include "nes/cpu6502.h"
 #include "nes/pbmacro.h"
+
 namespace protones {
 
 Mapper1::Mapper1(NES* nes)
@@ -187,17 +189,17 @@ void Mapper1::LoadRegister(uint16_t addr, uint8_t val) {
     }
 }
 
-uint8_t& Mapper1::RegisterValue(int reg) {
+uint8_t Mapper1::RegisterValue(PseudoRegister reg) {
     switch(reg) {
-        case 0: return shift_register_;
-        case 1: return control_;
-        case 2: return prg_mode_;
-        case 3: return chr_mode_;
-        case 4: return prg_bank_;
-        case 5: return chr_bank0_;
-        case 6: return chr_bank1_;
+        case PseudoRegister::CpuExecBank:
+            if (nes_->cpu()->pc() >= 0xC000) {
+                return nes_->cartridge()->prglen() / 0x4000 - 1;
+            } else {
+                return prg_bank_;
+            }
+        default:
+            return Mapper::RegisterValue(reg);
     }
-    return Mapper::RegisterValue(reg);
 }
 
 REGISTER_MAPPER(1, Mapper1);

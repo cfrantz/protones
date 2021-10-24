@@ -260,7 +260,7 @@ void NES::Reset() {
 bool NES::Emulate() {
     // TODO(cfrantz): RegisterValue(4) is the PRG bank mapping for MMC1.
     // This needs be abstracted into a more general solution.
-    int addr = cpu_->pc() | (mapper_->RegisterValue(4) << 16);
+    int addr = cpu_->pc() | (mapper_->RegisterValue(Mapper::PseudoRegister::CpuExecBank) << 16);
     const int n = cpu_->Execute();
     frame_profile_[addr] += n;
     for(int i=0; i<n*3; i++) {

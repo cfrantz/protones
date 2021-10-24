@@ -2,6 +2,7 @@
 
 #include "nes/pbmacro.h"
 #include "nes/cartridge.h"
+#include "nes/cpu6502.h"
 #include "nes/ppu.h"
 #include "nes/apu_pulse.h"
 
@@ -148,6 +149,23 @@ class Mapper5: public Mapper {
                 fprintf(stderr, "Invalid MMC5 PRG mode %d\n", prg_mode_);
         }
         return 0;
+    }
+
+    uint8_t RegisterValue(PseudoRegister reg) {
+        switch(reg) {
+            case PseudoRegister::CpuExecBank: {
+                uint16_t pc = nes_->cpu()->pc();
+                switch(prg_mode_) {
+                    case 0: return _prg_bank(4);
+                    case 1: return _prg_bank((pc & 0x4000) ? 4 : 2);
+                    case 2: return _prg_bank((pc & 0x4000) ?
+                                             (pc & 0x2000) ? 4 : 3 : 2);
+                    case 3: return _prg_bank(1 + ((pc>>13) & 3));
+                }
+            }
+            default:
+                return Mapper::RegisterValue(reg);
+        }
     }
 
     inline uint32_t TranslateChr(uint16_t addr, bool bgbanks=false) {

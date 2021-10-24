@@ -41,11 +41,8 @@ PYBIND11_EMBEDDED_MODULE(protones, m) {
              "Save an emulator state to a file",
              py::arg("filename"), py::arg("text")=false)
         .def("GetMapperReg", [](NES* self, int reg) -> uint8_t {
-                return self->mapper()->RegisterValue(reg);
+                return self->mapper()->RegisterValue(Mapper::PseudoRegister(reg));
             }, py::arg("register"))
-        .def("SetMapperReg", [](NES* self, int reg, uint8_t val) -> void {
-                self->mapper()->RegisterValue(reg) = val;
-            }, py::arg("register"), py::arg("value"))
         .def_property("pause", &NES::pause, &NES::set_pause)
         .def_property_readonly("frame_profile", &NES::frame_profile,
                                "Frame execution profile")

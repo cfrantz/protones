@@ -148,6 +148,7 @@ cc_library(
     deps = [
         ":apu",
         ":cartridge",
+        ":cpu6502",
         ":mapper",
         ":pbmacro",
         ":ppu",
