@@ -17,6 +17,7 @@
 
 ABSL_FLAG(double, fps, 60.0, "Target frames per second");
 ABSL_FLAG(std::string, config, "", "MIDI configuration textproto file");
+ABSL_FLAG(int, songtable_size, 128, "Length of the song pointer table");
 ABSL_FLAG(int, drumtable_size, -1, "Length of the drum period/patch table");
 
 namespace converter {
@@ -30,6 +31,7 @@ enum CFplayer: uint8_t {
     SONG_END = 0x12,
     NEXT_SONG = 0x13,
     RESTART_LAST_SONG = 0x14,
+    TITLE_SCREEN_HACK = 0x15,
     // Undefined: 0x14 - 0x1F
     PROGRAM_CHANGE = 0x20,
     // Note On events: 0x21 - 0x77 (midi note A0 through B7)
@@ -317,10 +319,15 @@ class TrackPlayer {
                         m->push_back(CFplayer::RESTART_LAST_SONG);
                     }
                     break;
-
                 case proto::OtherEvent::EventCase::kNextSong:
                     m->push_back(CFplayer::NEXT_SONG);
                     m->push_back(uint8_t(other.next_song()));
+                    break;
+                case proto::OtherEvent::EventCase::kTitleScreenHack:
+                {
+                    m->push_back(CFplayer::TITLE_SCREEN_HACK);
+                    m->push_back(uint8_t(other.title_screen_hack()));
+                }
                     break;
                 default:
                     fprintf(stderr, "Unknown `other` event %s\n",
@@ -596,7 +603,8 @@ int main(int argc, char *argv[]) {
     absl::StrAppendFormat(&song_table, ".export _song_table\n");
     absl::StrAppendFormat(&song_table, "_song_table:\n");
     std::map<std::string, bool> rendered; 
-    for(size_t i=1; i<args.size(); ++i) {
+    size_t i;
+    for(i=1; i<args.size(); ++i) {
         std::string arg(args[i]);
         if (arg.empty()) {
             absl::StrAppendFormat(&song_table, "    .WORD 0\n");
@@ -608,6 +616,9 @@ int main(int argc, char *argv[]) {
                 rendered[arg] = true;
             }
         }
+    }
+    for(; i < absl::GetFlag(FLAGS_songtable_size) + 1; ++i) {
+        absl::StrAppendFormat(&song_table, "    .WORD 0\n");
     }
     absl::PrintF("%s\n%s\n%s\n",
                  song_table,

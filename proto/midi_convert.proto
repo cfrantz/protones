@@ -26,6 +26,7 @@ message OtherEvent {
         bool song_end = 100;
         int32 next_song = 101;
         bool restart_last_song = 102;
+        int32 title_screen_hack = 103;
     }
 }
 
