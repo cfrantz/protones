@@ -45,6 +45,22 @@ class Execution(object):
         else:
             self._Disable()
 
+    def Buckets(self):
+        mapper = self.root.nes.cartridge.mapper
+        banks = self.root.nes.cartridge.prglen // 16384
+        buckets = {i:0 for i in range(-1, banks)}
+        if mapper == 5:
+            for i, count in self.bank.items():
+                if i < 0:
+                    buckets[i] += count
+                else:
+                    buckets[i//2] += count
+        else:
+            for i, count in self.bank.items():
+                buckets[i] += count
+        return buckets
+
+
     def Draw(self):
         if not self.visible.value:
             return
@@ -52,7 +68,7 @@ class Execution(object):
         bimpy.begin('Zelda2 Execution Statistics')
         #bimpy.plot_histogram('', self.bank, 0, 'Bank', 0, 29000,
         #        graph_size=bimpy.Vec2(400, 100))
-        for i, count in sorted(self.bank.items()):
+        for i, count in self.Buckets().items():
             frac = count / self.total
             bimpy.progress_bar(frac, bimpy.Vec2(400, 40), "")
             bimpy.same_line()

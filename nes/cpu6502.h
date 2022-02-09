@@ -123,6 +123,9 @@ class Cpu : public EmulatedDevice {
         exec_cb_[addr] = cb;
     }
     void SaveRwLog();
+    void ClearRwLog() {
+        memset(rwlog_, 0, sizeof(rwlog_));
+    }
 
   private:
     uint8_t inline Read(uint16_t addr, RWLog how=LogExec) {

@@ -87,6 +87,8 @@ PYBIND11_EMBEDDED_MODULE(protones, m) {
         .def("SetReadCallback", &Cpu::set_read_cb)
         .def("SetWriteCallback", &Cpu::set_write_cb)
         .def("SetExecCallback", &Cpu::set_exec_cb)
+        .def("SaveRwLog", &Cpu::SaveRwLog)
+        .def("ClearRwLog", &Cpu::ClearRwLog)
         .def("Disassemble", [](Cpu* self, uint16_t addr) {
             std::string s = self->Disassemble(&addr);
             return std::make_pair(addr, s);

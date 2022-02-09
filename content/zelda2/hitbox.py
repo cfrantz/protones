@@ -3,12 +3,35 @@
 ######################################################################
 import bimpy
 
+instance = None
+
 class EnemyHitbox(object):
     SIZETABLE = 0xe8fa
     HITBOX = 0x60FF0000
     SOLID = 0xFF000000
     WHITE = 0xFFFFFFFF
     TRANSPARENT = bimpy.Vec4(0, 0, 0, 0)
+    ENEMY_LIST_SIZE = 40 #36
+    ENEMY_LIST_RAM = 0x6d00
+
+    def enemy_list_size(self, enemies=36, total_size=0x2a1):
+        offset = 0
+        table = {}
+        table['projectile_init']    = (offset, 12*2);      offset += 12*2
+        table['projectile_table1']  = (offset, 9);         offset += 9
+        table['enemy_hp']           = (offset, enemies);   offset += enemies
+        table['enemy_init']         = (offset, enemies*2); offset += enemies * 2
+        table['enemy_ai']           = (offset, enemies*2); offset += enemies * 2
+        table['enemy_xp']           = (offset, enemies);   offset += enemies
+        table['enemy_vuln']         = (offset, enemies);   offset += enemies
+        table['enemy_size']         = (offset, enemies);   offset += enemies
+        table['enemy_misc']         = (offset, enemies);   offset += enemies
+        table['enemy_display']      = (offset, enemies*2); offset += enemies * 2
+        table['projectile_table2']  = (offset, 9);         offset += 9
+        table['projectile_table3']  = (offset, 12);        offset += 12
+        table['projectile_display'] = (offset, 9*2);       offset += 9*2
+        table['sprite_table']       = (offset, 0)
+        self.sizecodes = self.ENEMY_LIST_RAM + table['enemy_size'][0]
 
     def __init__(self, root, index):
         self.root = root
@@ -21,6 +44,9 @@ class EnemyHitbox(object):
         self.root.nes.cpu.SetReadCallback(0x2a + self.index, self.MemCb)
         self.root.nes.cpu.SetReadCallback(0x4e + self.index, self.MemCb)
         self.root.nes.cpu.SetReadCallback(0x3c + self.index, self.MemCb)
+        self.enemy_list_size(self.ENEMY_LIST_SIZE)
+        global instance
+        instance = self
 
     def MemCb(self, cpu, addr, val):
         """Trap CPU memory reads so we can place enemies arbitrarily."""
@@ -67,7 +93,7 @@ class EnemyHitbox(object):
             self.exists = mem[0x87 + self.index - 6]
             if self.exists > 15:
                 self.exists = 0
-        self.entype = mem[0x6e1d + self.enemyid]
+        self.entype = mem[self.sizecodes + self.enemyid]
 
         # Compute the hitbox.
         ofs = (self.entype * 4) & 0xFF

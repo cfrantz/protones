@@ -176,6 +176,9 @@ void Mem::PPUWrite(uint16_t addr, uint8_t val) {
     }
 }
 
+uint8_t Mem::CpuExecBank() {
+    return nes_->mapper()->RegisterValue(Mapper::PseudoRegister::CpuExecBank);
+}
 #ifdef DELETE_ME
 void Mem::HexDump(int addr, int len) {
     static const char hex[] = "0123456789abcdef";

@@ -44,6 +44,8 @@ class Mem : public EmulatedDevice {
     void SaveState(proto::NES* state);
     void LoadEverdriveState(const uint8_t* state);
 
+    uint8_t CpuExecBank();
+
   private:
     uint16_t MirrorAddress(int mode, uint16_t addr);
 
