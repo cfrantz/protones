@@ -65,6 +65,19 @@ message MMC5 {
     bool vsplit_region = 24;
 }
 
+message VRC7 {
+    uint32 prg_banks = 1;
+    repeated uint32 prg_bank = 2;
+    uint32 chr_banks = 3;
+    repeated uint32 chr_bank = 4;
+    uint32 mirror = 5;
+    uint32 irq_latch = 6;
+    uint32 irq_control = 7;
+    int32 irq_counter = 8;
+    int32 cycle_counter = 9;
+    uint32 oplidx = 10;
+}
+
 message Mapper {
     int32 mapper = 1000000;
     bytes wram = 1000001;
@@ -75,5 +88,6 @@ message Mapper {
         MMC3 mmc3 = 4;
         MMC5 mmc5 = 5;
         XXROM axrom = 7;
+        VRC7 vrc7 = 85;
     }
 }

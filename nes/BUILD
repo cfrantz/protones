@@ -141,6 +141,9 @@ cc_library(
         "mapper4.cc",
         "mapper5.cc",
         "mapper7.cc",
+        "vrc7.cc",
+        "emu2413.h",
+        "emu2413.c",
     ],
     hdrs = [
         "mapper1.h",

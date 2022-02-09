@@ -25,6 +25,7 @@ class APUDevice {
         Triangle,
         Noise,
         DMC,
+        VRC7,
     };
 
     virtual Type type() const = 0;
@@ -36,6 +37,8 @@ class APUDevice {
         }
     }
     float* mutable_output_volume() { return &output_volume_; }
+    float output_volume() { return output_volume_; }
+    virtual const char* text(size_t line) const { return nullptr; }
 
   protected:
     char name_[64];

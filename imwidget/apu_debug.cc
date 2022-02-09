@@ -122,6 +122,25 @@ void APUDebug::DrawDMC(DMC* dmc) {
     ImGui::PopID();
 }
 
+void APUDebug::DrawGeneric(APUDevice* dev) {
+    ImGui::PushID(dev);
+    ImGui::BeginGroup();
+    ImGui::PlotLines("", dev->dbgbuf_, dev->DBGBUFSZ, dev->dbgp_,
+                     dev->name(), -1.0f, 1.0f, ImVec2(0, 80));
+    ImGui::SameLine();
+    ImGui::BeginGroup();
+    const char *t;
+    size_t n = 0;
+    while((t = dev->text(n)) != nullptr) {
+        ImGui::Text("%s", t);
+        n++;
+    }
+    ImGui::EndGroup();
+    ImGui::SliderFloat("Volume", dev->mutable_output_volume(), 0.0f, 1.0f);
+    ImGui::EndGroup();
+    ImGui::PopID();
+}
+
 void APUDebug::DrawOne(APUDevice *dev) {
     switch(dev->type()) {
         case APUDevice::Type::Pulse:
@@ -135,6 +154,9 @@ void APUDebug::DrawOne(APUDevice *dev) {
             break;
         case APUDevice::Type::DMC:
             DrawDMC(static_cast<DMC*>(dev));
+            break;
+        case APUDevice::Type::VRC7:
+            DrawGeneric(dev);
             break;
         default:
             // unknown

@@ -25,6 +25,7 @@ class APUDebug : public ImWindowBase {
     void DrawTriangle(Triangle*);
     void DrawNoise(Noise*);
     void DrawDMC(DMC*);
+    void DrawGeneric(APUDevice* dev);
     void DrawOne(APUDevice* dev);
 
     void InitFreqTable(double a4);
