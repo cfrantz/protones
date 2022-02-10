@@ -155,6 +155,121 @@ void MidiSetup::DrawEnvelope(proto::Envelope* envelope, proto::Envelope_Kind kin
     }
 }
 
+void MidiSetup::DrawVRC7(proto::FTInstrument* inst) {
+    const char *instruments[] = {
+        // Name in FamiTracker, Name in https://wiki.nesdev.org/w/index.php?title=VRC7_audio
+        "Custom",
+        "Bell",               // "Buzzy Bell",
+        "Guitar",
+        "Piano",              // "Wurly",
+        "Flute",
+        "Clarinet",
+        "Rattling Bell",      // "Synth",
+        "Trumpet",
+        "Organ",
+        "Soft Bell",          // "Bells",
+        "Xylophone",          // "Vibes",
+        "Vibraphone",
+        "Brass",              // "Tutti",
+        "Bass Guitar",        // "Fretless",
+        "Synthesizer",        // "Synth Bass",
+        "Chorus",             // "Sweep",
+    };
+
+    ImGui::PushItemWidth(400);
+    uint32_t patch = inst->vrc7().patch();
+    if (ImGui::BeginCombo("Patch", instruments[patch])) {
+        for(uint32_t i=0; i<16; i++) {
+            bool selected = i == patch;
+            if (ImGui::Selectable(instruments[i], selected)) {
+                inst->mutable_vrc7()->set_patch(i);
+            }
+            if (selected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::PopItemWidth();
+
+    if (inst->vrc7().patch() == 0) {
+        uint8_t regs[8] = {0};
+        size_t n = 0;
+        for(const auto &r : inst->vrc7().regs()) {
+            regs[n++] = r;
+        }
+        bool changed = false;
+        VRC7Patch modulator = VRC7Patch::Modulator(regs);
+        VRC7Patch carrier = VRC7Patch::Carrier(regs);
+        ImGui::BeginGroup();
+        ImGui::PushID("modulator");
+        ImGui::PushItemWidth(400);
+        ImGui::Text("Modulator Parameters");
+        changed |= ImGui::Checkbox("Tremolo", &modulator.tremolo);
+        changed |= ImGui::Checkbox("Vibrato", &modulator.vibrato);
+        changed |= ImGui::Checkbox("Sustain", &modulator.sustain);
+        changed |= ImGui::Checkbox("Key Rate Scaling", &modulator.key_rate);
+        changed |= ImGui::Checkbox("Half Rectified", &modulator.waveform);
+        changed |= ImGui::SliderInt("Multiplier", &modulator.multiplier, 0, 15);
+        changed |= ImGui::SliderInt("Key Scaling", &modulator.key_scaling, 0, 3);
+        changed |= ImGui::SliderInt4("ADSR", modulator.adsr, 0, 15);
+        changed |= ImGui::SliderInt("Level", &modulator.output, 0, 63);
+        changed |= ImGui::SliderInt("Feedback", &modulator.feedback, 0, 7);
+        ImGui::PopItemWidth();
+        ImGui::PopID();
+        ImGui::EndGroup();
+
+        ImGui::SameLine();
+
+        ImGui::BeginGroup();
+        ImGui::PushID("carrier");
+        ImGui::PushItemWidth(400);
+        ImGui::Text("Carrier Parameters");
+        changed |= ImGui::Checkbox("Tremolo", &carrier.tremolo);
+        changed |= ImGui::Checkbox("Vibrato", &carrier.vibrato);
+        changed |= ImGui::Checkbox("Sustain", &carrier.sustain);
+        changed |= ImGui::Checkbox("Key Rate Scaling", &carrier.key_rate);
+        changed |= ImGui::Checkbox("Half Rectified", &carrier.waveform);
+        changed |= ImGui::SliderInt("Multiplier", &carrier.multiplier, 0, 15);
+        changed |= ImGui::SliderInt("Key Scaling", &carrier.key_scaling, 0, 3);
+        changed |= ImGui::SliderInt4("ADSR", carrier.adsr, 0, 15);
+        ImGui::PopItemWidth();
+        ImGui::PopID();
+        ImGui::EndGroup();
+
+
+        if (changed) {
+            modulator.ToRegs(regs);
+            carrier.ToRegs(regs);
+            inst->mutable_vrc7()->clear_regs();
+            for(const auto &r : regs) {
+                inst->mutable_vrc7()->add_regs(r);
+            }
+        }
+
+        ImGui::Separator();
+        char text[32];
+        snprintf(text, sizeof(text), "%02X %02X %02X %02X %02X %02X %02X %02X",
+                regs[0], regs[1], regs[2], regs[3], regs[4], regs[5], regs[6], regs[7]);
+        ImGui::PushItemWidth(400);
+        if (ImGui::InputText("Register Values", text, sizeof(text), ImGuiInputTextFlags_EnterReturnsTrue)) {
+            char *p = text;
+            inst->mutable_vrc7()->clear_regs();
+            while(*p) {
+                if (isspace(*p)) { p++; continue; }
+                if (isxdigit(*p)) {
+                    int val = strtol(p, &p, 16);
+                    inst->mutable_vrc7()->add_regs(val);
+                } else {
+                    fprintf(stderr, "Unknown character in VRC7 regs: '%c'\n", *p);
+                    p++;
+                }
+            }
+        }
+        ImGui::PopItemWidth();
+    }
+}
+
 bool MidiSetup::Draw() {
     if (!visible_)
         return false;
@@ -229,19 +344,24 @@ bool MidiSetup::Draw() {
             }
             ImGui::PopItemWidth();
 
-            const char *names[] = {"", "Volume", "Arpeggio", "Pitch", "HiPitch", "Duty" };
-            auto* player = midi->channel_[current_channel_]->now_playing(instrument);
-            if (ImGui::BeginTabBar("Envelopes", ImGuiTabBarFlags_None)) {
-                for(int i=1; i<6; i++) {
-                    auto kind = static_cast<proto::Envelope_Kind>(i);
-                    if (ImGui::BeginTabItem(names[i])) {
-                        auto* env = EnvelopePointer(instrument, kind);
-                        DrawEnvelope(env, kind, player);
-                        ImGui::EndTabItem();
+            if (instrument->kind() == proto::FTInstrument_Kind_VRC7) {
+                DrawVRC7(instrument);
+            } else{
+                const char *names[] = {"", "Volume", "Arpeggio", "Pitch", "HiPitch", "Duty" };
+                auto* player = midi->channel_[current_channel_]->now_playing(instrument);
+                if (ImGui::BeginTabBar("Envelopes", ImGuiTabBarFlags_None)) {
+                    for(int i=1; i<6; i++) {
+                        auto kind = static_cast<proto::Envelope_Kind>(i);
+                        if (ImGui::BeginTabItem(names[i])) {
+                            auto* env = EnvelopePointer(instrument, kind);
+                            DrawEnvelope(env, kind, player);
+                            ImGui::EndTabItem();
+                        }
                     }
+                    ImGui::EndTabBar();
                 }
-                ImGui::EndTabBar();
             }
+
             if (ImGui::Button("Save Instrument")) {
                 char *filename = nullptr;
                 auto result = NFD_SaveDialog("fti", nullptr, &filename);

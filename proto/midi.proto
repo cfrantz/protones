@@ -18,6 +18,15 @@ message MidiChannel {
         DMC = 5;  // Not yet!
         MMC5_PULSE1 = 6;
         MMC5_PULSE2 = 7;
+        //VRC6_PULSE1 = 8;
+        //VRC6_PULSE2 = 9;
+        //VRC6_SAW = 10;
+        VRC7_CH0 = 11;
+        VRC7_CH1 = 12;
+        VRC7_CH2 = 13;
+        VRC7_CH3 = 14;
+        VRC7_CH4 = 15;
+        VRC7_CH5 = 16;
     }
     // Name of this channel.
     string name = 1;

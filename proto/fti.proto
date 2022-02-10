@@ -29,6 +29,11 @@ message DPCMSample {
     bytes data = 3;
 }
 
+message VRC7Patch {
+    int32 patch = 1;
+    repeated int32 regs = 2;
+}
+
 message FTInstrument {
     enum Kind {
         UNKNOWN = 0;
@@ -48,4 +53,5 @@ message FTInstrument {
     Envelope duty = 7;
     repeated DPCMAssignment dpcm = 8;
     map<int32, DPCMSample> sample = 9;
+    VRC7Patch vrc7 = 10;
 }

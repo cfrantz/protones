@@ -95,6 +95,26 @@ absl::Status ParseBasicFTI(File* file, proto::FTInstrument* inst) {
     return absl::OkStatus();
 }
 
+absl::Status ParseVRC7(File* file, proto::FTInstrument* inst) {
+    auto* vrc7 = inst->mutable_vrc7();
+    uint32_t patch;
+    if (!file->Read(&patch)) {
+        return Error("Couldn't read patch field");
+    }
+    vrc7->set_patch(patch);
+
+    if (patch == 0) {
+        uint8_t regs[8];
+        if (!file->Read(&regs)) {
+            return Error("Couldn't read patch registers");
+        }
+        for(const auto& v : regs) {
+            vrc7->add_regs(v);
+        }
+    }
+    return absl::OkStatus();
+}
+
 struct AssignmentData {
     uint8_t index;
     uint8_t sample;
@@ -186,6 +206,10 @@ absl::StatusOr<proto::FTInstrument> ParseFTI(File* file) {
             status = ParseBasicFTI(file, &inst);
             if (!status.ok()) return status;
             break;
+        case proto::FTInstrument_Kind_VRC7:
+            status = ParseVRC7(file, &inst);
+            if (!status.ok()) return status;
+            break;
         default:
             return Error("Expansion not supported");
     }
@@ -241,6 +265,17 @@ absl::Status SaveBasicFTI(File* file, const proto::FTInstrument& inst) {
     return absl::OkStatus();
 }
 
+absl::Status SaveVRC7(File* file, const proto::FTInstrument& inst) {
+    const auto& vrc7 = inst.vrc7();
+    file->Write(vrc7.patch());
+    if (vrc7.patch() == 0) {
+        for(const auto& reg : vrc7.regs()) {
+            file->Write(static_cast<uint8_t>(reg));
+        }
+    }
+    return absl::OkStatus();
+}
+
 absl::Status SaveFTInstrument(File* file, proto::FTInstrument& inst) {
     file->Write("FTI2.4", 6);
     file->Write(static_cast<uint8_t>(inst.kind()));
@@ -252,6 +287,10 @@ absl::Status SaveFTInstrument(File* file, proto::FTInstrument& inst) {
         case proto::FTInstrument_Kind_NES2A03:
         case proto::FTInstrument_Kind_VRC6:
             status = SaveBasicFTI(file, inst);
+            if (!status.ok()) return status;
+            break;
+        case proto::FTInstrument_Kind_VRC7:
+            status = SaveVRC7(file, inst);
             if (!status.ok()) return status;
             break;
         default:

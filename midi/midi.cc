@@ -11,6 +11,7 @@ namespace protones {
 double MidiConnector::notes_[128];
 // Lowest frequency we can create on the NES
 constexpr double NoteA0 = 27.5;
+constexpr double NoteC0 = 16.3515;
 constexpr double dmc_freq[] = {
 	4181.71,
 	4709.93,
@@ -242,6 +243,14 @@ uint16_t Channel::OscBaseAddress(proto::MidiChannel::Oscillator oscillator) {
             return 0x400c;
         case proto::MidiChannel_Oscillator_DMC:
             return 0x4010;
+        case proto::MidiChannel_Oscillator_VRC7_CH0:
+        case proto::MidiChannel_Oscillator_VRC7_CH1:
+        case proto::MidiChannel_Oscillator_VRC7_CH2:
+        case proto::MidiChannel_Oscillator_VRC7_CH3:
+        case proto::MidiChannel_Oscillator_VRC7_CH4:
+        case proto::MidiChannel_Oscillator_VRC7_CH5:
+            return 0x9010;
+
         default:
             fprintf(stderr, "Unknown oscillator type %d\n",
                     static_cast<int>(oscillator));
@@ -317,6 +326,24 @@ void Channel::Step() {
                     last_timer_hi_[base+1] = p.done();
                 //}
                 break;
+
+            case proto::MidiChannel_Oscillator_VRC7_CH0:
+            case proto::MidiChannel_Oscillator_VRC7_CH1:
+            case proto::MidiChannel_Oscillator_VRC7_CH2:
+            case proto::MidiChannel_Oscillator_VRC7_CH3:
+            case proto::MidiChannel_Oscillator_VRC7_CH4:
+            case proto::MidiChannel_Oscillator_VRC7_CH5:
+            {
+                int n = oscillator - proto::MidiChannel_Oscillator_VRC7_CH0;
+                nes_->mem()->Write(0x9010, 0x10 + n);
+                nes_->mem()->Write(0x9030, timer & 0xFF);
+                nes_->mem()->Write(0x9010, 0x20 + n);
+                nes_->mem()->Write(0x9030, timer_hi);
+                nes_->mem()->Write(0x9010, 0x30 + n);
+                nes_->mem()->Write(0x9030, vol);
+            }
+                break;
+
             default:
                 fprintf(stderr, "Don't know how to program oscillator type %d\n",
                         static_cast<int>(oscillator));
@@ -343,6 +370,20 @@ void Channel::Step() {
                 nes_->mem()->Write(base + 0, 0x30);
                 last_timer_hi_[base+2] = 0xFF;
                 break;
+#if 0
+            case proto::MidiChannel_Oscillator_VRC7_CH0:
+            case proto::MidiChannel_Oscillator_VRC7_CH1:
+            case proto::MidiChannel_Oscillator_VRC7_CH2:
+            case proto::MidiChannel_Oscillator_VRC7_CH3:
+            case proto::MidiChannel_Oscillator_VRC7_CH4:
+            case proto::MidiChannel_Oscillator_VRC7_CH5:
+            {
+                int n = oscillator - proto::MidiChannel_Oscillator_VRC7_CH0;
+                nes_->mem()->Write(0x9010, 0x30 + n);
+                nes_->mem()->Write(0x9030, 0x0f);
+            }
+                break;
+#endif
             default:
                 ;
         }
@@ -451,6 +492,15 @@ void InstrumentPlayer::NoteOn(uint8_t note, uint8_t velocity) {
         arpeggio_.NoteOn();
         pitch_.NoteOn();
         duty_.NoteOn();
+        if (instrument_->kind() == proto::FTInstrument_Kind_VRC7 &&
+            instrument_->vrc7().patch() == 0) {
+            uint8_t n = 0;
+            for(const auto& r : instrument_->vrc7().regs()) {
+                nes_->mem()->Write(0x9010, n);
+                nes_->mem()->Write(0x9030, uint8_t(r));
+                n++;
+            }
+        }
     } else {
         if (!instrument_) {
             fprintf(stderr, "No DPCM instrument for note %u\n", note);
@@ -516,7 +566,9 @@ bool InstrumentPlayer::done() {
 }
 
 uint8_t InstrumentPlayer::volume() {
-    if (done()) return 0;
+    if (instrument_->kind() != proto::FTInstrument_Kind_VRC7 && done()) {
+        return 0;
+    }
 
     double v = double(velocity_) / 127.0;
     double env = double(volume_.value()) / 15.0;
@@ -526,7 +578,12 @@ uint8_t InstrumentPlayer::volume() {
         // clamp to a minimum value of 1.
         value = 1.0;
     }
-    return uint8_t(value);
+    if (instrument_->kind() == proto::FTInstrument_Kind_VRC7) {
+        uint8_t patch = instrument_->vrc7().patch() << 4;
+        return patch | (15-uint8_t(value));
+    } else {
+        return uint8_t(value);
+    }
 }
 
 uint8_t InstrumentPlayer::duty() {
@@ -537,10 +594,26 @@ uint16_t InstrumentPlayer::timer() {
     int note = note_ + arpeggio_.value();
     double freq = MidiConnector::notes_[note] * bend_ + double(pitch_.value());
     if (freq < NoteA0) return 0;
-    const double CPU = double(NES::frequency);
-    int t = (CPU / (16.0 * freq)) - 1.0;
-    if (t > 2047) t = 0;
-    return t;
+    if (instrument_->kind() == proto::FTInstrument_Kind_VRC7) {
+        double c0 = NoteC0;
+        int octave = -1;
+        while(freq > c0) {
+            octave += 1;
+            c0 *= 2.0;
+        }
+        int t = freq * double(1<<(19-octave)) / 49716.0;
+        t |= octave << 9;
+        if (!released_) {
+            // Trigger bit.
+            t |= 0x1000;
+        }
+        return t;
+    } else {
+        const double CPU = double(NES::frequency);
+        int t = (CPU / (16.0 * freq)) - 1.0;
+        if (t > 2047) t = 0;
+        return t;
+    }
 }
 
 }  // namespace protones

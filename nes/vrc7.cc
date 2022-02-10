@@ -118,22 +118,23 @@ class VRC7: public Mapper {
 
     void WriteAudio(uint8_t idx, uint8_t val) {
         const char *instruments[] = {
+            // Name in FamiTracker, Name in https://wiki.nesdev.org/w/index.php?title=VRC7_audio
             "Custom",
-            "Buzzy Bell",
+            "Bell",               // "Buzzy Bell",
             "Guitar",
-            "Wurly",
+            "Piano",              // "Wurly",
             "Flute",
             "Clarinet",
-            "Synth",
+            "Rattling Bell",      // "Synth",
             "Trumpet",
             "Organ",
-            "Bells",
-            "Vibes",
+            "Soft Bell",          // "Bells",
+            "Xylophone",          // "Vibes",
             "Vibraphone",
-            "Tutti",
-            "Fretless",
-            "Synth Bass",
-            "Sweep",
+            "Brass",              // "Tutti",
+            "Bass Guitar",        // "Fretless",
+            "Synthesizer",        // "Synth Bass",
+            "Chorus",             // "Sweep",
         };
         OPLL_writeReg(opl_, oplidx_, val);
         if (idx >= 0x30 && idx <= 0x35) {
