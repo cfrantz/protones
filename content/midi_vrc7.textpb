@@ -63,9 +63,21 @@ instruments: [
     { key: "shaker" value: "content/fti/1d_shaker.fti" },
     { key: "huge_snare" value: "content/fti/1f_huge_snare.fti" },
     { key: "snare3" value: "content/fti/22_snare_3.fti" },
-    { key: "vrc7_bell" value: "content/fti/vrc7_bell.fti" },
-    { key: "vrc7_guitar" value: "content/fti/vrc7_guitar.fti" },
-    { key: "vrc7_custom" value: "content/fti/vrc7_custom.fti" }
+    { key: "vrc7_bass" value: "fti/vrc7/bass.textpb" },
+    { key: "vrc7_bell" value: "fti/vrc7/bell.textpb" },
+    { key: "vrc7_brass" value: "fti/vrc7/brass.textpb" },
+    { key: "vrc7_chorus" value: "fti/vrc7/chorus.textpb" },
+    { key: "vrc7_clarinet" value: "fti/vrc7/clarinet.textpb" },
+    { key: "vrc7_flute" value: "fti/vrc7/flute.textpb" },
+    { key: "vrc7_guitar" value: "fti/vrc7/guitar.textpb" },
+    { key: "vrc7_organ" value: "fti/vrc7/organ.textpb" },
+    { key: "vrc7_piano" value: "fti/vrc7/piano.textpb" },
+    { key: "vrc7_rattling_bell" value: "fti/vrc7/rattling_bell.textpb" },
+    { key: "vrc7_soft_bell" value: "fti/vrc7/soft_bell.textpb" },
+    { key: "vrc7_synth" value: "fti/vrc7/synthesizer.textbp" },
+    { key: "vrc7_trumpet" value: "fti/vrc7/trumpet.textpb" },
+    { key: "vrc7_vibraphone" value: "fti/vrc7/vibraphone.textpb" },
+    { key: "vrc7_xylophone" value: "fti/vrc7/xylophone.textpb" }
 ]
 midi_program: [
     {   key:1 value: "" },            # Acoustic Grand Piano

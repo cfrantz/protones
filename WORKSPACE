@@ -32,7 +32,7 @@ protones_deps()
 new_local_repository(
     name = "system_python",
     build_file = "//rules:system_python.BUILD",
-    path = "/usr/include/python3.9",
+    path = "/usr/include/python3.10",
 )
 
 # rules_cc defines rules for generating C++ code from Protocol Buffers.
