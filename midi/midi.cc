@@ -335,6 +335,14 @@ void Channel::Step() {
             case proto::MidiChannel_Oscillator_VRC7_CH5:
             {
                 int n = oscillator - proto::MidiChannel_Oscillator_VRC7_CH0;
+                if (p.trigger()) {
+                    // If triggering a new note, make sure the current note
+                    // is turned off.
+                    nes_->mem()->Write(0x9010, 0x30 + n);
+                    nes_->mem()->Write(0x9030, 0x0F);
+                    nes_->mem()->Write(0x9010, 0x20 + n);
+                    nes_->mem()->Write(0x9030, 0x00);
+                }
                 nes_->mem()->Write(0x9010, 0x10 + n);
                 nes_->mem()->Write(0x9030, timer & 0xFF);
                 nes_->mem()->Write(0x9010, 0x20 + n);
@@ -487,6 +495,7 @@ void InstrumentPlayer::NoteOn(uint8_t note, uint8_t velocity) {
     note_ = note;
     velocity_ = velocity;
     released_ = false;
+    trigger_ = true;
     if (!dmc_) {
         volume_.NoteOn();
         arpeggio_.NoteOn();
@@ -579,6 +588,8 @@ uint8_t InstrumentPlayer::volume() {
         value = 1.0;
     }
     if (instrument_->kind() == proto::FTInstrument_Kind_VRC7) {
+        value = v * 15.0 * 1.5;
+        if (value > 15.0) value=15.0;
         uint8_t patch = instrument_->vrc7().patch() << 4;
         return patch | (15-uint8_t(value));
     } else {

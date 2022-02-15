@@ -305,7 +305,7 @@ absl::StatusOr<proto::FTInstrument> LoadFTI(const std::string& filename) {
         || absl::EndsWith(filename, ".txt")) {
         std::string buffer;
         if (!File::GetContents(filename, &buffer)) {
-            return Error("Unable to read FTI file");
+            return Error("Unable to read FTI textpb file");
         }
         proto::FTInstrument inst;
         if (!google::protobuf::TextFormat::ParseFromString(buffer, &inst)) {

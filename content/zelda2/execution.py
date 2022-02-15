@@ -49,7 +49,7 @@ class Execution(object):
         mapper = self.root.nes.cartridge.mapper
         banks = self.root.nes.cartridge.prglen // 16384
         buckets = {i:0 for i in range(-1, banks)}
-        if mapper == 5:
+        if mapper == 5 or mapper == 85:
             for i, count in self.bank.items():
                 if i < 0:
                     buckets[i] += count

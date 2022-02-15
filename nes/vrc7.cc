@@ -2,6 +2,7 @@
 
 #include "nes/base.h"
 #include "nes/pbmacro.h"
+#include "nes/cpu6502.h"
 #include "nes/cartridge.h"
 #include "nes/emu2413.h"
 
@@ -119,22 +120,22 @@ class VRC7: public Mapper {
     void WriteAudio(uint8_t idx, uint8_t val) {
         const char *instruments[] = {
             // Name in FamiTracker, Name in https://wiki.nesdev.org/w/index.php?title=VRC7_audio
-            "Custom",
-            "Bell",               // "Buzzy Bell",
-            "Guitar",
-            "Piano",              // "Wurly",
-            "Flute",
-            "Clarinet",
-            "Rattling Bell",      // "Synth",
-            "Trumpet",
-            "Organ",
-            "Soft Bell",          // "Bells",
-            "Xylophone",          // "Vibes",
-            "Vibraphone",
-            "Brass",              // "Tutti",
-            "Bass Guitar",        // "Fretless",
-            "Synthesizer",        // "Synth Bass",
-            "Chorus",             // "Sweep",
+            "Custom",               // 0
+            "Bell",                 // 1 "Buzzy Bell",
+            "Guitar",               // 2
+            "Piano",                // 3 "Wurly",
+            "Flute",                // 4
+            "Clarinet",             // 5
+            "Rattling Bell",        // 6 "Synth",
+            "Trumpet",              // 7
+            "Organ",                // 8
+            "Soft Bell",            // 9 "Bells",
+            "Xylophone",            // 10 "Vibes",
+            "Vibraphone",           // 11
+            "Brass",                // 12 "Tutti",
+            "Bass Guitar",          // 13 "Fretless",
+            "Synthesizer",          // 14 "Synth Bass",
+            "Chorus",               // 15 "Sweep",
         };
         OPLL_writeReg(opl_, oplidx_, val);
         if (idx >= 0x30 && idx <= 0x35) {
@@ -233,7 +234,7 @@ unhandled:
         float output[6], sum=0.0;
         OPLL_output(opl_, output);
         for(size_t i=0; i<6; i++) {
-            output[i] *= 64.0;
+            output[i] *= 32.0;
             audio_[i].set_sample(output[i]);
             sum += output[i] * audio_[i].output_volume();
         }
@@ -248,6 +249,25 @@ unhandled:
         */
     }
     const APUDevices& DebugExpansionAudio() override { return audio_debug_; }
+
+    uint8_t RegisterValue(PseudoRegister reg) {
+        switch(reg) {
+            case PseudoRegister::CpuExecBank: {
+                uint16_t pc = nes_->cpu()->pc();
+                switch(pc & 0xE000) {
+                    case 0x8000: return prg_bank_[0] % prg_banks_;
+                    case 0xA000: return prg_bank_[1] % prg_banks_;
+                    case 0xC000: return prg_bank_[2] % prg_banks_;
+                    case 0xE000: return prg_banks_-1;
+                    default:
+                        fprintf(stderr, "Unknown PRG bank for pc=%04x\n", pc);
+                        return 0;
+                }
+            }
+            default:
+                return Mapper::RegisterValue(reg);
+        }
+    }
 
   private:
     uint8_t prg_banks_, prg_bank_[3];

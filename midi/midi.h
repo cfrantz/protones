@@ -74,6 +74,11 @@ class InstrumentPlayer {
 
     uint8_t note() { return note_; }
     bool released() { return released_; }
+    bool trigger() {
+        bool t = trigger_;
+        trigger_ = false;
+        return t;
+    }
     bool done();
     void set_bend(double bend) { bend_ = bend; }
 
@@ -92,6 +97,7 @@ class InstrumentPlayer {
     double bend_ = 1.0;
     bool released_ = false;
     bool dmc_ = false;
+    bool trigger_ = false;
     Envelope volume_ = Envelope(nullptr, 15);
     Envelope arpeggio_ = Envelope(nullptr, 0);
     Envelope pitch_ = Envelope(nullptr, 0);
