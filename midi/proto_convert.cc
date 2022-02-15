@@ -17,8 +17,9 @@
 
 ABSL_FLAG(double, fps, 60.0, "Target frames per second");
 ABSL_FLAG(std::string, config, "", "MIDI configuration textproto file");
-ABSL_FLAG(int, songtable_size, 128, "Length of the song pointer table");
+ABSL_FLAG(size_t, songtable_size, 128, "Length of the song pointer table");
 ABSL_FLAG(int, drumtable_size, -1, "Length of the drum period/patch table");
+ABSL_FLAG(double, volume, 1.0, "MIDI volume scaling");
 
 namespace converter {
 
@@ -205,6 +206,27 @@ class InstrumentManager {
         return r;
     }
 
+    std::string VRC7RegsName(const std::string& name) {
+        return Symbol(absl::StrCat("vrc7regs_", name));
+    }
+
+    std::string RenderVRC7Regs(const std::string& name, const proto::VRC7Patch& patch) {
+        std::string r;
+
+        absl::StrAppendFormat(&r, "%s:\n", VRC7RegsName(name));
+        size_t n = 0;
+        for(int32_t val : patch.regs()) {
+            if (n == 0) {
+                absl::StrAppendFormat(&r, "    .BYT $%02x", val);
+            } else {
+                absl::StrAppendFormat(&r, ",$%02x", val);
+            }
+            n += 1;
+        }
+        absl::StrAppendFormat(&r, "\n");
+        return r;
+    }
+
     std::string RenderInstruments() {
         std::string r;
 
@@ -217,11 +239,29 @@ class InstrumentManager {
             const auto& a = &instrument.arpeggio();
             const auto& p = &instrument.pitch();
             const auto& d = &instrument.duty();
-            absl::StrAppendFormat(&r, "    .WORD %s,%s,%s,%s\n",
-                    EnvEmpty(v) ? zero : EnvName(name, v->kind()).c_str(),
-                    EnvEmpty(a) ? zero : EnvName(name, a->kind()).c_str(),
-                    EnvEmpty(p) ? zero : EnvName(name, p->kind()).c_str(),
-                    EnvEmpty(d) ? zero : EnvName(name, d->kind()).c_str());
+
+            if (instrument.kind() == proto::FTInstrument_Kind_VRC7) {
+                int32_t patch = instrument.vrc7().patch();
+                std::string pn;
+                if (patch == 0) {
+                    pn = VRC7RegsName(name);
+                } else {
+                    absl::StrAppendFormat(&pn, "$%04x", patch);
+                }
+                absl::StrAppendFormat(&r, "    ; Instrument name: '%s', type: VRC7\n    .WORD %s,%s,%s,%s\n",
+                        name,
+                        EnvEmpty(v) ? zero : EnvName(name, v->kind()).c_str(),
+                        EnvEmpty(a) ? zero : EnvName(name, a->kind()).c_str(),
+                        EnvEmpty(p) ? zero : EnvName(name, p->kind()).c_str(),
+                        pn);
+            } else {
+                absl::StrAppendFormat(&r, "    ; Instrument name: '%s', type: 2A03\n    .WORD %s,%s,%s,%s\n",
+                        name,
+                        EnvEmpty(v) ? zero : EnvName(name, v->kind()).c_str(),
+                        EnvEmpty(a) ? zero : EnvName(name, a->kind()).c_str(),
+                        EnvEmpty(p) ? zero : EnvName(name, p->kind()).c_str(),
+                        EnvEmpty(d) ? zero : EnvName(name, d->kind()).c_str());
+            }
         }
 
         absl::StrAppendFormat(&r, "\n");
@@ -230,7 +270,14 @@ class InstrumentManager {
             std::string v = RenderEnvelope(name, &instrument.volume());
             std::string a = RenderEnvelope(name, &instrument.arpeggio());
             std::string p = RenderEnvelope(name, &instrument.pitch());
-            std::string d = RenderEnvelope(name, &instrument.duty());
+            std::string d;
+            if (instrument.kind() == proto::FTInstrument_Kind_VRC7) {
+                if (instrument.vrc7().patch() == 0) {
+                    d = RenderVRC7Regs(name, instrument.vrc7());
+                }
+            } else {
+                d = RenderEnvelope(name, &instrument.duty());
+            }
             absl::StrAppend(&r, v, a, p, d);
         }
         return r;
@@ -351,7 +398,8 @@ class TrackPlayer {
                 const auto& note = frame.note();
                 if (note.kind() == proto::Note_Kind_NONE) continue;
                 if (note.kind() == proto::Note_Kind_ON) {
-                    int volume = note.velocity() / 8;
+                    double vscale = absl::GetFlag(FLAGS_volume);
+                    int volume = std::min(double(note.velocity()) * vscale / 8.0, 15.0);
                     if (volume != last_volume) {
                         // 0x01 - 0x10: set volume to (val&0xF)
                         m.push_back(volume ? volume : 0x10);
@@ -471,10 +519,21 @@ class SongPlayer {
         }
         player_.clear();
         for(const auto& track : song_.tracks()) {
-            player_.emplace(track.number(),
-                            TrackPlayer(&track,
-                                        &manager_,
-                                        MeasureFrames()));
+            int32_t tracknum = track.number();
+            auto tp = TrackPlayer(&track, &manager_, MeasureFrames());
+            for(const auto& channel : config_.channel()) {
+                // Track numbers are 1-based in the config file.
+                if (channel.channel() == tracknum + 1) {
+                    if (channel.nes_channel() > 0) {
+                        tracknum = channel.nes_channel() - 1;
+                    } else {
+                        tracknum = channel.channel() - 1;
+                    }
+                    tp.set_note_offset(channel.note_offset());
+                    break;
+                }
+            }
+            player_.emplace(tracknum, tp);
         }
         return true;
     }
@@ -523,17 +582,19 @@ class SongPlayer {
     // the APU channels on the NES).
     std::string ConfigOrder(const std::string& title) {
         std::string r;
-        absl::StrAppendFormat(&r, "    .BYT %d, 0\n", config_.channel_size());
-        for(const auto& channel : config_.channel()) {
+        int32_t maxtrack = 0;
+        for (const auto & p : player_) {
+            maxtrack = std::max(maxtrack, p.first);
+        }
+        maxtrack += 1;
+
+        absl::StrAppendFormat(&r, "    .BYT %d, 0\n", maxtrack);
+        for(int32_t chan=0; chan < maxtrack; chan++) {
             // config uses 1-based MIDI channel numbers, while the player
             // uses zero-based channel numbers.
-            auto it = player_.find(channel.channel() - 1);
+            auto it = player_.find(chan);
             if (it != player_.end()) {
                 absl::StrAppendFormat(&r, "    .WORD %s\n", it->second.DataName(title));
-
-                // Kindof hacky: we set config parameters in the player here
-                // because we haven't "rendered" the data in the player yet.
-                it->second.set_note_offset(channel.note_offset());
             } else {
                 absl::StrAppendFormat(&r, "    .WORD 0\n");
             }

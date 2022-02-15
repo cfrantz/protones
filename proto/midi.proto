@@ -41,6 +41,8 @@ message MidiChannel {
     // The drumkit assignments for this channel (leave blank except for
     // when using the noise channel).
     map<int32, MidiDrumKit> drumkit = 6;
+    // When rendering to ASM, the target channel number (1-based).
+    int32 nes_channel = 7;
 }
 
 
