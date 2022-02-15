@@ -1,0 +1,5 @@
+name: "Chorus"
+kind: VRC7
+vrc7 {
+  patch: 15
+}

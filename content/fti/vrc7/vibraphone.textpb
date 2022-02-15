@@ -1,0 +1,5 @@
+name: "Vibraphone"
+kind: VRC7
+vrc7 {
+  patch: 10
+}

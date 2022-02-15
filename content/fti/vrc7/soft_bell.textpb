@@ -1,0 +1,5 @@
+name: "Soft Bell"
+kind: VRC7
+vrc7 {
+  patch: 9
+}

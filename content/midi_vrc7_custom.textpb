@@ -1,0 +1,275 @@
+name: "BasicConfig"
+channel {
+    name: "VRC7"
+    channel: 1
+    oscillator: [
+        VRC7_CH0,
+        VRC7_CH1,
+        VRC7_CH2,
+        VRC7_CH3,
+        VRC7_CH4,
+        VRC7_CH5
+    ]
+    instrument: "00_piano1"
+}
+instruments: [
+{ key: "00_piano1" value: "content/fti/vrc7/custom/00_piano1.textpb" },
+{ key: "01_piano2" value: "content/fti/vrc7/custom/01_piano2.textpb" },
+{ key: "02_piano3" value: "content/fti/vrc7/custom/02_piano3.textpb" },
+{ key: "03_honktonk" value: "content/fti/vrc7/custom/03_honktonk.textpb" },
+{ key: "04_ep1" value: "content/fti/vrc7/custom/04_ep1.textpb" },
+{ key: "05_ep2" value: "content/fti/vrc7/custom/05_ep2.textpb" },
+{ key: "06_harpsic" value: "content/fti/vrc7/custom/06_harpsic.textpb" },
+{ key: "07_clavic" value: "content/fti/vrc7/custom/07_clavic.textpb" },
+{ key: "08_celesta" value: "content/fti/vrc7/custom/08_celesta.textpb" },
+{ key: "09_glock" value: "content/fti/vrc7/custom/09_glock.textpb" },
+{ key: "0a_musicbox" value: "content/fti/vrc7/custom/0a_musicbox.textpb" },
+{ key: "0b_vibes" value: "content/fti/vrc7/custom/0b_vibes.textpb" },
+{ key: "0c_marimba" value: "content/fti/vrc7/custom/0c_marimba.textpb" },
+{ key: "0d_xylo" value: "content/fti/vrc7/custom/0d_xylo.textpb" },
+{ key: "0e_tubebell" value: "content/fti/vrc7/custom/0e_tubebell.textpb" },
+{ key: "0f_santur" value: "content/fti/vrc7/custom/0f_santur.textpb" },
+{ key: "10_organ1" value: "content/fti/vrc7/custom/10_organ1.textpb" },
+{ key: "11_organ2" value: "content/fti/vrc7/custom/11_organ2.textpb" },
+{ key: "12_organ3" value: "content/fti/vrc7/custom/12_organ3.textpb" },
+{ key: "13_pipeorg" value: "content/fti/vrc7/custom/13_pipeorg.textpb" },
+{ key: "14_reedorg" value: "content/fti/vrc7/custom/14_reedorg.textpb" },
+{ key: "15_acordian" value: "content/fti/vrc7/custom/15_acordian.textpb" },
+{ key: "16_harmonic" value: "content/fti/vrc7/custom/16_harmonic.textpb" },
+{ key: "17_bandneon" value: "content/fti/vrc7/custom/17_bandneon.textpb" },
+{ key: "18_nylongt" value: "content/fti/vrc7/custom/18_nylongt.textpb" },
+{ key: "19_steelgt" value: "content/fti/vrc7/custom/19_steelgt.textpb" },
+{ key: "1a_jazzgt" value: "content/fti/vrc7/custom/1a_jazzgt.textpb" },
+{ key: "1b_cleangt" value: "content/fti/vrc7/custom/1b_cleangt.textpb" },
+{ key: "1c_mutegt" value: "content/fti/vrc7/custom/1c_mutegt.textpb" },
+{ key: "1d_overdgt" value: "content/fti/vrc7/custom/1d_overdgt.textpb" },
+{ key: "1e_distgt" value: "content/fti/vrc7/custom/1e_distgt.textpb" },
+{ key: "1f_gtharms" value: "content/fti/vrc7/custom/1f_gtharms.textpb" },
+{ key: "20_acoubass" value: "content/fti/vrc7/custom/20_acoubass.textpb" },
+{ key: "21_fingbass" value: "content/fti/vrc7/custom/21_fingbass.textpb" },
+{ key: "22_pickbass" value: "content/fti/vrc7/custom/22_pickbass.textpb" },
+{ key: "23_fretless" value: "content/fti/vrc7/custom/23_fretless.textpb" },
+{ key: "24_slapbas1" value: "content/fti/vrc7/custom/24_slapbas1.textpb" },
+{ key: "25_slapbas2" value: "content/fti/vrc7/custom/25_slapbas2.textpb" },
+{ key: "26_synbass1" value: "content/fti/vrc7/custom/26_synbass1.textpb" },
+{ key: "27_synbass2" value: "content/fti/vrc7/custom/27_synbass2.textpb" },
+{ key: "28_violin" value: "content/fti/vrc7/custom/28_violin.textpb" },
+{ key: "29_viola" value: "content/fti/vrc7/custom/29_viola.textpb" },
+{ key: "2a_cello" value: "content/fti/vrc7/custom/2a_cello.textpb" },
+{ key: "2b_contrab" value: "content/fti/vrc7/custom/2b_contrab.textpb" },
+{ key: "2c_tremstr" value: "content/fti/vrc7/custom/2c_tremstr.textpb" },
+{ key: "2d_pizz" value: "content/fti/vrc7/custom/2d_pizz.textpb" },
+{ key: "2e_harp" value: "content/fti/vrc7/custom/2e_harp.textpb" },
+{ key: "2f_timpani" value: "content/fti/vrc7/custom/2f_timpani.textpb" },
+{ key: "30_strings" value: "content/fti/vrc7/custom/30_strings.textpb" },
+{ key: "31_slowstr" value: "content/fti/vrc7/custom/31_slowstr.textpb" },
+{ key: "32_synstr1" value: "content/fti/vrc7/custom/32_synstr1.textpb" },
+{ key: "33_synstr2" value: "content/fti/vrc7/custom/33_synstr2.textpb" },
+{ key: "34_choir" value: "content/fti/vrc7/custom/34_choir.textpb" },
+{ key: "35_oohs" value: "content/fti/vrc7/custom/35_oohs.textpb" },
+{ key: "36_synvox" value: "content/fti/vrc7/custom/36_synvox.textpb" },
+{ key: "37_orchit" value: "content/fti/vrc7/custom/37_orchit.textpb" },
+{ key: "38_trumpet" value: "content/fti/vrc7/custom/38_trumpet.textpb" },
+{ key: "39_trombone" value: "content/fti/vrc7/custom/39_trombone.textpb" },
+{ key: "3a_tuba" value: "content/fti/vrc7/custom/3a_tuba.textpb" },
+{ key: "3b_mutetrp" value: "content/fti/vrc7/custom/3b_mutetrp.textpb" },
+{ key: "3c_frhorn" value: "content/fti/vrc7/custom/3c_frhorn.textpb" },
+{ key: "3d_brass1" value: "content/fti/vrc7/custom/3d_brass1.textpb" },
+{ key: "3e_synbras1" value: "content/fti/vrc7/custom/3e_synbras1.textpb" },
+{ key: "3f_synbras2" value: "content/fti/vrc7/custom/3f_synbras2.textpb" },
+{ key: "40_sopsax" value: "content/fti/vrc7/custom/40_sopsax.textpb" },
+{ key: "41_altosax" value: "content/fti/vrc7/custom/41_altosax.textpb" },
+{ key: "42_tensax" value: "content/fti/vrc7/custom/42_tensax.textpb" },
+{ key: "43_barisax" value: "content/fti/vrc7/custom/43_barisax.textpb" },
+{ key: "44_oboe" value: "content/fti/vrc7/custom/44_oboe.textpb" },
+{ key: "45_englhorn" value: "content/fti/vrc7/custom/45_englhorn.textpb" },
+{ key: "46_bassoon" value: "content/fti/vrc7/custom/46_bassoon.textpb" },
+{ key: "47_clarinet" value: "content/fti/vrc7/custom/47_clarinet.textpb" },
+{ key: "48_piccolo" value: "content/fti/vrc7/custom/48_piccolo.textpb" },
+{ key: "49_flute1" value: "content/fti/vrc7/custom/49_flute1.textpb" },
+{ key: "4a_recorder" value: "content/fti/vrc7/custom/4a_recorder.textpb" },
+{ key: "4b_panflute" value: "content/fti/vrc7/custom/4b_panflute.textpb" },
+{ key: "4c_bottleb" value: "content/fti/vrc7/custom/4c_bottleb.textpb" },
+{ key: "4d_shaku" value: "content/fti/vrc7/custom/4d_shaku.textpb" },
+{ key: "4e_whistle" value: "content/fti/vrc7/custom/4e_whistle.textpb" },
+{ key: "4f_ocarina" value: "content/fti/vrc7/custom/4f_ocarina.textpb" },
+{ key: "50_squarwav" value: "content/fti/vrc7/custom/50_squarwav.textpb" },
+{ key: "51_sawwav" value: "content/fti/vrc7/custom/51_sawwav.textpb" },
+{ key: "52_syncalli" value: "content/fti/vrc7/custom/52_syncalli.textpb" },
+{ key: "53_chiflead" value: "content/fti/vrc7/custom/53_chiflead.textpb" },
+{ key: "54_charang" value: "content/fti/vrc7/custom/54_charang.textpb" },
+{ key: "55_solovox" value: "content/fti/vrc7/custom/55_solovox.textpb" },
+{ key: "56_fifthsaw" value: "content/fti/vrc7/custom/56_fifthsaw.textpb" },
+{ key: "57_basslead" value: "content/fti/vrc7/custom/57_basslead.textpb" },
+{ key: "58_fantasia" value: "content/fti/vrc7/custom/58_fantasia.textpb" },
+{ key: "59_warmpad" value: "content/fti/vrc7/custom/59_warmpad.textpb" },
+{ key: "5a_polysyn" value: "content/fti/vrc7/custom/5a_polysyn.textpb" },
+{ key: "5b_spacevox" value: "content/fti/vrc7/custom/5b_spacevox.textpb" },
+{ key: "5c_bowedgls" value: "content/fti/vrc7/custom/5c_bowedgls.textpb" },
+{ key: "5d_metalpad" value: "content/fti/vrc7/custom/5d_metalpad.textpb" },
+{ key: "5e_halopad" value: "content/fti/vrc7/custom/5e_halopad.textpb" },
+{ key: "5f_sweeppad" value: "content/fti/vrc7/custom/5f_sweeppad.textpb" },
+{ key: "60_icerain" value: "content/fti/vrc7/custom/60_icerain.textpb" },
+{ key: "61_soundtrk" value: "content/fti/vrc7/custom/61_soundtrk.textpb" },
+{ key: "62_crystal" value: "content/fti/vrc7/custom/62_crystal.textpb" },
+{ key: "63_atmosph" value: "content/fti/vrc7/custom/63_atmosph.textpb" },
+{ key: "64_bright" value: "content/fti/vrc7/custom/64_bright.textpb" },
+{ key: "65_goblin" value: "content/fti/vrc7/custom/65_goblin.textpb" },
+{ key: "66_echodrop" value: "content/fti/vrc7/custom/66_echodrop.textpb" },
+{ key: "67_starthem" value: "content/fti/vrc7/custom/67_starthem.textpb" },
+{ key: "68_sitar" value: "content/fti/vrc7/custom/68_sitar.textpb" },
+{ key: "69_banjo" value: "content/fti/vrc7/custom/69_banjo.textpb" },
+{ key: "6a_shamisen" value: "content/fti/vrc7/custom/6a_shamisen.textpb" },
+{ key: "6b_koto" value: "content/fti/vrc7/custom/6b_koto.textpb" },
+{ key: "6c_kalimba" value: "content/fti/vrc7/custom/6c_kalimba.textpb" },
+{ key: "6d_bagpipe" value: "content/fti/vrc7/custom/6d_bagpipe.textpb" },
+{ key: "6e_fiddle" value: "content/fti/vrc7/custom/6e_fiddle.textpb" },
+{ key: "6f_shannai" value: "content/fti/vrc7/custom/6f_shannai.textpb" },
+{ key: "70_tinklbel" value: "content/fti/vrc7/custom/70_tinklbel.textpb" },
+{ key: "71_agogo" value: "content/fti/vrc7/custom/71_agogo.textpb" },
+{ key: "72_steeldrm" value: "content/fti/vrc7/custom/72_steeldrm.textpb" },
+{ key: "73_woodblok" value: "content/fti/vrc7/custom/73_woodblok.textpb" },
+{ key: "74_taiko" value: "content/fti/vrc7/custom/74_taiko.textpb" },
+{ key: "75_melotom" value: "content/fti/vrc7/custom/75_melotom.textpb" },
+{ key: "76_syndrum" value: "content/fti/vrc7/custom/76_syndrum.textpb" },
+{ key: "77_revrscym" value: "content/fti/vrc7/custom/77_revrscym.textpb" },
+{ key: "78_fretnois" value: "content/fti/vrc7/custom/78_fretnois.textpb" },
+{ key: "79_brthnois" value: "content/fti/vrc7/custom/79_brthnois.textpb" },
+{ key: "7a_seashore" value: "content/fti/vrc7/custom/7a_seashore.textpb" },
+{ key: "7b_birds" value: "content/fti/vrc7/custom/7b_birds.textpb" },
+{ key: "7c_telephon" value: "content/fti/vrc7/custom/7c_telephon.textpb" },
+{ key: "7d_helicopt" value: "content/fti/vrc7/custom/7d_helicopt.textpb" },
+{ key: "7e_applause" value: "content/fti/vrc7/custom/7e_applause.textpb" },
+{ key: "7f_gunshot" value: "content/fti/vrc7/custom/7f_gunshot.textpb" }
+
+]
+midi_program: [
+    {   key:1 value: "" },            # Acoustic Grand Piano
+    {   key:2 value: "" },            # Bright Acoustic Piano
+    {   key:3 value: "" },            # Electric Grand Piano
+    {   key:4 value: "" },            # Honky-tonk Piano
+    {   key:5 value: "" },            # Electric Piano 1
+    {   key:6 value: "" },            # Electric Piano 2
+    {   key:7 value: "" },            # Harpsichord
+    {   key:8 value: "" },            # Clavinet
+    {   key:9 value: "" },            # Celesta
+    {  key:10 value: "" },            # Glockenspiel
+    {  key:11 value: "" },            # Music Box
+    {  key:12 value: "" },            # Vibraphone
+    {  key:13 value: "" },            # Marimba
+    {  key:14 value: "" },            # Xylophone
+    {  key:15 value: "" },            # Tubular Bells
+    {  key:16 value: "" },            # Dulcimer
+    {  key:17 value: "" },            # Drawbar Organ
+    {  key:18 value: "" },            # Percussive Organ
+    {  key:19 value: "" },            # Rock Organ
+    {  key:20 value: "" },            # Church Organ
+    {  key:21 value: "" },            # Reed Organ
+    {  key:22 value: "" },            # Accordion
+    {  key:23 value: "" },            # Harmonica
+    {  key:24 value: "" },            # Tango Accordion
+    {  key:25 value: "" },            # Acoustic Guitar (nylon)
+    {  key:26 value: "" },            # Acoustic Guitar (steel)
+    {  key:27 value: "" },            # Electric Guitar (jazz)
+    {  key:28 value: "" },            # Electric Guitar (clean)
+    {  key:29 value: "" },            # Electric Guitar (muted)
+    {  key:30 value: "" },            # Overdriven Guitar
+    {  key:31 value: "" },            # Distortion Guitar
+    {  key:32 value: "" },            # Guitar harmonics
+    {  key:33 value: "" },            # Acoustic Bass
+    {  key:34 value: "" },            # Electric Bass (finger)
+    {  key:35 value: "" },            # Electric Bass (pick)
+    {  key:36 value: "" },            # Fretless Bass
+    {  key:37 value: "" },            # Slap Bass 1
+    {  key:38 value: "" },            # Slap Bass 2
+    {  key:39 value: "" },            # Synth Bass 1
+    {  key:40 value: "" },            # Synth Bass 2
+    {  key:41 value: "" },            # Violin
+    {  key:42 value: "" },            # Viola
+    {  key:43 value: "" },            # Cello
+    {  key:44 value: "" },            # Contrabass
+    {  key:45 value: "" },            # Tremolo Strings
+    {  key:46 value: "" },            # Pizzicato Strings
+    {  key:47 value: "" },            # Orchestral Harp
+    {  key:48 value: "" },            # Timpani
+    {  key:49 value: "" },            # String Ensemble 1
+    {  key:50 value: "" },            # String Ensemble 2
+    {  key:51 value: "" },            # Synth Strings 1
+    {  key:52 value: "" },            # Synth Strings 2
+    {  key:53 value: "" },            # Choir Aahs
+    {  key:54 value: "" },            # Voice Oohs
+    {  key:55 value: "" },            # Synth Voice
+    {  key:56 value: "" },            # Orchestra Hit
+    {  key:57 value: "" },            # Trumpet
+    {  key:58 value: "" },            # Trombone
+    {  key:59 value: "" },            # Tuba
+    {  key:60 value: "" },            # Muted Trumpet
+    {  key:61 value: "" },            # French Horn
+    {  key:62 value: "" },            # Brass Section
+    {  key:63 value: "" },            # Synth Brass 1
+    {  key:64 value: "" },            # Synth Brass 2
+    {  key:65 value: "" },            # Soprano Sax
+    {  key:66 value: "" },            # Alto Sax
+    {  key:67 value: "" },            # Tenor Sax
+    {  key:68 value: "" },            # Baritone Sax
+    {  key:69 value: "" },            # Oboe
+    {  key:70 value: "" },            # English Horn
+    {  key:71 value: "" },            # Bassoon
+    {  key:72 value: "" },            # Clarinet
+    {  key:73 value: "" },            # Piccolo
+    {  key:74 value: "" },            # Flute
+    {  key:75 value: "" },            # Recorder
+    {  key:76 value: "" },            # Pan Flute
+    {  key:77 value: "" },            # Blown Bottle
+    {  key:78 value: "" },            # Shakuhachi
+    {  key:79 value: "" },            # Whistle
+    {  key:80 value: "" },            # Ocarina
+    {  key:81 value: "" },            # Lead 1 (square)
+    {  key:82 value: "" },            # Lead 2 (sawtooth)
+    {  key:83 value: "" },            # Lead 3 (calliope)
+    {  key:84 value: "" },            # Lead 4 (chiff)
+    {  key:85 value: "" },            # Lead 5 (charang)
+    {  key:86 value: "" },            # Lead 6 (voice)
+    {  key:87 value: "" },            # Lead 7 (fifths)
+    {  key:88 value: "" },            # Lead 8 (bass + lead)
+    {  key:89 value: "" },            # Pad 1 (new age)
+    {  key:90 value: "" },            # Pad 2 (warm)
+    {  key:91 value: "" },            # Pad 3 (polysynth)
+    {  key:92 value: "" },            # Pad 4 (choir)
+    {  key:93 value: "" },            # Pad 5 (bowed)
+    {  key:94 value: "" },            # Pad 6 (metallic)
+    {  key:95 value: "" },            # Pad 7 (halo)
+    {  key:96 value: "" },            # Pad 8 (sweep)
+    {  key:97 value: "" },            # FX 1 (rain)
+    {  key:98 value: "" },            # FX 2 (soundtrack)
+    {  key:99 value: "" },            # FX 3 (crystal)
+    { key:100 value: "" },            # FX 4 (atmosphere)
+    { key:101 value: "" },            # FX 5 (brightness)
+    { key:102 value: "" },            # FX 6 (goblins)
+    { key:103 value: "" },            # FX 7 (echoes)
+    { key:104 value: "" },            # FX 8 (sci-fi)
+    { key:105 value: "" },            # Sitar
+    { key:106 value: "" },            # Banjo
+    { key:107 value: "" },            # Shamisen
+    { key:108 value: "" },            # Koto
+    { key:109 value: "" },            # Kalimba
+    { key:110 value: "" },            # Bag pipe
+    { key:111 value: "" },            # Fiddle
+    { key:112 value: "" },            # Shanai
+    { key:113 value: "" },            # Tinkle Bell
+    { key:114 value: "" },            # Agogo
+    { key:115 value: "" },            # Steel Drums
+    { key:116 value: "" },            # Woodblock
+    { key:117 value: "" },            # Taiko Drum
+    { key:118 value: "" },            # Melodic Tom
+    { key:119 value: "" },            # Synth Drum
+    { key:120 value: "" },            # Reverse Cymbal
+    { key:121 value: "" },            # Guitar Fret Noise
+    { key:122 value: "" },            # Breath Noise
+    { key:123 value: "" },            # Seashore
+    { key:124 value: "" },            # Bird Tweet
+    { key:125 value: "" },            # Telephone Ring
+    { key:126 value: "" },            # Helicopter
+    { key:127 value: "" },            # Applause
+    { key:128 value: "" }             # Gunshot
+]

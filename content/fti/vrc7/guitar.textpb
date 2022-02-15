@@ -1,0 +1,5 @@
+name: "Guitar"
+kind: VRC7
+vrc7 {
+  patch: 2
+}

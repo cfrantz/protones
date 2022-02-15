@@ -1,0 +1,5 @@
+name: "Piano"
+kind: VRC7
+vrc7 {
+  patch: 3
+}
