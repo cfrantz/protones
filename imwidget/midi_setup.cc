@@ -277,6 +277,20 @@ bool MidiSetup::Draw() {
     GetPortNames();
     ImGui::Begin("Midi Setup", &visible_);
     auto* midi = nes_->midi();
+
+    // Since the instruments map has arbitrary iteration order, lets build
+    // a vector of names in sorted order.
+    if (instruments_.empty()) {
+        for(const auto& inst : midi->config_.instruments()) {
+            instruments_.push_back(&inst.first);
+        }
+        std::sort(instruments_.begin(), instruments_.end(),
+            [](const std::string* a, const std::string* b) {
+                return *a < *b;
+            }
+        );
+    }
+
     RtMidiIn* port = nes_->midi()->midi();
     if (ImGui::Checkbox("Enabled", &enabled_)) {
         if (enabled_) {
@@ -300,7 +314,6 @@ bool MidiSetup::Draw() {
     }
     ImGui::PopItemWidth();
 
-
     if (!midi->channel_.empty()) {
         ImGui::Separator();
         ImGui::PushItemWidth(400);
@@ -319,10 +332,10 @@ bool MidiSetup::Draw() {
         }
 
         if (ImGui::BeginCombo("Instrument", current_instrument_.c_str())) {
-            for(const auto& inst : midi->config_.instruments()) {
-                bool selected = current_instrument_ == inst.first;
-                if (ImGui::Selectable(inst.first.c_str(), selected)) {
-                    current_instrument_ = inst.first;
+            for(const auto* inst : instruments_) {
+                bool selected = current_instrument_ == *inst;
+                if (ImGui::Selectable(inst->c_str(), selected)) {
+                    current_instrument_ = *inst;
                     midi->channel_[current_channel_]->set_instrument(current_instrument_);
                 }
                 if (selected) {

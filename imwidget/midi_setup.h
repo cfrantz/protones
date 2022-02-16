@@ -113,6 +113,7 @@ class MidiSetup: public ImWindowBase {
     int ports_;
     int current_port_;
     std::vector<std::string> portnames_;
+    std::vector<const std::string*> instruments_;
     std::string current_channel_;
     std::string current_instrument_;
     const char* names_[128];
