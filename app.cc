@@ -25,6 +25,7 @@
 #include "proto/config.pb.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/embed.h"
+#include <pybind11/stl.h>
 #include "util/browser.h"
 #include "util/config.h"
 #include "util/file.h"
@@ -41,6 +42,7 @@
 ABSL_FLAG(bool, focus, false, "Whether joystick events require window focus");
 ABSL_DECLARE_FLAG(double, volume);
 ABSL_DECLARE_FLAG(std::string, midi);
+ABSL_DECLARE_FLAG(std::vector<std::string>, extra);
 
 namespace protones {
 namespace py = pybind11;
@@ -205,6 +207,10 @@ void ProtoNES::AudioCallback(void* stream, int len) {
 void ProtoNES::set_volume(float v) {
     volume_ = v;
     nes_->apu()->set_volume(volume_);
+}
+
+std::vector<std::string> ProtoNES::extra_flags() const {
+    return absl::GetFlag(FLAGS_extra);
 }
 
 bool ProtoNES::PreDraw() {
@@ -436,6 +442,7 @@ PYBIND11_EMBEDDED_MODULE(app, m) {
         .def_property("scale", &ProtoNES::scale, &ProtoNES::set_scale)
         .def_property("aspect", &ProtoNES::aspect, &ProtoNES::set_aspect)
         .def_property("volume", &ProtoNES::volume, &ProtoNES::set_volume)
+        .def_property_readonly("extra_flags", &ProtoNES::extra_flags)
         .def_property("hook", &ProtoNES::hook, &ProtoNES::set_hook);
 
     m.def("root", app_root);

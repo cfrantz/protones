@@ -47,6 +47,7 @@ class ProtoNES: public ImApp {
     void set_scale(float s) { scale_ = s; }
     void set_aspect(float a) { aspect_ = a; }
     void set_volume(float v);
+    std::vector<std::string> extra_flags() const;
     static void set_python_root(std::shared_ptr<ProtoNES>& root);
 
     pybind11::object& hook() { return hook_; }

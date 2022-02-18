@@ -17,6 +17,7 @@
 
 ABSL_FLAG(std::string, config, "", "ProtoNES config file");
 ABSL_FLAG(std::string, import, "", "Python module to import");
+ABSL_FLAG(std::vector<std::string>, extra, {}, "Extra args made available to python");
 
 const char kUsage[] =
 R"ZZZ(<optional flags> [user-supplied-nes-rom]
