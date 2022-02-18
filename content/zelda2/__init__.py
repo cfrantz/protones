@@ -11,6 +11,7 @@ from . import execution
 from . import hitbox
 from . import random
 from . import memory
+from . import cfplayer
 from .. import debug
 
 # Subclass the EmulatorHooks class
@@ -23,6 +24,7 @@ class Zelda2(app.EmulatorHooks):
         self.cheats = cheats.Cheats(self.root)
         self.rng = random.RNG(self.root)
         self.memory = memory.Memory(self.root)
+        self.cfplayer = cfplayer.CFplayer(self.root)
         self.hitbox_visible = bimpy.Bool()
         self.disable_encounters = bimpy.Bool()
         self.hitbox = [hitbox.LinkHitbox(self.root)]
@@ -98,6 +100,8 @@ class Zelda2(app.EmulatorHooks):
                 pass
             if bimpy.menu_item("Memory Values", "", selected=self.memory.visible):
                 pass
+            if bimpy.menu_item("CFplayer Values", "", selected=self.cfplayer.visible):
+                pass
             if bimpy.menu_item("RNG", "", selected=self.rng.visible):
                 pass
             if bimpy.menu_item("Exec Profile", "", selected=self.execution.visible):
@@ -124,6 +128,7 @@ class Zelda2(app.EmulatorHooks):
         self.cheats.Draw()
         self.execution.Draw()
         self.memory.Draw()
+        self.cfplayer.Draw()
         self.rng.Draw()
 
 # Set the emulation hook to our custom class

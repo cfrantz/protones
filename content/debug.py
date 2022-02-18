@@ -84,13 +84,22 @@ def PrintStack(sp):
 
 
 def PrintMemCb(cpu, addr, val):
-    print("frame=%6d pc=%04x accessed addr %04x val=%02x" % (
-        app.root().nes.frame(), cpu.pc, addr, val))
+    bank = app.root().nes.GetMapperReg(0)
+    print("frame=%6d pc=%02x:%04x accessed addr %04x val=%02x" % (
+        app.root().nes.frame(), bank, cpu.pc, addr, val))
+    return val
+
+def PrintMemCbNz(cpu, addr, val):
+    if val:
+        bank = app.root().nes.GetMapperReg(0)
+        print("frame=%6d pc=%02x:%04x accessed addr %04x val=%02x" % (
+            app.root().nes.frame(), bank, cpu.pc, addr, val))
     return val
 
 def PrintExecCb(cpu):
-    print("frame=%6d pc=%04x a=%02x x=%02x y=%02x sp=1%02x" % (
-        app.root().nes.frame(), cpu.pc, cpu.a, cpu.x, cpu.y, cpu.sp))
+    bank = app.root().nes.GetMapperReg(0)
+    print("frame=%6d pc=%02x:%04x a=%02x x=%02x y=%02x sp=1%02x" % (
+        app.root().nes.frame(), bank, cpu.pc, cpu.a, cpu.x, cpu.y, cpu.sp))
     PrintStack(cpu.sp)
     return cpu.pc
 
@@ -202,28 +211,3 @@ class APUPlayer(object):
             data = json.load(f)
             for d in data:
                 self.frame[frame+d['frame']] = d
-
-def printvals(name, addr, length):
-    mem = app.root().nes.mem
-    print("%20s:" % name, end='')
-    for i in range(length):
-        print(" %02x" % mem[addr+i], end='')
-    print()
-
-def cfplayercb(cpu, addr, val):
-    print("frame=%6d pc=%04x accessed addr %04x val=%02x" % (
-        app.root().nes.frame(), cpu.pc, addr, val))
-    a = 0x7a01
-    printvals("channel_delay", a, 7); a+=7
-    printvals("channel_seq_pos", a, 7); a+=7
-    printvals("channel_meas_pos", a, 7); a+=7
-    printvals("channel_note", a, 7); a+=7
-    printvals("channel_volume", a, 7); a+=7
-    printvals("channel_instrument", a, 7); a+=7
-    printvals("channel_env_state", a, 7); a+=7
-    printvals("channel_env_vol", a, 7); a+=7
-    printvals("channel_env_arp", a, 7); a+=7
-    printvals("channel_env_pitch", a, 7); a+=7
-    printvals("channel_env_duty", a, 7); a+=7
-    printvals("channel_owner", a, 7); a+=7
-    return val
