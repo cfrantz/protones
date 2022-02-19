@@ -114,8 +114,10 @@ void APUDebug::DrawDMC(DMC* dmc) {
     ImGui::Text("Enabled: %s", dmc->enabled_ ? "true" : "false");
     ImGui::Text("Control: %02X", dmc->reg_.control);
     ImGui::Text("Value:   %02X", dmc->reg_.value);
-    ImGui::Text("Address: %02X", dmc->reg_.address);
-    ImGui::Text("Length:  %02X", dmc->reg_.length);
+    ImGui::Text("Address: %02X ($%04x)", dmc->reg_.address,
+            0xC000 | uint16_t(dmc->reg_.address) << 6);
+    ImGui::Text("Length:  %02X ($%04x)", dmc->reg_.length,
+            0x0001 | uint16_t(dmc->reg_.length) << 4);
     ImGui::EndGroup();
     ImGui::SliderFloat("Volume", dmc->mutable_output_volume(), 0.0f, 1.0f);
     ImGui::EndGroup();
