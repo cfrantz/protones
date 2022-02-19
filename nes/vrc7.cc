@@ -4,7 +4,7 @@
 #include "nes/pbmacro.h"
 #include "nes/cpu6502.h"
 #include "nes/cartridge.h"
-#include "nes/emu2413.h"
+#include "nes/vrc7_audio/emu2413.h"
 
 namespace protones {
 

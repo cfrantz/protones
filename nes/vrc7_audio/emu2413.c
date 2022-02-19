@@ -50,7 +50,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "nes/emu2413.h"
+#include "nes/vrc7_audio/emu2413.h"
 
 static const unsigned char default_inst[15][8] = {
 	/* VRC7 instruments, January 17, 2004 update -Xodnizel */
