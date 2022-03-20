@@ -10,11 +10,11 @@
  * - [VRC7 presets](https://siliconpr0n.org/archive/doku.php?id=vendor:yamaha:opl2#opll_vrc7_patch_format) by Nuke.YKT
  * - YMF281B presets by Chabin
  */
-#include "emu2413.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "nes/vrc7_audio/dsa_emu2413.h"
 
 #ifndef INLINE
 #if defined(_MSC_VER)
@@ -1306,8 +1306,9 @@ void OPLL_writeReg(OPLL *opll, uint32_t reg, uint8_t data) {
     break;
 
   case 0x0e:
-    if (opll->chip_type == 1)
-      break;
+    // TODO: should this really be disabled fro VRC7?
+    //if (opll->chip_type == 1)
+    //  break;
     update_rhythm_mode(opll);
     update_key_status(opll);
     break;
