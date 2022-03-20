@@ -4,15 +4,15 @@
 #include "nes/pbmacro.h"
 #include "nes/cpu6502.h"
 #include "nes/cartridge.h"
-#include "nes/vrc7_audio/emu2413.h"
+#include "nes/vrc7_audio/vrc7_audio.h"
 
 namespace protones {
 
-class VRC7Audio: public APUDevice {
+class VRC7AudioDebug: public APUDevice {
   public:
-    VRC7Audio()
+    VRC7AudioDebug()
       : APUDevice(nullptr, 0.25) {}
-    VRC7Audio(const char* name, float volume)
+    VRC7AudioDebug(const char* name, float volume)
       : APUDevice(name, volume) {}
 
     Type type() const override {
@@ -46,22 +46,28 @@ class VRC7: public Mapper {
         irq_counter_(0),
         cycle_counter_(0),
         oplidx_(0),
-        opl_(OPLL_new(3579545, 44100)),
-        audio_debug_{
-            &audio_[0],
-            &audio_[1],
-            &audio_[2],
-            &audio_[3],
-            &audio_[4],
-            &audio_[5],
-        }
+        opl_(VRC7Audio_New(3579545, 44100))
     {
-        audio_[0].set_name("VRC7:0");
-        audio_[1].set_name("VRC7:1");
-        audio_[2].set_name("VRC7:2");
-        audio_[3].set_name("VRC7:3");
-        audio_[4].set_name("VRC7:4");
-        audio_[5].set_name("VRC7:5");
+        const char *names[] = {
+            "VRC7:0",
+            "VRC7:1",
+            "VRC7:2",
+            "VRC7:3",
+            "VRC7:4",
+            "VRC7:5",
+            "VRC7:6",
+            "VRC7:7",
+            "VRC7:8",
+            "VRC7:Percussion",
+        };
+        for(int i=0; i<VRC7_AUDIO_NCHAN; i++) {
+            audio_[i].set_name(names[i]);
+            audio_debug_.push_back(&audio_[i]);
+        }
+    }
+
+    ~VRC7() {
+        VRC7Audio_Delete(opl_);
     }
 
     void LoadState(proto::Mapper* mstate) {
@@ -137,15 +143,15 @@ class VRC7: public Mapper {
             "Synthesizer",          // 14 "Synth Bass",
             "Chorus",               // 15 "Sweep",
         };
-        OPLL_writeReg(opl_, oplidx_, val);
-        if (idx >= 0x30 && idx <= 0x35) {
-            idx &= 0x07;
+        VRC7Audio_WriteReg(opl_, oplidx_, val);
+        if (idx >= 0x30 && idx <= 0x38) {
+            idx -= 0x30;
+            uint8_t vol = val & 0x0F;
+            uint8_t patch = val >> 4;
             snprintf(audio_[idx].status_[0], sizeof(audio_[idx].status_[0]),
-                    "Volume: 0x%02x", opl_->InstVol[idx] & 0x0F);
+                    "Volume: 0x%02x", vol);
             snprintf(audio_[idx].status_[1], sizeof(audio_[idx].status_[1]),
-                    "Instrument: %s(%d)",
-                    instruments[opl_->patch_number[idx]],
-                    opl_->patch_number[idx]);
+                    "Instrument: %s(%d)", instruments[patch], patch);
         }
     }
 
@@ -231,22 +237,13 @@ unhandled:
     }
 
     float ExpansionAudio() override {
-        float output[6], sum=0.0;
-        OPLL_output(opl_, output);
-        for(size_t i=0; i<6; i++) {
-            output[i] *= 32.0;
+        float output[VRC7_AUDIO_NCHAN], sum=0.0;
+        VRC7Audio_Output(opl_, output);
+        for(size_t i=0; i<VRC7_AUDIO_NCHAN; i++) {
             audio_[i].set_sample(output[i]);
             sum += output[i] * audio_[i].output_volume();
         }
         return sum;
-/*
-        int32_t sample = 0;
-        OPLL_fillbuf(opl_, &sample, 1, 0);
-        float val = float(sample - 32768) / 65535.0;
-        val *= 32.0;
-        audio_.set_sample(val);
-        return val * audio_.output_volume();
-        */
     }
     const APUDevices& DebugExpansionAudio() override { return audio_debug_; }
 
@@ -276,8 +273,8 @@ unhandled:
     uint8_t irq_latch_, irq_control_;
     int32_t irq_counter_, cycle_counter_;
     uint8_t oplidx_;
-    OPLL *opl_;
-    VRC7Audio audio_[6];
+    VRC7AudioPtr opl_;
+    VRC7AudioDebug audio_[VRC7_AUDIO_NCHAN];
     APUDevices audio_debug_;
 };
 

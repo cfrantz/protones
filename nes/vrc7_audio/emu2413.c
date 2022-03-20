@@ -841,7 +841,7 @@ void OPLL_output(OPLL * opll, float output[6]) {
 	for (i = 0; i < 6; i++) {
         output[i] = 0.0;
 		if (!(opll->mask & OPLL_MASK_CH(i)) && (CAR(opll, i)->eg_mode != FINISH))
-			output[i] = (float)(calc_slot_car(CAR(opll, i), calc_slot_mod(MOD(opll, i)))) / 65536.0;
+			output[i] = (float)(calc_slot_car(CAR(opll, i), calc_slot_mod(MOD(opll, i)))) / 2048.0;
     }
 }
 
