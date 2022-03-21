@@ -24,12 +24,13 @@ class VRC7AudioDebug: public APUDevice {
     }
 
     const char *text(size_t n) const override {
-        if (n < 2) {
+        if (n < NSTATUS) {
             return status_[n];
         }
         return nullptr;
     }
-    char status_[2][64];
+    static constexpr size_t NSTATUS = 3;
+    char status_[NSTATUS][64];
 };
 
 class VRC7: public Mapper {
@@ -46,7 +47,8 @@ class VRC7: public Mapper {
         irq_counter_(0),
         cycle_counter_(0),
         oplidx_(0),
-        opl_(VRC7Audio_New(3579545, 44100))
+        opl_(VRC7Audio_New(3579545, 44100)),
+        opl_freq_{0,}
     {
         const char *names[] = {
             "VRC7:0",
@@ -62,6 +64,9 @@ class VRC7: public Mapper {
         };
         for(int i=0; i<VRC7_AUDIO_NCHAN; i++) {
             audio_[i].set_name(names[i]);
+            snprintf(audio_[i].status_[0], sizeof(audio_[i].status_[0]), "Instrument:");
+            snprintf(audio_[i].status_[1], sizeof(audio_[i].status_[0]), "Frequency:");
+            snprintf(audio_[i].status_[2], sizeof(audio_[i].status_[0]), "Volume:");
             audio_debug_.push_back(&audio_[i]);
         }
     }
@@ -148,10 +153,23 @@ class VRC7: public Mapper {
             idx -= 0x30;
             uint8_t vol = val & 0x0F;
             uint8_t patch = val >> 4;
+            snprintf(audio_[idx].status_[2], sizeof(audio_[idx].status_[0]),
+                    "Volume:     0x%02x", vol);
             snprintf(audio_[idx].status_[0], sizeof(audio_[idx].status_[0]),
-                    "Volume: 0x%02x", vol);
-            snprintf(audio_[idx].status_[1], sizeof(audio_[idx].status_[1]),
                     "Instrument: %s(%d)", instruments[patch], patch);
+        }
+        if ((idx >= 0x10 && idx <= 0x18) || (idx >= 0x20 && idx <= 0x28)) {
+            int which = idx & 0xF0;
+            idx &= 0x0F;
+            if (which == 0x10) {
+                opl_freq_[idx] &= 0xFF00;
+                opl_freq_[idx] |= val;
+            } else {
+                opl_freq_[idx] &= 0x00FF;
+                opl_freq_[idx] |= val << 8;
+            }
+            snprintf(audio_[idx].status_[1], sizeof(audio_[idx].status_[0]),
+                    "Frequency:  %04x", opl_freq_[idx] & 0x0FFF);
         }
     }
 
@@ -274,6 +292,7 @@ unhandled:
     int32_t irq_counter_, cycle_counter_;
     uint8_t oplidx_;
     VRC7AudioPtr opl_;
+    uint16_t opl_freq_[VRC7_AUDIO_NCHAN];
     VRC7AudioDebug audio_[VRC7_AUDIO_NCHAN];
     APUDevices audio_debug_;
 };

@@ -211,3 +211,31 @@ class APUPlayer(object):
             data = json.load(f)
             for d in data:
                 self.frame[frame+d['frame']] = d
+
+class Vrc7(object):
+
+    def __init__(self):
+        self.mem = app.root().nes.mem
+        self.instvol = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+    def write(self, reg, val):
+        self.mem[0x9010] = reg
+        self.mem[0x9030] = val
+
+    def freq(self, ch, f):
+        self.write(0x10+ch, f & 0xFF)
+        self.write(0x20+ch, f >> 8)
+
+    def perc(self, p):
+        self.write(0xe, 0x20)
+        self.write(0xe, 0x20+p)
+
+    def vol(self, ch, v):
+        self.instvol[ch] &= 0xF0
+        self.instvol[ch] |= v
+        self.write(0x30+ch, self.instvol[ch])
+
+    def instrument(self, ch, i):
+        self.instvol[ch] &= 0x0F
+        self.instvol[ch] |= i << 4
+        self.write(0x30+ch, self.instvol[ch])
