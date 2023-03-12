@@ -38,6 +38,9 @@ class Mapper5: public Mapper {
         irq_status_(0),
         multiplier_{0xFF, 0xFF},
         ext_ram_{0},
+        timer_(0),
+        timer_irq_(0),
+        timer_running_(false),
         apu_divider_(0),
         cycle_(0),
 
@@ -367,7 +370,10 @@ class Mapper5: public Mapper {
                 product = multiplier_[0] * multiplier_[1];
                 return addr == 0x5205 ? uint8_t(product)
                                       : uint8_t(product >> 8);
-
+            case 0x5209:
+                val = timer_irq_;
+                timer_irq_ &= ~0x80;
+                return val;
             default:
                 // Unhandled MMC5 register read.
                 fprintf(stderr, "Unhandled MMC5 register read at %04x\n", addr);
@@ -430,6 +436,13 @@ class Mapper5: public Mapper {
             case 0x5205 ... 0x5206:
                 multiplier_[addr - 0x5205] = val;
                 break;
+            case 0x5209:
+                timer_ = (timer_ & 0xFF00) | val;
+                timer_running_ = true;
+                break;
+            case 0x520a:
+                timer_ = (timer_ & 0x00FF) | val << 8;
+                break;
             default:
                 // Unhandled MMC5 register write.
                 fprintf(stderr,
@@ -470,6 +483,14 @@ class Mapper5: public Mapper {
         }
         // The mapper is clocked at the PPU clock rate.
         if (apu_divider_++ == 2) {
+            if (timer_running_) {
+                timer_ -= 1;
+                if (timer_ == 0) {
+                    timer_irq_ |= 0x80;
+                    timer_running_ = false;
+                    nes_->IRQ();
+                }
+            }
             // Re-derive the cpu clock to clock the pulse channels.
             apu_divider_ = 0;
             EmulateAudio();
@@ -531,6 +552,10 @@ class Mapper5: public Mapper {
 
     // "Extended" ram.
     uint8_t ext_ram_[1024];
+
+    uint16_t timer_;
+    uint8_t timer_irq_;
+    bool timer_running_;
 
     uint32_t apu_divider_;
     uint32_t cycle_;
