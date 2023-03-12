@@ -13,6 +13,7 @@
 ABSL_FLAG(double, fps, 60.0, "Target frames per second");
 ABSL_FLAG(bool, list, false, "List MIDI output ports and exit");
 ABSL_FLAG(int, port, -1, "MIDI output port to use");
+ABSL_FLAG(double, volume, 1.0, "MIDI volume scaling");
 
 namespace player {
 
@@ -84,8 +85,10 @@ class TrackPlayer {
             op |= 0x80;
             last_note_ = 0;
         }
+        double velocity = note.velocity() * absl::GetFlag(FLAGS_volume);
+        if (velocity > 127.0) velocity = 127.0;
         std::vector<uint8_t> message = {
-            op, uint8_t(note.note()), uint8_t(note.velocity())
+            op, uint8_t(note.note()), uint8_t(velocity)
         };
         midiout_->sendMessage(&message);
     }
