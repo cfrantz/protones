@@ -12,6 +12,7 @@
 #include "nes/apu_pulse.h"
 #include "nes/apu_triangle.h"
 #include "nes/nes.h"
+#include "sndfile.hh"
 
 namespace protones {
 
@@ -37,7 +38,7 @@ class APU : public EmulatedDevice {
     void LoadState(proto::APU* state);
     void SaveState(proto::APU* state);
     void set_volume(float v) { volume_ = v; }
-    static const int BUFFERLEN = 1024;
+    static const int BUFFERLEN = 2048;
   private:
     void set_frame_counter(uint8_t val);
     void set_control(uint8_t val);
@@ -55,6 +56,9 @@ class APU : public EmulatedDevice {
     uint8_t frame_value_;;
     bool frame_irq_;
     float volume_;
+    float last_value_ = 0.0;
+
+    std::unique_ptr<SndfileHandle> sndfile_;
 
     float data_[BUFFERLEN];
     std::atomic<int> len_;

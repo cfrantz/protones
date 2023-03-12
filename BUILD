@@ -27,6 +27,7 @@ cc_library(
         "version.h",
     ],
     linkopts = [
+        "-lsndfile",
         "-lSDL2_image",
         "-lSDL2_mixer",
         "-lSDL2_gfx",
@@ -138,31 +139,31 @@ pkg_winzip(
     ],
 )
 
-pkg_tar(
-    name = "protones-bin",
-    srcs = [
-        ":protones",
-    ],
-    mode = "0755",
-    package_dir = "/usr/local/bin",
-)
-
-pkg_tar(
-    name = "protones-share",
-    srcs = [
-        "//content",
-    ],
-    mode = "0644",
-    package_dir = "/usr/local/share/protones",
-    # BUG: https://github.com/bazelbuild/bazel/issues/2176
-    strip_prefix = ".",
-)
-
-pkg_tar(
-    name = "protones-linux",
-    extension = "tar.gz",
-    deps = [
-        ":protones-bin",
-        ":protones-share",
-    ],
-)
+#pkg_tar(
+#    name = "protones-bin",
+#    srcs = [
+#        ":protones",
+#    ],
+#    mode = "0755",
+#    package_dir = "/usr/local/bin",
+#)
+#
+#pkg_tar(
+#    name = "protones-share",
+#    srcs = [
+#        "//content",
+#    ],
+#    mode = "0644",
+#    package_dir = "/usr/local/share/protones",
+#    # BUG: https://github.com/bazelbuild/bazel/issues/2176
+#    strip_prefix = ".",
+#)
+#
+#pkg_tar(
+#    name = "protones-linux",
+#    extension = "tar.gz",
+#    deps = [
+#        ":protones-bin",
+#        ":protones-share",
+#    ],
+#)

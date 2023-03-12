@@ -8,9 +8,13 @@
 #include "nes/nes.h"
 #include "nes/mapper.h"
 
+#define USE_MUTEX 1
+
 ABSL_FLAG(double, volume, 0.2, "Sound volume");
 ABSL_FLAG(bool, lock_framerate_to_audio, true,
             "Lock the framerate to audio playback");
+ABSL_FLAG(std::string, wavfile, "", "Write audio to the named file");
+
 namespace protones {
 
 static float pulse_table[32];
@@ -46,6 +50,11 @@ APU::APU(NES *nes)
         mutex_ = SDL_CreateMutex();
         cond_ = SDL_CreateCond();
         init_tables();
+        
+        const auto& wavfile = absl::GetFlag(FLAGS_wavfile);
+        if (!wavfile.empty()) {
+            sndfile_ = std::make_unique<SndfileHandle>(wavfile, SFM_WRITE, SF_FORMAT_WAV|SF_FORMAT_FLOAT, 1, 44100);
+        }
 }
 
 void APU::LoadState(proto::APU* state) {
@@ -147,14 +156,18 @@ void APU::Emulate() {
     int s1 = int(c1 / NES::sample_rate);
     int s2 = int(c2 / NES::sample_rate);
     if (s1 != s2) {
+        float sample = Output();
+        if (sndfile_) {
+            sndfile_->write(&sample, 1);
+        }
         if (absl::GetFlag(FLAGS_lock_framerate_to_audio)) {
-#if 1
+#if USE_MUTEX
             SDL_LockMutex(mutex_);
             while(len_ == BUFFERLEN) {
                 SDL_CondWait(cond_, mutex_);
             }
             if (len_ < BUFFERLEN) {
-                data_[len_++] = Output();
+                data_[len_++] = sample;
             } else {
                 fprintf(stderr, "Audio overrun\n");
             }
@@ -164,12 +177,12 @@ void APU::Emulate() {
             while((producer_ + 1) % BUFFERLEN == consumer_ % BUFFERLEN) {
                 os::SchedulerYield();
             }
-            data_[producer_ % BUFFERLEN] = Output();
+            data_[producer_ % BUFFERLEN] = sample;
             ++producer_;
 #endif
         } else {
             if (len_ < BUFFERLEN) {
-                data_[len_++] = Output();
+                data_[len_++] = sample;
             }
         }
     }
@@ -177,29 +190,36 @@ void APU::Emulate() {
 
 void APU::PlayBuffer(void* stream, int bufsz) {
     int n = bufsz / sizeof(float);
-#if 1
+    float* out = static_cast<float*>(stream);
+#if USE_MUTEX
     if (len_ >= n) {
         SDL_LockMutex(mutex_);
         int rest = len_ - n;
         memcpy(stream, data_, bufsz);
         memmove(data_, data_ + n, rest * sizeof(float));
         len_ = rest;
+        last_value_ = out[len_ - 1];
         SDL_CondSignal(cond_);
         SDL_UnlockMutex(mutex_);
     } else {
-        //fprintf(stderr, "Audio underrun\n");
-        memset(stream, 0, bufsz);
+        fprintf(stderr, "Audio underrun\n");
+        while(n) {
+            *out++ = last_value_;
+            --n;
+        }
     }
 #else
-    float* out = static_cast<float*>(stream);
     while(n && consumer_ < producer_) {
         *out++ = data_[consumer_ % BUFFERLEN];
         ++consumer_;
         --n;
     }
-    while(n) {
-        *out++ = 0.0f;
-        --n;
+    if (n) {
+        fprintf(stderr, "Audio underrun\n");
+        while(n) {
+            *out++ = 0.0f;
+            --n;
+        }
     }
 #endif
 }

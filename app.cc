@@ -88,7 +88,7 @@ void ProtoNES::Init() {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 240, 0, GL_RGBA,
                  GL_UNSIGNED_BYTE, nes_->ppu()->picture());
     InitControllers();
-    InitAudio(44100, 1, APU::BUFFERLEN, AUDIO_F32);
+    InitAudio(44100, 1, APU::BUFFERLEN / 2, AUDIO_F32);
 
     py::exec(R"py(
         from content.protones import *
