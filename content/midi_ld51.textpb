@@ -1,29 +1,62 @@
-name: "BasicConfig"
+name: "Title Screen Config"
 channel {
-    name: "VRC7"
-    channel: 1
+    name: "Piano1"
+    channel: 2
     oscillator: [
-        VRC7_CH0,
-        VRC7_CH1,
-        VRC7_CH2,
-        VRC7_CH3,
-        VRC7_CH4,
-        VRC7_CH5
+        VRC7_CH0
     ]
-    instrument: "vrc7_guitar"
+    instrument: "piano"
+    nes_channel: 6
 }
 channel {
-    name: "Bass"
-    channel: 2
-    note_offset: 12
+    name: "Piano2"
+    channel: 3
     oscillator: [
-        TRIANGLE
+        VRC7_CH1
     ]
-    instrument: "blank"
+    instrument: "piano"
+    nes_channel: 7
+}
+channel {
+    name: "Piano3"
+    channel: 4
+    oscillator: [
+        VRC7_CH2
+    ]
+    instrument: "piano"
+    nes_channel: 8
+}
+channel {
+    name: "Piano4"
+    channel: 5
+    oscillator: [
+        VRC7_CH3
+    ]
+    instrument: "piano"
+    nes_channel: 9
+}
+channel {
+    name: "Violin"
+    channel: 6
+    oscillator: [
+        VRC7_CH4
+    ]
+    instrument: "flute"
+    nes_channel: 10
+}
+channel {
+    name: "Bass Guitar"
+    channel: 7
+    oscillator: [
+        VRC7_CH5
+    ]
+    note_offset: 12
+    instrument: "bass"
+    nes_channel: 11
 }
 channel {
     name: "Drums"
-    channel: 10
+    channel: 1
     oscillator: [
         NOISE
     ]
@@ -39,45 +72,27 @@ channel {
         { key: 57 value: { patch: "snare" period: 0x3 }},    # Crash 2
         { key: 42 value: { patch: "hat" period: 0x2 }}       # Closed HH
     ]
+    nes_channel: 4
 }
 instruments: [
     { key: "blank" value: "content/fti/00_blank.fti" },
     { key: "snare" value: "content/fti/03_snare.fti" },
     { key: "hat" value: "content/fti/04_hat.fti" },
-    { key: "trikick" value: "content/fti/05_trikick.fti" },
-    { key: "2 1" value: "content/fti/07_2_1.fti" },
-    { key: "open_hat" value: "content/fti/08_open_hat.fti" },
-    { key: "load_drum" value: "content/fti/09_loud_drum.fti" },
-    { key: "ahh" value: "content/fti/0b_ahh.fti" },
-    { key: "0 2" value: "content/fti/0d_0_2.fti" },
-    { key: "fade_in" value: "content/fti/0e_fade_in.fti" },
-    { key: "timpani_dpcm" value: "content/fti/10_timpani_dpcm.fti" },
-    { key: "marching_snare" value: "content/fti/11_marching_snare.fti" },
-    { key: "noise_hat" value: "content/fti/12_p_noise_hat.fti" },
-    { key: "arp" value: "content/fti/13_arp.fti" },
-    { key: "sea" value: "content/fti/15_sea_2_1.fti" },
-    { key: "hat" value: "content/fti/16_hat_2.fti" },
-    { key: "crash" value: "content/fti/17_crash.fti" },
-    { key: "piano" value: "content/fti/18_piano.fti" },
-    { key: "snare2" value: "content/fti/19_snare_2.fti" },
-    { key: "shaker" value: "content/fti/1d_shaker.fti" },
-    { key: "huge_snare" value: "content/fti/1f_huge_snare.fti" },
-    { key: "snare3" value: "content/fti/22_snare_3.fti" },
-    { key: "vrc7_bass" value: "content/fti/vrc7/bass.textpb" },
-    { key: "vrc7_bell" value: "content/fti/vrc7/bell.textpb" },
-    { key: "vrc7_brass" value: "content/fti/vrc7/brass.textpb" },
-    { key: "vrc7_chorus" value: "content/fti/vrc7/chorus.textpb" },
-    { key: "vrc7_clarinet" value: "content/fti/vrc7/clarinet.textpb" },
-    { key: "vrc7_flute" value: "content/fti/vrc7/flute.textpb" },
-    { key: "vrc7_guitar" value: "content/fti/vrc7/guitar.textpb" },
-    { key: "vrc7_organ" value: "content/fti/vrc7/organ.textpb" },
-    { key: "vrc7_piano" value: "content/fti/vrc7/piano.textpb" },
-    { key: "vrc7_rattling_bell" value: "content/fti/vrc7/rattling_bell.textpb" },
-    { key: "vrc7_soft_bell" value: "content/fti/vrc7/soft_bell.textpb" },
-    { key: "vrc7_synth" value: "content/fti/vrc7/synthesizer.textpb" },
-    { key: "vrc7_trumpet" value: "content/fti/vrc7/trumpet.textpb" },
-    { key: "vrc7_vibraphone" value: "content/fti/vrc7/vibraphone.textpb" },
-    { key: "vrc7_xylophone" value: "content/fti/vrc7/xylophone.textpb" }
+    { key: "bass" value: "content/fti/vrc7/bass.textpb" },
+    { key: "bell" value: "content/fti/vrc7/bell.textpb" },
+    { key: "brass" value: "content/fti/vrc7/brass.textpb" },
+    { key: "chorus" value: "content/fti/vrc7/chorus.textpb" },
+    { key: "clarinet" value: "content/fti/vrc7/clarinet.textpb" },
+    { key: "flute" value: "content/fti/vrc7/flute.textpb" },
+    { key: "guitar" value: "content/fti/vrc7/guitar.textpb" },
+    { key: "organ" value: "content/fti/vrc7/organ.textpb" },
+    { key: "piano" value: "content/fti/vrc7/piano.textpb" },
+    { key: "rattling_bell" value: "content/fti/vrc7/rattling_bell.textpb" },
+    { key: "soft_bell" value: "content/fti/vrc7/soft_bell.textpb" },
+    { key: "synth" value: "content/fti/vrc7/synthesizer.textpb" },
+    { key: "trumpet" value: "content/fti/vrc7/trumpet.textpb" },
+    { key: "vibraphone" value: "content/fti/vrc7/vibraphone.textpb" },
+    { key: "xylophone" value: "content/fti/vrc7/xylophone.textpb" }
 ]
 midi_program: [
     {   key:1 value: "piano" },            # Acoustic Grand Piano
