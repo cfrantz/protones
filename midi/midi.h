@@ -115,9 +115,13 @@ class Channel {
     Channel(NES* nes, proto::MidiChannel* config, proto::FTInstrument* instrument)
       : nes_(nes),
       chanconfig_(config),
-      instrument_(instrument)
+      instrument_(instrument),
+      note_offset_(config->note_offset())
     {}
 
+    void set_ignore_program_change(bool val) {
+        ignore_program_change_ = val;
+    }
     void ProcessMessage(const std::vector<uint8_t>& message);
     void Step();
     void NoteOn(uint8_t note, uint8_t velocity);
@@ -125,16 +129,21 @@ class Channel {
     void PitchBend(uint16_t bend);
     void set_instrument(const std::string& name);
     InstrumentPlayer* now_playing(proto::FTInstrument* i);
-    void MidiPanic() { player_.clear(); }
+    void MidiPanic() {
+        for(auto& p : player_) NoteOff(p.note());
+        //player_.clear();
+    }
   private:
     uint16_t OscBaseAddress(proto::MidiChannel::Oscillator osciallator);
 
     NES* nes_;
     double bend_ = 1.0;
+    bool ignore_program_change_ = false;
     proto::MidiChannel* chanconfig_;
     proto::FTInstrument* instrument_;
     std::vector<InstrumentPlayer> player_;
     std::map<uint16_t, uint8_t> last_timer_hi_;
+    int32_t note_offset_;
     friend class MidiSetup;
 };
 
@@ -143,7 +152,6 @@ class MidiConnector : public EmulatedDevice {
   public:
     MidiConnector(NES* nes)
       : nes_(nes),
-      enabled_(false),
       midi_(new RtMidiIn)
     {
         MidiConnector::InitNotes(440.0);
@@ -153,6 +161,9 @@ class MidiConnector : public EmulatedDevice {
     void set_enabled(bool val) {
         enabled_ = val;
         InitEnables();
+    }
+    void set_ignore_program_change(bool val) {
+        for(auto& c : channel_) { c.second->set_ignore_program_change(val); }
     }
 
     RtMidiIn* midi() { return midi_.get(); }
@@ -173,7 +184,7 @@ class MidiConnector : public EmulatedDevice {
   private:
     void InitEnables();
     NES* nes_;
-    bool enabled_;
+    bool enabled_ = false;
     std::unique_ptr<RtMidiIn> midi_;
     proto::MidiConfig config_;
     std::map<std::string, std::unique_ptr<Channel>> channel_;

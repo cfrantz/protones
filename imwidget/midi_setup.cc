@@ -314,8 +314,12 @@ bool MidiSetup::Draw() {
     }
     ImGui::PopItemWidth();
 
+
     if (!midi->channel_.empty()) {
         ImGui::Separator();
+        if (ImGui::Checkbox("Ignore Program Change Events", &ignore_program_change_)) {
+            midi->set_ignore_program_change(ignore_program_change_);
+        }
         ImGui::PushItemWidth(400);
         if (ImGui::BeginCombo("Channel", current_channel_.c_str())) {
             for(const auto& c : midi->config_.channel()) {
@@ -344,6 +348,11 @@ bool MidiSetup::Draw() {
             }
             ImGui::EndCombo();
         }
+
+        if (!current_channel_.empty()) {
+            ImGui::InputInt("Note offset", &midi->channel_[current_channel_]->note_offset_, 1, 1);
+        }
+
         ImGui::PopItemWidth();
 
         if (!current_channel_.empty()) {

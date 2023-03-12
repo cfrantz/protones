@@ -152,24 +152,26 @@ void Channel::ProcessMessage(const std::vector<uint8_t>& message) {
 
     switch(op) {
         case 0x90: // Note On
-            NoteOn(message[1] + chanconfig_->note_offset(), message[2]);
+            NoteOn(message[1] + note_offset_, message[2]);
             break;
         case 0x80: // Note Off
-            NoteOff(message[1] + chanconfig_->note_offset());
+            NoteOff(message[1] + note_offset_);
             break;
         case 0xE0: // Pitch Bend
             PitchBend(message[1] | message[2] << 7);
             break;
         case 0xC0: // Program Change
         {
+            if (ignore_program_change_)
+                break;
             // Midi messsage index program numbers zero-based, but all human
             // readable docs/interfaces index program numbers one-based.
             const auto& inst_name = nes_->midi()->midi_program(message[1]+1);
             set_instrument(inst_name);
             fprintf(stderr, "channel %d: program_change %d -> %s\n",
                     message[0] & 0xF, message[1], inst_name.c_str());
-        }
             break;
+        }
         default:
             printf("Unhandled midi message:");
             for(const auto& data : message) {

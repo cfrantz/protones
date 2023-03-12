@@ -95,10 +95,7 @@ class MidiSetup: public ImWindowBase {
   public:
     MidiSetup(NES* nes)
       : ImWindowBase(false, false),
-      nes_(nes),
-      enabled_(false),
-      ports_(0),
-      current_port_(0)
+      nes_(nes)
     {}
 
     bool Draw() override;
@@ -109,9 +106,10 @@ class MidiSetup: public ImWindowBase {
     void GetPortNames();
 
     NES* nes_;
-    bool enabled_;
-    int ports_;
-    int current_port_;
+    bool enabled_ = false;
+    bool ignore_program_change_ = false;
+    int ports_ = 0;
+    int current_port_ = 0;
     std::vector<std::string> portnames_;
     std::vector<const std::string*> instruments_;
     std::string current_channel_;
