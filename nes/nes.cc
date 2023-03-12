@@ -19,6 +19,7 @@
 
 ABSL_FLAG(std::string, fm2, "", "FM2 Movie file.");
 ABSL_FLAG(std::string, midi, "", "Midi configuration textpb.");
+ABSL_FLAG(std::string, midi_input, "", "Midi input port.");
 ABSL_FLAG(double, fps, 60.0988, "Desired NES fps.");
 namespace protones {
 

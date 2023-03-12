@@ -270,6 +270,34 @@ void MidiSetup::DrawVRC7(proto::FTInstrument* inst) {
     }
 }
 
+void MidiSetup::Init(const std::string& port) {
+    GetPortNames();
+    int i = 0;
+    for (const auto& p: portnames_) {
+        if (p.find(port) != std::string::npos) {
+            enabled_ = true;
+            current_port_ = i;
+            Enable();
+            break;
+        }
+        i++;
+    }
+}
+
+void MidiSetup::Enable() {
+    RtMidiIn* port = nes_->midi()->midi();
+    if (enabled_) {
+        port->openPort(current_port_);
+    } else {
+        port->closePort();
+    }
+
+    auto* midi = nes_->midi();
+    midi->set_enabled(enabled_);
+    current_channel_ = midi->config_.channel(0).name();
+    current_instrument_ = midi->config_.channel(0).instrument();
+}
+
 bool MidiSetup::Draw() {
     if (!visible_)
         return false;
@@ -293,14 +321,7 @@ bool MidiSetup::Draw() {
 
     RtMidiIn* port = nes_->midi()->midi();
     if (ImGui::Checkbox("Enabled", &enabled_)) {
-        if (enabled_) {
-            port->openPort(current_port_);
-        } else {
-            port->closePort();
-        }
-        midi->set_enabled(enabled_);
-        current_channel_ = midi->config_.channel(0).name();
-        current_instrument_ = midi->config_.channel(0).instrument();
+        Enable();
     }
     ImGui::SameLine();
     if (ImGui::Button("MIDI Panic")) {

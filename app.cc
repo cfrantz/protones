@@ -42,6 +42,7 @@
 ABSL_FLAG(bool, focus, false, "Whether joystick events require window focus");
 ABSL_DECLARE_FLAG(double, volume);
 ABSL_DECLARE_FLAG(std::string, midi);
+ABSL_DECLARE_FLAG(std::string, midi_input);
 ABSL_DECLARE_FLAG(std::vector<std::string>, extra);
 
 namespace protones {
@@ -425,6 +426,11 @@ void ProtoNES::Run() {
 void ProtoNES::Load(const std::string& filename) {
     loaded_ = true;
     nes_->LoadFile(filename);
+    const auto& midi = absl::GetFlag(FLAGS_midi);
+    const auto& midi_input = absl::GetFlag(FLAGS_midi_input);
+    if (!midi.empty() && !midi_input.empty()) {
+        midi_setup_->Init(midi_input);
+    }
 }
 
 void ProtoNES::Help(const std::string& topickey) {

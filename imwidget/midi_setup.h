@@ -101,8 +101,10 @@ class MidiSetup: public ImWindowBase {
     bool Draw() override;
     void DrawVRC7(proto::FTInstrument* inst);
     void DrawEnvelope(proto::Envelope* envelope, proto::Envelope_Kind kind, InstrumentPlayer *player);
+    void Init(const std::string& port);
 
   private:
+    void Enable();
     void GetPortNames();
 
     NES* nes_;
