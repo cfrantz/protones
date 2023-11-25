@@ -7,6 +7,7 @@
 #include "imgui_internal.h"
 namespace py = pybind11;
 
+// clang-format off
 template<typename T>
 void template_ImVector(py::module &module, const char* name)
 {
@@ -3836,3 +3837,4 @@ PYBIND11_MODULE(gui, gui)
     );
 }
 
+// clang-format on

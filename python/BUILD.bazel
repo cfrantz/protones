@@ -14,7 +14,7 @@ cc_library(
         ## ":mapper-lib",
         ## ":mem",
         ## ":ppu",
-        "@pybind11_git//:pybind11",
+        "@pybind11",
     ],
     alwayslink = 1,
 )

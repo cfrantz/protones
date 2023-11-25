@@ -1,6 +1,5 @@
 #include "nes/mapper1.h"
 
-#include "imgui.h"
 #include "nes/cartridge.h"
 #include "nes/cpu6502.h"
 #include "nes/pbmacro.h"

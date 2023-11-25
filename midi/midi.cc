@@ -92,7 +92,7 @@ void MidiConnector::ProcessMessage(const std::vector<uint8_t>& message) {
 
 void MidiConnector::LoadConfig(const std::string& filename) {
     std::string data;
-    if (!File::GetContents(filename, &data)) {
+    if (!File::GetContents(filename, &data).ok()) {
         fprintf(stderr, "Could not load %s\n", filename.c_str());
         return;
     }

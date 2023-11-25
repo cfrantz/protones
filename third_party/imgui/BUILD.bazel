@@ -27,7 +27,7 @@ genrule(
 
         echo "================================================================="
         echo "You need to manually copy the generated bindings:"
-        echo "cp $@ third_party/imgui_rs/gui.cpp"
+        echo "cp $@ third_party/imgui/gui.cpp"
         echo "================================================================="
     """,
     tags = ["manual"],

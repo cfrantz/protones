@@ -18,7 +18,6 @@ cc_binary(
     srcs = ["fti_load.cc"],
     deps = [
         ":fti",
-        "//util:logging",
     ],
 )
 
@@ -34,7 +33,7 @@ cc_library(
         "//proto:fti",
         "//proto:midi",
         "//util:file",
-        "@rtmidi_git//:rtmidi",
+        "@com_github_rtmidi//:rtmidi",
     ],
 )
 
@@ -46,7 +45,7 @@ cc_binary(
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/flags:usage",
-        "@midifile_git//:midifile",
+        "@com_github_midifile//:midifile",
     ],
 )
 
@@ -59,7 +58,7 @@ cc_binary(
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/flags:usage",
-        "@rtmidi_git//:rtmidi",
+        "@com_github_rtmidi//:rtmidi",
     ],
 )
 

@@ -500,7 +500,7 @@ class SongPlayer {
     // Reads a textpb-representation of the song.
     bool Load(const std::string& filename) {
         std::string buffer;
-        if (!File::GetContents(filename, &buffer)) {
+        if (!File::GetContents(filename, &buffer).ok()) {
             fprintf(stderr, "Unable to read file '%s'\n", filename.c_str());
             return false;
         }
@@ -542,7 +542,7 @@ class SongPlayer {
     // mappings.
     void LoadConfig(const std::string& filename) {
         std::string data;
-        if (!File::GetContents(filename, &data)) {
+        if (!File::GetContents(filename, &data).ok()) {
             fprintf(stderr, "Could not load %s\n", filename.c_str());
             return;
         }

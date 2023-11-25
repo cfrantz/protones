@@ -129,7 +129,7 @@ class SongPlayer {
 
     bool Load(const std::string& filename) {
         std::string buffer;
-        if (!File::GetContents(filename, &buffer)) {
+        if (!File::GetContents(filename, &buffer).ok()) {
             fprintf(stderr, "Unable to read file '%s'\n", filename.c_str());
             return false;
         }

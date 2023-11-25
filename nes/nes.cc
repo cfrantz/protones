@@ -1,5 +1,4 @@
 #include <unistd.h>
-#include "imgui.h"
 #include "google/protobuf/text_format.h"
 
 #include "nes/nes.h"

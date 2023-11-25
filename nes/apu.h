@@ -24,7 +24,7 @@ class APU : public EmulatedDevice {
     void Write(uint16_t addr, uint8_t val);
     uint8_t Read(uint16_t addr);
 
-    void PlayBuffer(void* stream, int len);
+    void PlayBuffer(float* stream, int len);
 
     void StepEnvelope();
     void StepLength();

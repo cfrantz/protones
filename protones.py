@@ -9,6 +9,7 @@ from application import gui
 
 flags = argparse.ArgumentParser(prog="app_shell", description="Description")
 flags.add_argument("--interactive", "-i", action="store_true", help="Start an interactive Python shell")
+flags.add_argument("nesfile", nargs='?', help="NES ROM to run")
 
 class AbslFlag(argparse.Action):
     """Absl Flags / argparse fusion."""
@@ -26,14 +27,9 @@ class AbslFlag(argparse.Action):
         flag.parse(values)
         setattr(namespace, self.dest, values)
 
-class App(application.App):
+class ProtoNES(application.ProtoNES):
     def __init__(self):
         super().__init__()
-
-    def menu_bar_hook(self):
-        if gui.begin_menu("foo"):
-            gui.menu_item("bar")
-            gui.end_menu()
 
     def interactive_shell(self):
         app = self
@@ -42,15 +38,18 @@ class App(application.App):
 
 
 def main(args):
-    # We really need to run App in the main thread and that means the
+    # We really need to run ProtoNES in the main thread and that means the
     # interactive shell will end up in a daemon thread.  That means the app
     # can just exit without IPython having a chaince to restore the terminal
     # paramaters.
     #
     # We'll keep our own copy of terminal state and restore it upon app exit.
     term_state = termios.tcgetattr(sys.stdout)
-    app = App()
+    app = ProtoNES()
     app.init()
+    if args.nesfile:
+        app.load(args.nesfile)
+
     if args.interactive:
         thread = Thread(target=app.interactive_shell, daemon=True)
         thread.start()

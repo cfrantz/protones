@@ -31,7 +31,13 @@ cc_library(
     ],
     deps = [
         "//imwidget:base",
+        "//imwidget:apu_debug",
+        "//imwidget:controller_debug",
+        "//imwidget:mem_debug",
+        "//imwidget:midi_setup",
+        "//imwidget:ppu_debug",
         "//imwidget:error_dialog",
+        "//nes",
         "//util:browser",
         "//util:fpsmgr",
         "//util:os",
@@ -39,7 +45,6 @@ cc_library(
         "@com_google_absl//absl/log",
         "@com_github_imgui//:imgui",
         "@com_github_igfd//:igfd",
-        "@com_github_implot//:implot",
         "@com_google_protobuf//:protobuf",
         "@pybind11",
 
@@ -56,6 +61,9 @@ cc_library(
     srcs = ["application.cc"],
     deps = [
         ":app",
+        "//nes",
+        "//nes:nes-interface",
+        "//nes:mapper",
         "//third_party/imgui:gui",
         "@com_google_absl//absl/flags:commandlineflag",
         "@com_google_absl//absl/flags:reflection",
@@ -77,55 +85,26 @@ filegroup(
 )
 
 py_binary(
-    name = "app_shell",
-    srcs = ["app_shell.py"],
+    name = "protones",
+    srcs = ["protones.py"],
     data = [":application_module"],
     deps = [
         requirement("ipython"),
     ],
 )
 
-#cc_binary(
-#    name = "application",
-#    srcs = [
-#        "main.cc",
-#    ],
-#    linkopts = select({
-#        #":windows": [
-#        #    "-lpthread",
-#        #    "-lm",
-#        #    "-lopengl32",
-#        #    "-ldinput8",
-#        #    "-ldxguid",
-#        #    "-ldxerr8",
-#        #    "-luser32",
-#        #    "-lgdi32",
-#        #    "-lwinmm",
-#        #    "-limm32",
-#        #    "-lole32",
-#        #    "-loleaut32",
-#        #    "-lshell32",
-#        #    "-lversion",
-#        #    "-luuid",
-#        #],
-#        "//conditions:default": [
-#            "-lpthread",
-#            "-lm",
-#            "-lGL",
-#        ],
-#    }),
-#    deps = [
-#        ":app",
-#        "//proto:gui_extension",
-#        "//util:config",
-#        "@com_google_absl//absl/flags:parse",
-#        "@com_google_absl//absl/flags:usage",
-#    ],
-#)
-
-#pkg_winzip(
-#    name = "application-windows",
-#    files = [
-#        ":application",
-#    ],
-#)
+cc_binary(
+    name = "c_protones",
+    srcs = [
+        "main.cc",
+    ],
+    linkopts = [
+        #"-lpthread",
+        #"-lm",
+        #"-lGL",
+        "-lpython3.11",
+    ],
+    deps = [
+        ":app",
+    ],
+)

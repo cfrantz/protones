@@ -1,5 +1,4 @@
 #include <cstdint>
-#include "imgui.h"
 #include "nes/controller.h"
 #include "proto/config.pb.h"
 #include "util/config.h"

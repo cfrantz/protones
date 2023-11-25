@@ -1,6 +1,5 @@
 #include <string.h>
 #include <SDL2/SDL.h>
-#include "imgui.h"
 
 #include "absl/flags/flag.h"
 #include "util/os.h"
@@ -188,14 +187,12 @@ void APU::Emulate() {
     }
 }
 
-void APU::PlayBuffer(void* stream, int bufsz) {
-    int n = bufsz / sizeof(float);
-    float* out = static_cast<float*>(stream);
+void APU::PlayBuffer(float* out, int n) {
 #if USE_MUTEX
     if (len_ >= n) {
         SDL_LockMutex(mutex_);
         int rest = len_ - n;
-        memcpy(stream, data_, bufsz);
+        memcpy(out, data_, n * sizeof(float));
         memmove(data_, data_ + n, rest * sizeof(float));
         len_ = rest;
         last_value_ = out[len_ - 1];

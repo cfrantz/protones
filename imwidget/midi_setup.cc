@@ -4,11 +4,11 @@
 #include "imwidget/midi_setup.h"
 
 #include "imgui.h"
-#include "nfd.h"
 #include "nes/nes.h"
 #include "midi/fti.h"
 #include "midi/midi.h"
 #include "RtMidi.h"
+#include "ImGuiFileDialog.h"
 
 namespace protones {
 
@@ -305,6 +305,7 @@ bool MidiSetup::Draw() {
     GetPortNames();
     ImGui::Begin("Midi Setup", &visible_);
     auto* midi = nes_->midi();
+    auto* igfd = ImGuiFileDialog::Instance();
 
     // Since the instruments map has arbitrary iteration order, lets build
     // a vector of names in sorted order.
@@ -406,14 +407,17 @@ bool MidiSetup::Draw() {
             }
 
             if (ImGui::Button("Save Instrument")) {
-                char *filename = nullptr;
-                auto result = NFD_SaveDialog("fti", nullptr, &filename);
-                if (result == NFD_OKAY) {
+                igfd->OpenDialog("SaveInstrument", "Save File", ".*", ".", 1, nullptr, ImGuiFileDialogFlags_Modal);
+            }
+            if (igfd->Display("SaveInstrument")) {
+                if (igfd->IsOk()) {
+                    std::string filename = igfd->GetFilePathName();
                     auto status = SaveFTI(filename, *instrument);
                     if (!status.ok()) {
                         fprintf(stderr, "Error saving instrument: %s", status.ToString().c_str());
                     }
                 }
+                igfd->Close();
             }
         }
     }

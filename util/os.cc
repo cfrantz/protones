@@ -37,6 +37,7 @@ void SchedulerYield() {
 #endif
 }
 
+#define SEC_TO_UNIX_EPOCH 11644473600LL
 int64_t utime_now() {
     int64_t now;
 #ifndef _WIN32
@@ -50,8 +51,25 @@ int64_t utime_now() {
     now = (int64_t(ft.dwLowDateTime) | int64_t(ft.dwHighDateTime) << 32) / 10;
     // Windows time is since Jan 1, 1601
     // Unix time is since Jan 1, 1970
-#define SEC_TO_UNIX_EPOCH 11644473600LL
     now -= SEC_TO_UNIX_EPOCH * 1000000LL;
+#endif
+    return now;
+}
+
+int64_t ntime_now() {
+    int64_t now;
+#ifndef _WIN32
+    struct timespec tm;
+    clock_gettime(CLOCK_REALTIME, &tm);
+    now = tm.tv_sec * 100000000LL + tm.tv_nsec;
+#else
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
+    // FileTime is in 100ns increments.  Convert to nanoseconds.
+    now = (int64_t(ft.dwLowDateTime) | int64_t(ft.dwHighDateTime) << 32) * 100;
+    // Windows time is since Jan 1, 1601
+    // Unix time is since Jan 1, 1970
+    now -= SEC_TO_UNIX_EPOCH * 1000000000LL;
 #endif
     return now;
 }

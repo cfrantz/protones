@@ -58,10 +58,12 @@ cc_library(
         ":mapper",
         ":nes-interface",
         ":pbmacro",
-        "//external:imgui",
         "//proto:apu",
         "//util:os",
         "@com_google_absl//absl/flags:flag",
+    ],
+    linkopts = [
+        "-lsndfile",
     ],
 )
 
@@ -87,7 +89,6 @@ cc_library(
     deps = [
         ":base",
         ":nes-interface",
-        "//external:imgui",
         "//proto:config",
         "//util:config",
     ],
@@ -117,6 +118,7 @@ cc_binary(
         ":mem",
         ":nes",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
     ],
 )
 
@@ -171,7 +173,6 @@ cc_library(
         ":mapper",
         ":nes-interface",
         ":ppu",
-        "//external:imgui",
         "//proto:cpu6502",
         "//proto:nes",
     ],
@@ -192,7 +193,6 @@ cc_library(
         ":mem",
         ":nes-interface",
         ":ppu",
-        "//external:imgui",
         "//midi",
         "//proto:config",
         "//util:config",
@@ -211,7 +211,6 @@ cc_library(
         ":mapper",
         ":nes-interface",
         ":pbmacro",
-        "//external:imgui",
         "//proto:ppu",
     ],
 )

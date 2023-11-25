@@ -3,6 +3,7 @@
 #include <string>
 
 #include "absl/flags/flag.h"
+#include "absl/flags/parse.h"
 #include "nes/cpu6502.h"
 #include "nes/mem.h"
 

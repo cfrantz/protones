@@ -51,7 +51,7 @@ cc_library(
     hdrs = ["apu_debug.h"],
     deps = [
         ":base",
-        "//external:imgui",
+        "@com_github_imgui//:imgui",
         "//nes:apu",
     ],
 )
@@ -62,7 +62,7 @@ cc_library(
     hdrs = ["controller_debug.h"],
     deps = [
         ":base",
-        "//external:imgui",
+        "@com_github_imgui//:imgui",
         "//nes:controller",
         "//nes:nes-interface",
     ],
@@ -74,7 +74,7 @@ cc_library(
     hdrs = ["mem_debug.h"],
     deps = [
         ":base",
-        "//external:imgui",
+        "@com_github_imgui//:imgui",
         "//nes:mem",
     ],
 )
@@ -85,8 +85,8 @@ cc_library(
     hdrs = ["midi_setup.h"],
     deps = [
         ":base",
-        "//external:imgui",
-        "//external:nfd",
+        "@com_github_imgui//:imgui",
+        "@com_github_igfd//:igfd",
         "//midi",
         "//midi:fti",
         "//nes:nes-interface",
@@ -100,7 +100,7 @@ cc_library(
     hdrs = ["ppu_debug.h"],
     deps = [
         ":base",
-        "//external:imgui",
+        "@com_github_imgui//:imgui",
         "//nes:mapper",
         "//nes:mem",
         "//nes:nes-interface",

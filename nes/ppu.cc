@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <tuple>
-#include "imgui.h"
 #include <SDL2/SDL_opengl.h>
 
 #include "nes/pbmacro.h"

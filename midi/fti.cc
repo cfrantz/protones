@@ -14,28 +14,28 @@ absl::Status Error(std::string err) {
 
 absl::Status ParseEnvelope(File* file, proto::Envelope* env) {
     uint32_t count;
-    if (!file->Read(&count)) {
+    if (!file->Read(&count).ok()) {
         return Error("Couldn't read Envelope::count field");
     }
 
     int32_t loop;
-    if (!file->Read(&loop)) {
+    if (!file->Read(&loop).ok()) {
         return Error("Couldn't read Envelope::loop field");
     }
 
     int32_t release;
-    if (!file->Read(&release)) {
+    if (!file->Read(&release).ok()) {
         return Error("Couldn't read Envelope::release field");
     }
 
     uint32_t setting;
-    if (!file->Read(&setting)) {
+    if (!file->Read(&setting).ok()) {
         return Error("Couldn't read Envelope::setting field");
     }
 
     int8_t sequence[count];
     int64_t len = count;
-    if (!file->Read(sequence, &len)) {
+    if (!file->Read(sequence, &len).ok()) {
         return Error("Couldn't read Envelope::sequence field");
     }
     for(const auto& s : sequence) {
@@ -66,7 +66,7 @@ absl::Status ParseEnvelope(File* file, proto::Envelope* env) {
 
 absl::Status ParseBasicFTI(File* file, proto::FTInstrument* inst) {
     uint8_t count;
-    if (!file->Read(&count)) {
+    if (!file->Read(&count).ok()) {
         return Error("Couldn't read count field");
     }
     if (count != 5) {
@@ -75,7 +75,7 @@ absl::Status ParseBasicFTI(File* file, proto::FTInstrument* inst) {
 
     for(size_t i=0; i<count; i++) {
         uint8_t present;
-        if (!file->Read(&present)) {
+        if (!file->Read(&present).ok()) {
             return Error("Couldn't read present field");
         }
         if (present) {
@@ -98,14 +98,14 @@ absl::Status ParseBasicFTI(File* file, proto::FTInstrument* inst) {
 absl::Status ParseVRC7(File* file, proto::FTInstrument* inst) {
     auto* vrc7 = inst->mutable_vrc7();
     uint32_t patch;
-    if (!file->Read(&patch)) {
+    if (!file->Read(&patch).ok()) {
         return Error("Couldn't read patch field");
     }
     vrc7->set_patch(patch);
 
     if (patch == 0) {
         uint8_t regs[8];
-        if (!file->Read(&regs)) {
+        if (!file->Read(&regs).ok()) {
             return Error("Couldn't read patch registers");
         }
         for(const auto& v : regs) {
@@ -124,12 +124,12 @@ struct AssignmentData {
 
 absl::Status ParseDPCM(File* file, proto::FTInstrument* inst) {
     uint32_t assigned;
-    if (!file->Read(&assigned)) {
+    if (!file->Read(&assigned).ok()) {
         return Error("Couldn't read DPCM.assigned field");
     }
     for(uint32_t i=0; i<assigned; ++i) {
         AssignmentData ad;
-        if (!file->Read(&ad)) {
+        if (!file->Read(&ad).ok()) {
             return Error("Couldn't read DPCM.assignment_data field");
         }
         auto *dpcm = inst->add_dpcm();
@@ -139,25 +139,25 @@ absl::Status ParseDPCM(File* file, proto::FTInstrument* inst) {
         dpcm->set_loop((ad.pitch & 0x80) != 0);
     }
     uint32_t count;
-    if (!file->Read(&count)) {
+    if (!file->Read(&count).ok()) {
         return Error("Couldn't read count field");
     }
     for(uint32_t i=0; i<count; ++i) {
         uint32_t index, namelen, size;
         proto::DPCMSample sample;
-        if (!file->Read(&index)) {
+        if (!file->Read(&index).ok()) {
             return Error("Couldn't read DPCM.sample.index field");
         }
-        if (!file->Read(&namelen)) {
+        if (!file->Read(&namelen).ok()) {
             return Error("Couldn't read DPCM.sample.namelen field");
         }
-        if (!file->Read(sample.mutable_name(), namelen)) {
+        if (!file->Read(sample.mutable_name(), namelen).ok()) {
             return Error("Couldn't read DPCM.sample.name field");
         }
-        if (!file->Read(&size)) {
+        if (!file->Read(&size).ok()) {
             return Error("Couldn't read DPCM.sample.size field");
         }
-        if (!file->Read(sample.mutable_data(), size)) {
+        if (!file->Read(sample.mutable_data(), size).ok()) {
             return Error("Couldn't read DPCM.sample.data field");
         }
         sample.set_size(int32_t(size));
@@ -171,7 +171,7 @@ absl::StatusOr<proto::FTInstrument> ParseFTI(File* file) {
     proto::FTInstrument inst;
 
     std::string sig;
-    if (!file->Read(&sig, 3)) {
+    if (!file->Read(&sig, 3).ok()) {
         return Error("Unable to read FTI file");
     }
     if (sig != "FTI") {
@@ -179,7 +179,7 @@ absl::StatusOr<proto::FTInstrument> ParseFTI(File* file) {
     }
 
     std::string version;
-    if (!file->Read(&version, 3)) {
+    if (!file->Read(&version, 3).ok()) {
         return Error("Unable to read FTI file");
     }
     if (version != "2.4") {
@@ -187,15 +187,15 @@ absl::StatusOr<proto::FTInstrument> ParseFTI(File* file) {
     }
 
     uint8_t exp;
-    if (!file->Read(&exp)) {
+    if (!file->Read(&exp).ok()) {
         return Error("Couldn't read expansion field");
     }
     inst.set_kind(static_cast<proto::FTInstrument::Kind>(exp));
     uint32_t namelen;
-    if (!file->Read(&namelen)) {
+    if (!file->Read(&namelen).ok()) {
         return Error("Couldn't read namelen field");
     }
-    if (!file->Read(inst.mutable_name(), namelen)) {
+    if (!file->Read(inst.mutable_name(), namelen).ok()) {
         return Error("Couldn't read name field");
     }
 
@@ -304,7 +304,7 @@ absl::StatusOr<proto::FTInstrument> LoadFTI(const std::string& filename) {
         || absl::EndsWith(filename, ".textproto")
         || absl::EndsWith(filename, ".txt")) {
         std::string buffer;
-        if (!File::GetContents(filename, &buffer)) {
+        if (!File::GetContents(filename, &buffer).ok()) {
             return Error("Unable to read FTI textpb file");
         }
         proto::FTInstrument inst;
@@ -327,7 +327,7 @@ absl::Status SaveFTI(const std::string& filename, proto::FTInstrument& inst) {
         || absl::EndsWith(filename, ".txt")) {
         std::string buffer;
         google::protobuf::TextFormat::PrintToString(inst, &buffer);
-        if (!File::SetContents(filename, buffer)) {
+        if (!File::SetContents(filename, buffer).ok()) {
             return Error("Unable to write FTI file");
         }
         return absl::OkStatus();

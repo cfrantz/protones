@@ -1,6 +1,4 @@
 #include "midi/fti.h"
-#include "util/logging.h"
-
 
 int main(int argc, char *argv[]) {
     auto fti = protones::LoadFTI(argv[1]);

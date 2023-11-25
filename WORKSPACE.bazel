@@ -48,3 +48,9 @@ fonts_repos()
 
 load("//third_party/fonts:deps.bzl", "fonts_deps")
 fonts_deps()
+
+######################################################################
+# MIDI libraries
+######################################################################
+load("//third_party/midi:repos.bzl", "midi_repos")
+midi_repos()

@@ -8,7 +8,7 @@
 
 #include <pybind11/pybind11.h>
 #include "imwidget/imapp.h"
-#include "imwidget/python_console.h"
+//#include "imwidget/python_console.h"
 #include "nes/nes.h"
 #include "proto/controller.pb.h"
 
@@ -24,8 +24,7 @@ class MidiSetup;
 
 class ProtoNES: public ImApp {
   public:
-    ProtoNES(const std::string& name) : ImApp(name, 1280, 720) {}
-    ProtoNES() : ProtoNES("") {}
+    ProtoNES() : ImApp("ProtoNES", 1280, 720) {}
     ~ProtoNES() override {}
 
     void Load(const std::string& filename);
@@ -39,7 +38,7 @@ class ProtoNES: public ImApp {
     void Run();
     void DrawPreferences();
 
-    void AudioCallback(void* stream, int len) override;
+    void AudioCallback(float* stream, int len) override;
     void Help(const std::string& topickey);
 
     std::shared_ptr<NES> nes() { return nes_; }
@@ -49,12 +48,14 @@ class ProtoNES: public ImApp {
     void set_scale(float s) { scale_ = s; }
     void set_aspect(float a) { aspect_ = a; }
     void set_volume(float v);
-    std::vector<std::string> extra_flags() const;
 
     void Import(const std::string& name);
 
     void SaveSlot(int slot);
     void LoadSlot(int slot);
+
+    virtual void MenuBarHook() {};
+    virtual void MenuHook(const std::string& name) {}
 
     const static size_t HISTORY_SIZE = 256;
   private:
@@ -80,7 +81,7 @@ class ProtoNES: public ImApp {
     MidiSetup* midi_setup_;
     PPUTileDebug* ppu_tile_debug_;
     PPUVramDebug* ppu_vram_debug_;
-    std::unique_ptr<PythonConsole> console_;
+    //std::unique_ptr<PythonConsole> console_;
     std::map<int, proto::ControllerButtons> buttons_;
 
     float frametime_[100];
@@ -93,13 +94,13 @@ class PyProtoNES : public ProtoNES {
 
     void MenuBarHook() override {
         pybind11::gil_scoped_acquire gil;
-        PYBIND11_OVERRIDE_NAME(void, App, "menu_bar_hook", MenuBarHook);
+        PYBIND11_OVERRIDE_NAME(void, ProtoNES, "menu_bar_hook", MenuBarHook);
     }
     void MenuHook(const std::string& name) override {
         pybind11::gil_scoped_acquire gil;
-        PYBIND11_OVERRIDE_NAME(void, App, "menu_hook", MenuHook, name);
+        PYBIND11_OVERRIDE_NAME(void, ProtoNES, "menu_hook", MenuHook, name);
     }
 };
 
 }  // namespace protones
-#endif PROTONES_APP_H
+#endif //PROTONES_APP_H

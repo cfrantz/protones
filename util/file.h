@@ -90,9 +90,23 @@ class File {
     absl::Status Read(std::string* buf);
     absl::Status Read(std::string* buf, int64_t len);
     absl::Status Read(void* buf, int64_t* len);
+    template<typename T>
+    absl::Status Read(T* item) {
+        int64_t len = sizeof(T);
+        int64_t orig = len;
+        absl::Status s = Read(item, &len);
+        if (s.ok() && orig != len) {
+            return absl::UnknownError("short read");
+        }
+        return s;
+    }
     absl::Status Write(const std::string& buf);
     absl::Status Write(const std::string& buf, int64_t len);
     absl::Status Write(const void* buf, int64_t len);
+    template<typename T>
+    absl::Status Write(const T& item) {
+        return Write(&item, sizeof(T));
+    }
 
     void Close();
 

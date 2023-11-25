@@ -1,5 +1,4 @@
 #include <fstream>
-#include "imgui.h"
 
 #include "nes/mem.h"
 #include "nes/pbmacro.h"
@@ -180,6 +179,7 @@ uint8_t Mem::CpuExecBank() {
     return nes_->mapper()->RegisterValue(Mapper::PseudoRegister::CpuExecBank);
 }
 #ifdef DELETE_ME
+#include "imgui.h"
 void Mem::HexDump(int addr, int len) {
     static const char hex[] = "0123456789abcdef";
     char line[80];

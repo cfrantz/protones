@@ -9,6 +9,7 @@ std::string GetCWD();
 void SchedulerYield();
 
 int64_t utime_now();
+int64_t ntime_now();
 std::string CTime(int64_t time_us);
 
 std::string TempFilename(const std::string& filename);

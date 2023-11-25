@@ -47,7 +47,6 @@ ABSL_FLAG(bool, focus, false, "Whether joystick events require window focus");
 ABSL_DECLARE_FLAG(double, volume);
 ABSL_DECLARE_FLAG(std::string, midi);
 ABSL_DECLARE_FLAG(std::string, midi_input);
-ABSL_DECLARE_FLAG(std::vector<std::string>, extra);
 
 namespace protones {
 namespace py = pybind11;
@@ -95,12 +94,14 @@ void ProtoNES::Init() {
     InitControllers();
     InitAudio(44100, 1, APU::BUFFERLEN / 2, AUDIO_F32);
 
+#if 0
     py::exec(R"py(
         from content.protones import *
     )py");
 
     console_ = absl::make_unique<PythonConsole>(
         hook_.attr("GetPythonConsole")());
+#endif
 
     const auto& config = ConfigLoader<proto::Configuration>::GetConfig();
     for(const auto& b : config.controls().buttons()) {
@@ -138,7 +139,7 @@ void ProtoNES::ProcessEvent(SDL_Event* event) {
             case ControllerButtons::SaveSlot8:
             case ControllerButtons::SaveSlot9:
                 save_state_slot_ = int(b - ControllerButtons::SaveSlot0);
-                console_->AddLog("Save state slot set to %d", save_state_slot_);
+                // FIXME: console_->AddLog("Save state slot set to %d", save_state_slot_);
                 break;
             case ControllerButtons::StateReverse: {
                 size_t i = (history_ptr_ - 1) % HISTORY_SIZE;
@@ -166,11 +167,11 @@ void ProtoNES::ProcessEvent(SDL_Event* event) {
             switch(b) {
             case ControllerButtons::ControllerSaveState:
                 SaveSlot(save_state_slot_);
-                console_->AddLog("Save slot %d", save_state_slot_);
+                // FIXME: console_->AddLog("Save slot %d", save_state_slot_);
                 break;
             case ControllerButtons::ControllerLoadState:
                 LoadSlot(save_state_slot_);
-                console_->AddLog("Load slot %d", save_state_slot_);
+                // FIXME: console_->AddLog("Load slot %d", save_state_slot_);
                 break;
             default: ;
             }
@@ -199,7 +200,7 @@ void ProtoNES::LoadSlot(int slot) {
 void ProtoNES::ProcessMessage(const std::string& msg, const void* extra) {
 }
 
-void ProtoNES::AudioCallback(void* stream, int len) {
+void ProtoNES::AudioCallback(float* stream, int len) {
     if (nes_) {
         nes_->apu()->PlayBuffer(stream, len);
     }
@@ -208,10 +209,6 @@ void ProtoNES::AudioCallback(void* stream, int len) {
 void ProtoNES::set_volume(float v) {
     volume_ = v;
     nes_->apu()->set_volume(volume_);
-}
-
-std::vector<std::string> ProtoNES::extra_flags() const {
-    return absl::GetFlag(FLAGS_extra);
 }
 
 bool ProtoNES::PreDraw() {
@@ -263,17 +260,7 @@ void ProtoNES::Draw() {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Open", "Ctrl+O")) {
-load_file:
                 igfd->OpenDialog("FileOpen", "Open File", ".*", ".", 1, nullptr, ImGuiFileDialogFlags_Modal);
-#if 0
-                char *filename = nullptr;
-                auto result = NFD_OpenDialog("nes", nullptr, &filename);
-                if (result == NFD_OKAY) {
-                    Load(filename);
-                    save_filename_.assign(filename);
-                }
-                free(filename);
-#endif
             }
 
             if (ImGui::MenuItem("Save", "Ctrl+S")) {
@@ -284,30 +271,6 @@ load_file:
             if (ImGui::MenuItem("Save As")) {
 save_as:
                 igfd->OpenDialog("FileSaveAs", "Save File", ".*", ".", 1, nullptr, ImGuiFileDialogFlags_Modal);
-#if 0
-                char *filename = nullptr;
-                auto result = NFD_SaveDialog("nes", nullptr, &filename);
-                if (result == NFD_OKAY) {
-                    std::string savefile = filename;
-                    if (absl::EndsWith(savefile, ".nes")) {
-                        save_filename_.assign(savefile);
-                        // DOSTUFF
-                    } else {
-                        ErrorDialog::Spawn("Bad File Extension",
-                            ErrorDialog::OK | ErrorDialog::CANCEL,
-                            "Project files should have the extension .nes\n"
-                            "If you want to save a .nes file, use File | Export\n\n"
-                            "Press 'OK' to save anyway.\n")->set_result_cb(
-                                [=](int result) {
-                                    if (result == ErrorDialog::OK) {
-                                        save_filename_.assign(savefile);
-                                        // DOSTUFF
-                                    }
-                                });
-                    }
-                }
-                free(filename);
-#endif
             }
             ImGui::Separator();
             if (ImGui::MenuItem("Load State")) {
@@ -323,7 +286,7 @@ save_as:
             ImGui::Combo("##saveslot", &save_state_slot_,
                          "0\0001\0002\0003\0004\0005\0006\0007\0008\0009\000\000\000");
             ImGui::PopItemWidth();
-            hook_.attr("FileMenu")();
+            // FIXME: hook_.attr("FileMenu")();
             ImGui::Separator();
             if (ImGui::MenuItem("Quit")) {
                 running_ = false;
@@ -331,11 +294,11 @@ save_as:
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit")) {
-            ImGui::MenuItem("Debug Console", nullptr, &console_->visible());
+            // FIXME: ImGui::MenuItem("Debug Console", nullptr, &console_->visible());
             ImGui::MenuItem("Preferences", nullptr, &preferences_);
             ImGui::MenuItem("Midi Setup", nullptr, &midi_setup_->visible(), !absl::GetFlag(FLAGS_midi).empty());
             ImGui::MenuItem("State History", nullptr, &history_enabled_);
-            hook_.attr("EditMenu")();
+            // FIXME: hook_.attr("EditMenu")();
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
@@ -344,7 +307,7 @@ save_as:
             ImGui::MenuItem("Memory", nullptr, &mem_debug_->visible());
             ImGui::MenuItem("PPU Tile Data", nullptr, &ppu_tile_debug_->visible());
             ImGui::MenuItem("PPU VRAM", nullptr, &ppu_vram_debug_->visible());
-            hook_.attr("ViewMenu")();
+            // FIXME: hook_.attr("ViewMenu")();
             ImGui::EndMenu();
         }
         MenuBarHook();
@@ -371,27 +334,24 @@ save_as:
                     );
 
             }
-            hook_.attr("HelpMenu")();
+            // FIXME: hook_.attr("HelpMenu")();
             ImGui::EndMenu();
         }
 
-        hook_.attr("MenuBar")();
+        // FIXME: hook_.attr("MenuBar")();
         ImGui::EndMainMenuBar();
     }
 
-    if (!loaded_) {
-        goto load_file;
-    }
-
-    // FIXME: File open/save stuff.
     if (igfd->Display("FileOpen")) {
         if (igfd->IsOk()) {
             std::string filename = igfd->GetFilePathName();
-            LOG(ERROR) << "File|Open: " << filename;
+            Load(filename);
             save_filename_ = filename;
         }
         igfd->Close();
     }
+    // FIXME: File save stuff.
+    // Does file save even make sense in this program?
     if (igfd->Display("FileSaveAs")) {
         if (igfd->IsOk()) {
             std::string filename = igfd->GetFilePathName();
@@ -401,9 +361,8 @@ save_as:
     }
 
     DrawPreferences();
-    console_->Draw();
+    // FIXME: console_->Draw();
 
-    ImGuiIO& io = ImGui::GetIO();
     ImGui::SetNextWindowPos(ImVec2(0, 0.0f));
     ImVec2 imgsz(256.0f * scale_ * aspect_, 240.0f *scale_);
     ImGui::SetNextWindowSize(imgsz);
@@ -419,11 +378,11 @@ save_as:
                  ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::GetWindowDrawList()->AddImage(
             reinterpret_cast<ImTextureID>(nesimg_), ImVec2(0, 0), imgsz);
-    hook_.attr("DrawImage")();
+    // FIXME: hook_.attr("DrawImage")();
     ImGui::End();
     ImGui::PopStyleVar(3);
 
-    hook_.attr("Draw")();
+    // FIXME: hook_.attr("Draw")();
 }
 
 void ProtoNES::Run() {
@@ -432,9 +391,9 @@ void ProtoNES::Run() {
         nes_->Reset();
 
     while(running_) {
-        py::gil_scoped_acquire gil;
         uint64_t f0 = nes_->frame();
-        hook_.attr("EmulateFrame")();
+        nes_->EmulateFrame();
+        // FIXME: hook_.attr("EmulateFrame")();
         uint64_t f1 = nes_->frame();
         if (history_enabled_ && f0 != f1) {
             history_ptr_ = (history_ptr_ + 1) % HISTORY_SIZE;
@@ -460,19 +419,6 @@ void ProtoNES::Load(const std::string& filename) {
 }
 
 void ProtoNES::Help(const std::string& topickey) {
-}
-
-PYBIND11_EMBEDDED_MODULE(app, m) {
-    py::class_<ProtoNES, std::shared_ptr<ProtoNES>>(m, "ProtoNES")
-        .def_property("clear_color", &ProtoNES::clear_color, &ProtoNES::set_clear_color)
-        .def_property_readonly("nes", &ProtoNES::nes)
-        .def_property("scale", &ProtoNES::scale, &ProtoNES::set_scale)
-        .def_property("aspect", &ProtoNES::aspect, &ProtoNES::set_aspect)
-        .def_property("volume", &ProtoNES::volume, &ProtoNES::set_volume)
-        .def_property_readonly("extra_flags", &ProtoNES::extra_flags)
-        .def_property("hook", &ProtoNES::hook, &ProtoNES::set_hook);
-
-    m.def("root", app_root);
 }
 
 
