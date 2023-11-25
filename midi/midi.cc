@@ -189,11 +189,33 @@ void Channel::NoteOn(uint8_t note, uint8_t velocity) {
             isdmc = true;
     }
     if (chanconfig_->drumkit().empty()) {
+        /*
         if (!isdmc || (isdmc && player_.size() == 0)) {
             player_.emplace_back(nes_, instrument_, isdmc);
         }
         player_.back().NoteOn(note, velocity);
         player_.back().set_bend(bend_);
+        */
+
+        size_t i;
+        for(i=0; i < player_.size(); ++i) {
+            if (player_[i].done() || player_[i].released())
+                break;
+        }
+        if (i == player_.size()) {
+            player_.emplace_back(nes_, instrument_, isdmc);
+        } else {
+            player_[i] = InstrumentPlayer(nes_, instrument_, isdmc);
+        }
+        player_[i].NoteOn(note, velocity);
+        player_[i].set_bend(bend_);
+        for(i=0; i < player_.size(); ++i) {
+            printf("  %d.%d.%d",
+                    player_[i].note(),
+                    player_[i].done(),
+                    player_[i].released());
+        }
+        printf("\n");
     } else {
         auto drum = chanconfig_->drumkit().find(note);
         if (drum != chanconfig_->drumkit().end()) {
@@ -400,6 +422,7 @@ void Channel::Step() {
     }
 
     // Delete notes which are no longer playing
+    /*
     for(auto it = player_.begin(); it != player_.end(); ) {
         if (it->done()) {
             it = player_.erase(it);
@@ -407,6 +430,7 @@ void Channel::Step() {
             ++it;
         }
     }
+    */
 }
 
 int8_t Envelope::value() {
