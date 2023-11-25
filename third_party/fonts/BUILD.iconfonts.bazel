@@ -1,0 +1,8 @@
+package(default_visibility = ["//visibility:public"])
+
+exports_files(glob(["**"]))
+
+cc_library(
+    name = "fontawesome6",
+    hdrs = ["IconsFontAwesome6.h"],
+)

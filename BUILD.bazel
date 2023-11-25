@@ -1,0 +1,131 @@
+load("@rules_python//python:py_binary.bzl", "py_binary")
+load("@pydeps//:requirements.bzl", "requirement")
+
+package(default_visibility = ["//visibility:public"])
+
+genrule(
+    name = "make_version",
+    outs = ["version.h"],
+    cmd = """sed -e 's/ / "/g' -e 's/$$/"\\n/g' -e "s/^/#define /g" bazel-out/volatile-status.txt > $@""",
+    stamp = 1,
+)
+
+cc_library(
+    name = "app",
+    srcs = [
+        "app.cc",
+    ],
+    hdrs = [
+        "app.h",
+        "version.h",
+    ],
+    linkopts = [
+        "-lSDL2main",
+        "-lSDL2",
+        "-lSDL2_image",
+        "-lSDL2_mixer",
+        "-lSDL2_gfx",
+        "-lpthread",
+        "-lm",
+        "-lGL",
+    ],
+    deps = [
+        "//imwidget:base",
+        "//imwidget:error_dialog",
+        "//util:browser",
+        "//util:fpsmgr",
+        "//util:os",
+        "//util/gui:widget",
+        "@com_google_absl//absl/log",
+        "@com_github_imgui//:imgui",
+        "@com_github_igfd//:igfd",
+        "@com_github_implot//:implot",
+        "@com_google_protobuf//:protobuf",
+        "@pybind11",
+
+        # TODO(cfrantz): on ubuntu 16 with MIR, there is a library conflict
+        # between MIR (linked with protobuf 2.6.1) and this program,
+        # which builds with protbuf 3.x.x.  A temporary workaround is to
+        # not link with nfd (native-file-dialog).
+        #"//external:nfd",
+    ],
+)
+
+cc_library(
+    name = "application",
+    srcs = ["application.cc"],
+    deps = [
+        ":app",
+        "//third_party/imgui:gui",
+        "@com_google_absl//absl/flags:commandlineflag",
+        "@com_google_absl//absl/flags:reflection",
+        "@pybind11",
+    ],
+)
+
+cc_shared_library(
+    name = "application_module",
+    shared_lib_name = "application.so",
+    deps = [
+        ":application",
+    ],
+)
+
+filegroup(
+    name = "content",
+    srcs = glob(["content/*.textpb"]),
+)
+
+py_binary(
+    name = "app_shell",
+    srcs = ["app_shell.py"],
+    data = [":application_module"],
+    deps = [
+        requirement("ipython"),
+    ],
+)
+
+#cc_binary(
+#    name = "application",
+#    srcs = [
+#        "main.cc",
+#    ],
+#    linkopts = select({
+#        #":windows": [
+#        #    "-lpthread",
+#        #    "-lm",
+#        #    "-lopengl32",
+#        #    "-ldinput8",
+#        #    "-ldxguid",
+#        #    "-ldxerr8",
+#        #    "-luser32",
+#        #    "-lgdi32",
+#        #    "-lwinmm",
+#        #    "-limm32",
+#        #    "-lole32",
+#        #    "-loleaut32",
+#        #    "-lshell32",
+#        #    "-lversion",
+#        #    "-luuid",
+#        #],
+#        "//conditions:default": [
+#            "-lpthread",
+#            "-lm",
+#            "-lGL",
+#        ],
+#    }),
+#    deps = [
+#        ":app",
+#        "//proto:gui_extension",
+#        "//util:config",
+#        "@com_google_absl//absl/flags:parse",
+#        "@com_google_absl//absl/flags:usage",
+#    ],
+#)
+
+#pkg_winzip(
+#    name = "application-windows",
+#    files = [
+#        ":application",
+#    ],
+#)

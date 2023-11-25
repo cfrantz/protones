@@ -1,4 +1,2 @@
-build:win64 --crosstool_top=@mxebzl//compiler:win64
-build:win64 --cpu=k8
-build:win64 --host_crosstool_top=@bazel_tools//tools/cpp:toolchain
 build --cxxopt=-std=c++17 --host_cxxopt=-std=c++17
+build --experimental_cc_shared_library

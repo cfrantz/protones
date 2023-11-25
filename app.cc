@@ -30,9 +30,13 @@
 #include "util/config.h"
 #include "util/file.h"
 #include "util/os.h"
-#include "util/logging.h"
-#include "util/imgui_impl_sdl.h"
+#include "ImGuiFileDialog.h"
 
+#include "absl/log/log.h"
+#include "absl/strings/match.h"
+#include "imgui.h"
+#include "imwidget/error_dialog.h"
+#include "util/browser.h"
 #include "version.h"
 
 #ifdef HAVE_NFD
@@ -105,10 +109,6 @@ void ProtoNES::Init() {
     save_state_slot_ = 1;
     history_ptr_ = 0;
     history_enabled_ = false;
-}
-
-void ProtoNES::Import(const std::string& name) {
-    py::module::import(name.c_str());
 }
 
 void ProtoNES::ProcessEvent(SDL_Event* event) {
@@ -259,10 +259,13 @@ void ProtoNES::DrawPreferences() {
 
 void ProtoNES::Draw() {
     ImGui::SetNextWindowSize(ImVec2(500,300), ImGuiCond_FirstUseEver);
+    auto* igfd = ImGuiFileDialog::Instance();
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Open", "Ctrl+O")) {
 load_file:
+                igfd->OpenDialog("FileOpen", "Open File", ".*", ".", 1, nullptr, ImGuiFileDialogFlags_Modal);
+#if 0
                 char *filename = nullptr;
                 auto result = NFD_OpenDialog("nes", nullptr, &filename);
                 if (result == NFD_OKAY) {
@@ -270,6 +273,7 @@ load_file:
                     save_filename_.assign(filename);
                 }
                 free(filename);
+#endif
             }
 
             if (ImGui::MenuItem("Save", "Ctrl+S")) {
@@ -279,6 +283,8 @@ load_file:
             }
             if (ImGui::MenuItem("Save As")) {
 save_as:
+                igfd->OpenDialog("FileSaveAs", "Save File", ".*", ".", 1, nullptr, ImGuiFileDialogFlags_Modal);
+#if 0
                 char *filename = nullptr;
                 auto result = NFD_SaveDialog("nes", nullptr, &filename);
                 if (result == NFD_OKAY) {
@@ -301,6 +307,7 @@ save_as:
                     }
                 }
                 free(filename);
+#endif
             }
             ImGui::Separator();
             if (ImGui::MenuItem("Load State")) {
@@ -340,6 +347,7 @@ save_as:
             hook_.attr("ViewMenu")();
             ImGui::EndMenu();
         }
+        MenuBarHook();
         if (ImGui::BeginMenu("Help")) {
             if (ImGui::MenuItem("Online Help")) {
                 Help("root");
@@ -374,6 +382,24 @@ save_as:
     if (!loaded_) {
         goto load_file;
     }
+
+    // FIXME: File open/save stuff.
+    if (igfd->Display("FileOpen")) {
+        if (igfd->IsOk()) {
+            std::string filename = igfd->GetFilePathName();
+            LOG(ERROR) << "File|Open: " << filename;
+            save_filename_ = filename;
+        }
+        igfd->Close();
+    }
+    if (igfd->Display("FileSaveAs")) {
+        if (igfd->IsOk()) {
+            std::string filename = igfd->GetFilePathName();
+            LOG(ERROR) << "File|SaveAs: " << filename;
+        }
+        igfd->Close();
+    }
+
     DrawPreferences();
     console_->Draw();
 
@@ -434,11 +460,6 @@ void ProtoNES::Load(const std::string& filename) {
 }
 
 void ProtoNES::Help(const std::string& topickey) {
-}
-
-std::function<std::shared_ptr<ProtoNES>()> app_root;
-void ProtoNES::set_python_root(std::shared_ptr<ProtoNES>& root) {
-    app_root = [&](){ return root; };
 }
 
 PYBIND11_EMBEDDED_MODULE(app, m) {

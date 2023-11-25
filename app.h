@@ -6,7 +6,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 
-#include "pybind11/embed.h"
+#include <pybind11/pybind11.h>
 #include "imwidget/imapp.h"
 #include "imwidget/python_console.h"
 #include "nes/nes.h"
@@ -25,6 +25,7 @@ class MidiSetup;
 class ProtoNES: public ImApp {
   public:
     ProtoNES(const std::string& name) : ImApp(name, 1280, 720) {}
+    ProtoNES() : ProtoNES("") {}
     ~ProtoNES() override {}
 
     void Load(const std::string& filename);
@@ -32,6 +33,7 @@ class ProtoNES: public ImApp {
     void Init() override;
     void ProcessEvent(SDL_Event* event) override;
     void ProcessMessage(const std::string& msg, const void* extra) override;
+
     bool PreDraw() override;
     void Draw() override;
     void Run();
@@ -48,10 +50,7 @@ class ProtoNES: public ImApp {
     void set_aspect(float a) { aspect_ = a; }
     void set_volume(float v);
     std::vector<std::string> extra_flags() const;
-    static void set_python_root(std::shared_ptr<ProtoNES>& root);
 
-    pybind11::object& hook() { return hook_; }
-    void set_hook(const pybind11::object& h) { hook_ = h; }
     void Import(const std::string& name);
 
     void SaveSlot(int slot);
@@ -86,8 +85,21 @@ class ProtoNES: public ImApp {
 
     float frametime_[100];
     int ftp_;
-    pybind11::object hook_;
+};
+
+class PyProtoNES : public ProtoNES {
+  public:
+    using ProtoNES::ProtoNES;
+
+    void MenuBarHook() override {
+        pybind11::gil_scoped_acquire gil;
+        PYBIND11_OVERRIDE_NAME(void, App, "menu_bar_hook", MenuBarHook);
+    }
+    void MenuHook(const std::string& name) override {
+        pybind11::gil_scoped_acquire gil;
+        PYBIND11_OVERRIDE_NAME(void, App, "menu_hook", MenuHook, name);
+    }
 };
 
 }  // namespace protones
-#endif // PROTONES_APP_H
+#endif PROTONES_APP_H
