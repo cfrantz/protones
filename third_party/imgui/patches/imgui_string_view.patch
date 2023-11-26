@@ -1,8 +1,14 @@
 diff --git a/imconfig.h b/imconfig.h
-index 8ff8b5ed0..64128f399 100644
+index 8ff8b5ed0..95940bdaf 100644
 --- a/imconfig.h
 +++ b/imconfig.h
-@@ -103,10 +103,11 @@
+@@ -98,15 +98,16 @@
+         operator MyVec4() const { return MyVec4(x,y,z,w); }
+ */
+ //---- ...Or use Dear ImGui's own very basic math operators.
+-//#define IMGUI_DEFINE_MATH_OPERATORS
++#define IMGUI_DEFINE_MATH_OPERATORS
+ 
  //---- Define constructor to convert your string type to ImStrv (which is a non-owning begin/end pair)
  // This will be inlined as part of ImStrv class declaration.
  // This has two benefits: you won't need to use .c_str(), if length is already computed it is faster.

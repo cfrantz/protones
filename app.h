@@ -57,6 +57,7 @@ class ProtoNES: public ImApp {
 
     virtual void MenuBarHook() {}
     virtual void MenuHook(const std::string& name) {}
+    virtual void DrawImageHook() {}
 
     const static size_t HISTORY_SIZE = 256;
   private:
@@ -106,6 +107,12 @@ class PyProtoNES : public ProtoNES {
         pybind11::gil_scoped_acquire gil;
         PYBIND11_OVERRIDE_NAME(void, ProtoNES, "menu_hook", MenuHook, name);
     }
+
+    void DrawImageHook() override {
+        pybind11::gil_scoped_acquire gil;
+        PYBIND11_OVERRIDE_NAME(void, ProtoNES, "draw_image", DrawImageHook);
+    }
+
 };
 
 }  // namespace protones

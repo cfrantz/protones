@@ -2,6 +2,7 @@
 #define PROJECT_IMWIDGET_IMUTIL_H
 #include "imgui.h"
 
+#if 0
 inline ImVec2 operator*(const ImVec2& a, float b) {
     return ImVec2(a.x * b, a.y * b);
 }
@@ -37,6 +38,7 @@ inline ImVec2& operator-=(ImVec2& a, ImVec2& b) {
     a.x -= b.x;  a.y -= b.y;
     return a;
 }
+#endif
 
 template<typename T>
 inline T Clamp(T v, T mn, T mx) {

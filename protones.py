@@ -54,6 +54,10 @@ class ProtoNES(application.ProtoNES):
         for p in self.plugins:
             p.menu(name)
 
+    def draw_image(self):
+        for p in self.plugins:
+            p.draw_image()
+
     def draw(self):
         super().draw()
         for p in self.plugins:

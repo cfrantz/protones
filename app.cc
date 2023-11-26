@@ -371,7 +371,7 @@ save_as:
                  ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::GetWindowDrawList()->AddImage(
             reinterpret_cast<ImTextureID>(nesimg_), ImVec2(0, 0), imgsz);
-    // FIXME: hook_.attr("DrawImage")();
+    DrawImageHook();
     ImGui::End();
     ImGui::PopStyleVar(3);
 }

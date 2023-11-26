@@ -1,6 +1,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/functional.h>
+#include <pybind11/operators.h>
 #include <pybind11/stl.h>
 #include <limits>
 #include "imgui.h"
@@ -54,7 +55,21 @@ PYBIND11_MODULE(gui, gui)
     Vec2.def(py::init<float, float>()
     , py::arg("_x")
     , py::arg("_y")
-    );
+    )
+  		.def(py::self * float())
+		.def(py::self / float())
+		.def(py::self + py::self)
+		.def(py::self - py::self)
+		.def(py::self * py::self)
+		.def(py::self / py::self)
+		.def(py::self += py::self)
+		.def(py::self -= py::self)
+		.def(py::self *= float())
+		.def(py::self /= float())
+		.def("__mul__", [](float b, const ImVec2 &a) {
+			return a * b;
+		}, py::is_operator());
+
     py::class_<ImVec4> Vec4(gui, "Vec4");
     Vec4.def_readwrite("x", &ImVec4::x);
     Vec4.def_readwrite("y", &ImVec4::y);
@@ -473,12 +488,12 @@ PYBIND11_MODULE(gui, gui)
     }
     , py::arg("text")
     , py::return_value_policy::automatic_reference);
-    gui.def("text", [](const char * fmt)
+    gui.def("text", [](std::string_view text)
     {
-        ImGui::Text(fmt);
+        ImGui::TextUnformatted(text);
         return ;
     }
-    , py::arg("fmt")
+    , py::arg("text")
     , py::return_value_policy::automatic_reference);
     gui.def("text_colored", [](const ImVec4 & col, const char * fmt)
     {
