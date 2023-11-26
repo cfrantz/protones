@@ -53,6 +53,7 @@ class ProtoNES: public ImApp {
 
     void SaveSlot(int slot);
     void LoadSlot(int slot);
+    void MaybeSaveHistory(uint64_t prev_frame);
 
     virtual void MenuBarHook() {}
     virtual void MenuHook(const std::string& name) {}
@@ -91,10 +92,16 @@ class PyProtoNES : public ProtoNES {
   public:
     using ProtoNES::ProtoNES;
 
+    void Draw() override {
+        pybind11::gil_scoped_acquire gil;
+        PYBIND11_OVERRIDE_NAME(void, ProtoNES, "draw", Draw);
+    }
+
     void MenuBarHook() override {
         pybind11::gil_scoped_acquire gil;
         PYBIND11_OVERRIDE_NAME(void, ProtoNES, "menu_bar_hook", MenuBarHook);
     }
+
     void MenuHook(const std::string& name) override {
         pybind11::gil_scoped_acquire gil;
         PYBIND11_OVERRIDE_NAME(void, ProtoNES, "menu_hook", MenuHook, name);

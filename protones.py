@@ -36,6 +36,21 @@ class ProtoNES(application.ProtoNES):
         IPython.embed()
         app.running = False
 
+    def draw(self):
+        super().draw()
+
+    def run(self):
+        self.running = True
+        self.nes.reset()
+        while self.running:
+            f = self.nes.frame
+            self.nes.emulate_frame()
+            self.maybe_save_history(f)
+            self.base_draw()
+            if not self.process_events():
+                self.running = False
+        self.nes.shutdown()
+
 
 def main(args):
     # We really need to run ProtoNES in the main thread and that means the

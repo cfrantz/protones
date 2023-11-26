@@ -277,7 +277,7 @@ save_as:
             ImGui::Combo("##saveslot", &save_state_slot_,
                          "0\0001\0002\0003\0004\0005\0006\0007\0008\0009\000\000\000");
             ImGui::PopItemWidth();
-            // FIXME: hook_.attr("FileMenu")();
+            MenuHook("File");
             ImGui::Separator();
             if (ImGui::MenuItem("Quit")) {
                 running_ = false;
@@ -288,7 +288,7 @@ save_as:
             ImGui::MenuItem("Preferences", nullptr, &preferences_);
             ImGui::MenuItem("Midi Setup", nullptr, &midi_setup_->visible(), !absl::GetFlag(FLAGS_midi).empty());
             ImGui::MenuItem("State History", nullptr, &history_enabled_);
-            // FIXME: hook_.attr("EditMenu")();
+            MenuHook("Edit");
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
@@ -297,7 +297,7 @@ save_as:
             ImGui::MenuItem("Memory", nullptr, &mem_debug_->visible());
             ImGui::MenuItem("PPU Tile Data", nullptr, &ppu_tile_debug_->visible());
             ImGui::MenuItem("PPU VRAM", nullptr, &ppu_vram_debug_->visible());
-            // FIXME: hook_.attr("ViewMenu")();
+            MenuHook("View");
             ImGui::EndMenu();
         }
         MenuBarHook();
@@ -324,11 +324,9 @@ save_as:
                     );
 
             }
-            // FIXME: hook_.attr("HelpMenu")();
+            MenuHook("View");
             ImGui::EndMenu();
         }
-
-        // FIXME: hook_.attr("MenuBar")();
         ImGui::EndMainMenuBar();
     }
 
@@ -370,11 +368,20 @@ save_as:
     // FIXME: hook_.attr("DrawImage")();
     ImGui::End();
     ImGui::PopStyleVar(3);
+}
 
-    // FIXME: hook_.attr("Draw")();
+void ProtoNES::MaybeSaveHistory(uint64_t prev_frame) {
+    uint64_t frame = nes_->frame();
+    if (history_enabled_ && frame != prev_frame) {
+        history_ptr_ = (history_ptr_ + 1) % HISTORY_SIZE;
+        history_[history_ptr_] = nes_->SaveState();
+    }
 }
 
 void ProtoNES::Run() {
+    // This function is normally overridden by the python implementation.
+    // This version is kept so the stand-alone executable version built
+    // from `main.cc` can work.
     running_ = true;
     if (loaded_)
         nes_->Reset();
@@ -382,12 +389,7 @@ void ProtoNES::Run() {
     while(running_) {
         uint64_t f0 = nes_->frame();
         nes_->EmulateFrame();
-        // FIXME: hook_.attr("EmulateFrame")();
-        uint64_t f1 = nes_->frame();
-        if (history_enabled_ && f0 != f1) {
-            history_ptr_ = (history_ptr_ + 1) % HISTORY_SIZE;
-            history_[history_ptr_] = nes_->SaveState();
-        }
+        MaybeSaveHistory(f0);
         BaseDraw();
         if (!ProcessEvents()) {
             running_ = false;
