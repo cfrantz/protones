@@ -1,5 +1,7 @@
 import argparse
+import importlib
 import sys
+import site
 import IPython
 import termios
 from threading import Thread
@@ -9,6 +11,7 @@ from application import gui
 
 flags = argparse.ArgumentParser(prog="protones", description="Description")
 flags.add_argument("--interactive", "-i", action="store_true", help="Start an interactive Python shell")
+flags.add_argument("--plugin", "-p", type=str, help="Load a plugin")
 flags.add_argument("nesfile", nargs='?', help="NES ROM to run")
 
 class AbslFlag(argparse.Action):
@@ -30,14 +33,31 @@ class AbslFlag(argparse.Action):
 class ProtoNES(application.ProtoNES):
     def __init__(self):
         super().__init__()
+        self.plugins = []
 
     def interactive_shell(self):
+        """Start an interactive python shell."""
         app = self
         IPython.embed()
         app.running = False
 
+    def load_plugin(self, name):
+        """Load a module as a plugin."""
+        plugin = importlib.import_module(name)
+        self.plugins.append(plugin.create(self))
+
+    def menu_bar_hook(self):
+        for p in self.plugins:
+            p.menu_bar()
+
+    def menu_hook(self, name):
+        for p in self.plugins:
+            p.menu(name)
+
     def draw(self):
         super().draw()
+        for p in self.plugins:
+            p.draw()
 
     def run(self):
         self.running = True
@@ -46,6 +66,8 @@ class ProtoNES(application.ProtoNES):
             f = self.nes.frame
             self.nes.emulate_frame()
             self.maybe_save_history(f)
+            for p in self.plugins:
+                p.run_per_frame()
             self.base_draw()
             if not self.process_events():
                 self.running = False
@@ -60,20 +82,25 @@ def main(args):
     #
     # We'll keep our own copy of terminal state and restore it upon app exit.
     term_state = termios.tcgetattr(sys.stdout)
-    app = ProtoNES()
-    app.init()
-    if args.nesfile:
-        app.load(args.nesfile)
+    try:
+        app = ProtoNES()
+        app.init()
+        if args.plugin:
+            app.load_plugin(args.plugin)
+        if args.nesfile:
+            app.load(args.nesfile)
 
-    if args.interactive:
-        thread = Thread(target=app.interactive_shell, daemon=True)
-        thread.start()
-    app.run()
-    termios.tcsetattr(sys.stdout, termios.TCSANOW, term_state)
+        if args.interactive:
+            thread = Thread(target=app.interactive_shell, daemon=True)
+            thread.start()
+        app.run()
+    finally:
+        termios.tcsetattr(sys.stdout, termios.TCSANOW, term_state)
     return 0
 
 if __name__ == '__main__':
     application.set_name(flags.prog)
+    site.addsitedir(application.resource_dir())
     AbslFlag.setup(flags)
     args = flags.parse_args()
     sys.exit(main(args))

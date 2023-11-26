@@ -5,6 +5,7 @@
 #include "absl/flags/commandlineflag.h"
 #include "absl/flags/reflection.h"
 #include <pybind11/pybind11.h>
+#include <pybind11/functional.h>
 #include <pybind11/stl.h>
 #include "nes/apu.h"
 #include "nes/cartridge.h"
