@@ -1,7 +1,7 @@
 ######################################################################
 # Hitboxes for Link, Enemies and Projectiles in Zelda 2
 ######################################################################
-import bimpy
+from application import gui
 
 instance = None
 
@@ -10,8 +10,8 @@ class EnemyHitbox(object):
     HITBOX = 0x60FF0000
     SOLID = 0xFF000000
     WHITE = 0xFFFFFFFF
-    TRANSPARENT = bimpy.Vec4(0, 0, 0, 0)
-    ENEMY_LIST_SIZE = 40 #36
+    TRANSPARENT = gui.Vec4(0, 0, 0, 0)
+    ENEMY_LIST_SIZE = 36
     ENEMY_LIST_RAM = 0x6d00
 
     def enemy_list_size(self, enemies=36, total_size=0x2a1):
@@ -33,22 +33,22 @@ class EnemyHitbox(object):
         table['sprite_table']       = (offset, 0)
         self.sizecodes = self.ENEMY_LIST_RAM + table['enemy_size'][0]
 
-    def __init__(self, root, index):
-        self.root = root
+    def __init__(self, app, index):
+        self.app = app
         self.index = index
         self.name = "enemy%d" % index
-        self.hb = bimpy.Vec2(0, 0)
-        self.hbsz = bimpy.Vec2(0, 0)
+        self.hb = gui.Vec2(0, 0)
+        self.hbsz = gui.Vec2(0, 0)
         self.dragging = False
         self.locked = False
-        self.root.nes.cpu.SetReadCallback(0x2a + self.index, self.MemCb)
-        self.root.nes.cpu.SetReadCallback(0x4e + self.index, self.MemCb)
-        self.root.nes.cpu.SetReadCallback(0x3c + self.index, self.MemCb)
+        self.app.nes.cpu.set_read_callback(0x2a + self.index, self.mem_cb)
+        self.app.nes.cpu.set_read_callback(0x4e + self.index, self.mem_cb)
+        self.app.nes.cpu.set_read_callback(0x3c + self.index, self.mem_cb)
         self.enemy_list_size(self.ENEMY_LIST_SIZE)
         global instance
         instance = self
 
-    def MemCb(self, cpu, addr, val):
+    def mem_cb(self, cpu, addr, val):
         """Trap CPU memory reads so we can place enemies arbitrarily."""
         if self.exists and (self.dragging or self.locked):
             if addr == 0x2a + self.index:
@@ -59,9 +59,9 @@ class EnemyHitbox(object):
                 val = int(self.xpos) >> 8
         return val
 
-    def Update(self):
+    def update(self):
         """Read enemy or projectile data out of NES memory."""
-        mem = self.root.nes.mem
+        mem = self.app.nes.mem
         # Game State 0x0b is sideview mode.  If we aren't in sideview mode,
         # just exit.
         if mem[0x736] != 0x0b:
@@ -71,15 +71,15 @@ class EnemyHitbox(object):
             return
 
         # Screen scroll position.
-        scroll = mem.ReadWord(0x72c, 0x72a)
+        scroll = mem.read_u16(0x72c, 0x72a)
         if self.dragging or self.locked:
             # If we're moving an enemy, write the desired position
             mem[0x2a + self.index] = int(self.ypos)
-            mem.WriteWord(0x4e + self.index, 0x3c + self.index, int(self.xpos))
+            mem.write_u16(0x4e + self.index, 0x3c + self.index, int(self.xpos))
         else:
             # Otherwise read where the game says the enemy is.
             self.ypos = mem[0x2a + self.index]
-            self.xpos = mem.ReadWord(0x4e + self.index, 0x3c + self.index)
+            self.xpos = mem.read_u16(0x4e + self.index, 0x3c + self.index)
 
         self.xscr = self.xpos - scroll
         if self.xscr < 0 or self.xscr > 255:
@@ -97,28 +97,29 @@ class EnemyHitbox(object):
 
         # Compute the hitbox.
         ofs = (self.entype * 4) & 0xFF
-        self.hb.x = self.xscr + mem.ReadSignedByte(self.SIZETABLE + ofs + 0)
-        self.hb.y = self.ypos + mem.ReadSignedByte(self.SIZETABLE + ofs + 2)
+        self.hb.x = self.xscr + mem.read_s8(self.SIZETABLE + ofs + 0)
+        self.hb.y = self.ypos + mem.read_s8(self.SIZETABLE + ofs + 2)
         self.hbsz.x = mem[self.SIZETABLE + ofs + 1]
         self.hbsz.y = mem[self.SIZETABLE + ofs + 3]
 
-    def DrawImage(self):
+    def draw_image(self):
         if self.exists and self.xscr != -1:
-            scale = bimpy.Vec2(self.root.scale * self.root.aspect,
-                               self.root.scale)
-            bimpy.add_rect_filled(self.hb*scale, (self.hb+self.hbsz)*scale, self.HITBOX)
-            bimpy.add_rect(self.hb*scale, (self.hb+self.hbsz)*scale,
+            scale = gui.Vec2(self.app.scale * self.app.aspect,
+                               self.app.scale)
+            dl = gui.get_window_draw_list()
+            dl.add_rect_filled(self.hb*scale, (self.hb+self.hbsz)*scale, self.HITBOX)
+            dl.add_rect(self.hb*scale, (self.hb+self.hbsz)*scale,
                            self.SOLID | self.HITBOX)
-            bimpy.add_text(self.hb*scale, self.WHITE, str(self.index+1))
+            dl.add_text(self.hb*scale, self.WHITE, str(self.index+1))
 
-            bimpy.set_cursor_screen_pos(self.hb*scale)
-            bimpy.invisible_button(self.name, self.hbsz*scale)
-            if bimpy.is_item_clicked(1):
+            gui.set_cursor_screen_pos(self.hb*scale)
+            gui.invisible_button(self.name, self.hbsz*scale)
+            if gui.is_item_clicked(gui.MouseButton.RIGHT):
                 self.locked = not self.locked
-            if bimpy.is_item_active():
+            if gui.is_item_active():
                 self.dragging = True
-                if bimpy.is_mouse_dragging():
-                    delta = bimpy.getio().mouse_delta / scale
+                if gui.is_mouse_dragging(gui.MouseButton.LEFT):
+                    delta = gui.get_io().mouse_delta / scale
                     self.xpos += delta.x
                     self.ypos += delta.y
             else:
@@ -132,20 +133,20 @@ class LinkHitbox(object):
     SWORD = 0x600000FF
     SOLID = 0xFF000000
 
-    def __init__(self, root):
-        self.root = root
+    def __init__(self, app):
+        self.app = app
         self.name = "link"
-        self.hb = bimpy.Vec2(0, 0)
-        self.hbsz = bimpy.Vec2(0, 0)
-        self.sh = bimpy.Vec2(0, 0)
-        self.shsz = bimpy.Vec2(0, 0)
-        self.sw = bimpy.Vec2(0, 0)
-        self.swsz = bimpy.Vec2(0, 0)
+        self.hb = gui.Vec2(0, 0)
+        self.hbsz = gui.Vec2(0, 0)
+        self.sh = gui.Vec2(0, 0)
+        self.shsz = gui.Vec2(0, 0)
+        self.sw = gui.Vec2(0, 0)
+        self.swsz = gui.Vec2(0, 0)
         self.dragging = False
         self.locked = False
 
-    def Update(self):
-        mem = self.root.nes.mem
+    def update(self):
+        mem = self.app.nes.mem
         if mem[0x736] != 0x0b:
             self.exists = False
             self.dragging = False
@@ -153,13 +154,13 @@ class LinkHitbox(object):
             return
 
         self.exists = True
-        scroll = mem.ReadWord(0x72c, 0x72a)
+        scroll = mem.read_u16(0x72c, 0x72a)
         if self.dragging or self.locked:
             mem[0x29] = int(self.ypos)
-            mem.WriteWord(0x4d, 0x3b, int(self.xpos))
+            mem.write_u16(0x4d, 0x3b, int(self.xpos))
         else:
             self.ypos = mem[0x29]
-            self.xpos = mem.ReadWord(0x4d, 0x3b)
+            self.xpos = mem.read_u16(0x4d, 0x3b)
 
         self.xscr = self.xpos - scroll
         if self.xscr < 0 or self.xscr > 255:
@@ -188,29 +189,29 @@ class LinkHitbox(object):
         self.swsz.x = 14
         self.swsz.y = 3
 
-    def DrawImage(self):
+    def draw_image(self):
         if not self.exists:
             return
 
-        scale = bimpy.Vec2(self.root.scale * self.root.aspect,
-                           self.root.scale)
-        bimpy.add_rect_filled(self.hb*scale, (self.hb+self.hbsz)*scale, self.HITBOX)
-        bimpy.add_rect(self.hb*scale, (self.hb+self.hbsz)*scale, self.SOLID | self.HITBOX)
-        bimpy.add_rect_filled(self.sh*scale, (self.sh+self.shsz)*scale, self.SHIELD)
-        bimpy.add_rect(self.sh*scale, (self.sh+self.shsz)*scale, self.SOLID | self.SHIELD)
+        scale = gui.Vec2(self.app.scale * self.app.aspect, self.app.scale)
+        dl = gui.get_window_draw_list()
+        dl.add_rect_filled(self.hb*scale, (self.hb+self.hbsz)*scale, self.HITBOX)
+        dl.add_rect(self.hb*scale, (self.hb+self.hbsz)*scale, self.SOLID | self.HITBOX)
+        dl.add_rect_filled(self.sh*scale, (self.sh+self.shsz)*scale, self.SHIELD)
+        dl.add_rect(self.sh*scale, (self.sh+self.shsz)*scale, self.SOLID | self.SHIELD)
         if self.swordy != 0xF8:
-            bimpy.add_rect_filled(self.sw*scale, (self.sw+self.swsz)*scale, self.SWORD)
-            bimpy.add_rect(self.sw*scale, (self.sw+self.swsz)*scale, self.SOLID | self.SWORD)
+            dl.add_rect_filled(self.sw*scale, (self.sw+self.swsz)*scale, self.SWORD)
+            dl.add_rect(self.sw*scale, (self.sw+self.swsz)*scale, self.SOLID | self.SWORD)
 
-        bimpy.set_cursor_screen_pos(self.hb*scale)
-        if bimpy.invisible_button(self.name, self.hbsz*scale):
+        gui.set_cursor_screen_pos(self.hb*scale)
+        if gui.invisible_button(self.name, self.hbsz*scale):
             # We don't want to allow locking link
             #self.locked = not self.locked
             pass
-        if bimpy.is_item_active():
+        if gui.is_item_active():
             self.dragging = True
-            if bimpy.is_mouse_dragging():
-                delta = bimpy.getio().mouse_delta / scale
+            if gui.is_mouse_dragging(gui.MouseButton.LEFT):
+                delta = gui.get_io().mouse_delta / scale
                 self.xpos += delta.x
                 self.ypos += delta.y
         else:

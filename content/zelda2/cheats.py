@@ -1,7 +1,7 @@
 ######################################################################
 # Implement cheats for Zelda 2
 ######################################################################
-import bimpy
+from application import gui
 
 class Cheats(object):
     LEVELS = [('AtkLvl', 0), ('MagLvl', 1), ('LifeLvl', 2)]
@@ -27,112 +27,112 @@ class Cheats(object):
         ('Key', 21),
     ]
 
-    def __init__(self, root):
-        self.root = root
-        self.visible = bimpy.Bool()
+    def __init__(self, app):
+        self.app = app
+        self.visible = False
         for x, _ in self.LEVELS + self.HEALTH:
-            setattr(self, x, bimpy.Int())
+            setattr(self, x, 0)
         for x, _ in self.SPELLS + self.ITEMS:
-            setattr(self, x, bimpy.Bool())
-        self.downstab = bimpy.Bool()
-        self.upstab = bimpy.Bool()
-        self.invincible = bimpy.Bool()
-        self.walk_anywhere = bimpy.Bool()
+            setattr(self, x, False)
+        self.downstab = False
+        self.upstab = False
+        self.invincible = False
+        self.walk_anywhere = False
         # Trigger on memory reads to 0x773 and 0x774, which hold the amount
         # of magic and health Link has.
-        self.root.nes.cpu.SetReadCallback(0x773, self.Invincible)
-        self.root.nes.cpu.SetReadCallback(0x774, self.Invincible)
+        self.app.nes.cpu.set_read_callback(0x773, self.invincible_cb)
+        self.app.nes.cpu.set_read_callback(0x774, self.invincible_cb)
 
-    def Invincible(self, cpu, addr, val):
+    def invincible_cb(self, cpu, addr, val):
         """Implement invicibility by trapping CPU reads to health values."""
         # On each read of 773/774, val will hold the value read from
         # memory.  We can return a different value if we want.
-        if self.invincible.value:
+        if self.invincible:
             if addr == 0x773:
-                val = (32 * self.Magic.value) - 1
+                val = (32 * self.Magic) - 1
             if addr == 0x774:
-                val = (32 * self.Hearts.value) - 1
+                val = (32 * self.Hearts) - 1
         return val
 
-    def Unpack(self):
+    def unpack(self):
         """Read health, spells and inventory out of NES memory."""
-        mem = self.root.nes.mem
+        mem = self.app.nes.mem
         addr = 0x777
         for x, offset in self.LEVELS + self.HEALTH:
-            item = getattr(self, x)
-            item.value = mem[addr + offset]
+            setattr(self, x, mem[addr + offset])
         for x, offset in self.SPELLS + self.ITEMS:
-            item = getattr(self, x)
-            item.value = mem[addr + offset] != 0
+            setattr(self, x, mem[addr + offset] != 0)
 
-        self.downstab.value = (mem[addr+31] & 0x10) != 0
-        self.upstab.value = (mem[addr+31] & 0x04) != 0
-        self.walk_anywhere.value = self.root.nes.cartridge.ReadPrg(0x71e) == 0
+        self.downstab = (mem[addr+31] & 0x10) != 0
+        self.upstab = (mem[addr+31] & 0x04) != 0
+        self.walk_anywhere = self.app.nes.cartridge.read_prg(0x71e) == 0
 
-    def Pack(self):
+    def pack(self):
         """Write health, spells and inventory into NES memory."""
-        mem = self.root.nes.mem
+        mem = self.app.nes.mem
         addr = 0x777
         for x, offset in self.LEVELS + self.HEALTH:
-            item = getattr(self, x)
-            mem[addr + offset] = item.value
+            mem[addr + offset] = getattr(self, x)
         for x, offset in self.SPELLS + self.ITEMS:
-            item = getattr(self, x)
-            mem[addr + offset] = item.value
+            mem[addr + offset] = getattr(self, x)
 
         tech = mem[addr + 31] & ~0x14;
-        if self.downstab.value:
+        if self.downstab:
             tech |= 0x10
-        if self.upstab.value:
+        if self.upstab:
             tech |= 0x04
         mem[addr + 31] = tech
-        self.root.nes.cartridge.WritePrg(0x71e,
-                0 if self.walk_anywhere.value else 2)
+        self.app.nes.cartridge.write_prg(0x71e,
+                0 if self.walk_anywhere else 2)
 
-    def Draw(self):
+    def draw(self):
         """Draw our Cheats dialog box."""
-        if not self.visible.value:
+        if not self.visible:
             return
 
-        self.Unpack()
-        bimpy.begin('Zelda2 Cheats')
-        bimpy.push_item_width(70);
+        self.unpack()
+        gui.begin('Zelda2 Cheats')
+        gui.push_item_width(100);
         for i, (x, _) in enumerate(self.LEVELS):
             if i:
-                bimpy.same_line()
-            bimpy.input_int(x, getattr(self, x), 1, 1)
+                gui.same_line()
+            (ret, v) = gui.input_int(x, getattr(self, x), 1, 1)
+            setattr(self, x, v)
 
         for i, (x, _) in enumerate(self.HEALTH):
             if i:
-                bimpy.same_line()
-            bimpy.input_int(x, getattr(self, x), 1, 1)
-        bimpy.pop_item_width()
+                gui.same_line()
+            (ret, v) = gui.input_int(x, getattr(self, x), 1, 1)
+            setattr(self, x, v)
+        gui.pop_item_width()
 
-        bimpy.separator()
-        bimpy.columns(2, 'items', True)
+        gui.separator()
+        gui.columns(2, 'items', True)
         for x, _ in self.SPELLS:
-            bimpy.checkbox(x, getattr(self, x))
+            (ret, v) = gui.checkbox(x, getattr(self, x))
+            setattr(self, x, v)
 
-        bimpy.next_column()
+        gui.next_column()
         for x, _ in self.ITEMS:
-            bimpy.checkbox(x, getattr(self, x))
+            (ret, v) = gui.checkbox(x, getattr(self, x))
+            setattr(self, x, v)
 
-        bimpy.columns(1)
-        bimpy.separator()
-        bimpy.checkbox('Downstab', self.downstab)
-        bimpy.same_line()
-        bimpy.checkbox('Upstab', self.upstab)
-        bimpy.same_line()
-        if bimpy.button('Everything'):
+        gui.columns(1)
+        gui.separator()
+        gui.checkbox('Downstab', self.downstab)
+        gui.same_line()
+        gui.checkbox('Upstab', self.upstab)
+        gui.same_line()
+        if gui.button('Everything'):
             for x, _ in self.LEVELS + [('Hearts', 0), ('Magic', 0)]:
-                getattr(self, x).value = 8
+                setattr(self, x, 8)
             for x, _ in self.SPELLS + self.ITEMS:
-                getattr(self, x).value = True
-            self.upstab.value = True
-            self.downstab.value = True
+                setattr(self, x, True)
+            self.upstab = True
+            self.downstab = True
 
-        bimpy.checkbox('Invincible', self.invincible)
-        bimpy.checkbox('Walk anywhere on overworld', self.walk_anywhere)
+        (_, self.invincible) = gui.checkbox('Invincible', self.invincible)
+        (_, self.walk_anywhere) = gui.checkbox('Walk anywhere on overworld', self.walk_anywhere)
 
-        bimpy.end()
-        self.Pack()
+        gui.end()
+        self.pack()

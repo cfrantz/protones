@@ -1,12 +1,11 @@
-import bimpy
-import protones
+from application import gui
 import collections
 
 class Execution(object):
 
-    def __init__(self, root):
-        self.root = root;
-        self.visible = bimpy.Bool()
+    def __init__(self, app):
+        self.app = app;
+        self.visible = False
         # Eight banks, plus a value to represent idle time.
         self.bank = collections.defaultdict(int)
         self.total = 0
@@ -18,11 +17,11 @@ class Execution(object):
         self.cpuaddr = collections.defaultdict(int)
 
 
-    def Calculate(self):
+    def calculate(self):
         self.bank = collections.defaultdict(int)
         self.cpuaddr.clear()
         self.total = 0
-        for addr, cycles in self.root.nes.frame_profile.items():
+        for addr, cycles in self.app.nes.frame_profile.items():
             b = addr >> 16
             addr &= 0xFFFF
             if addr in self.known_idle:
@@ -32,22 +31,22 @@ class Execution(object):
             self.bank[b] += cycles
             self.total += cycles
 
-    def _Enable(self):
+    def _enable(self):
         self.bank = collections.defaultdict(int)
 
-    def _Disable(self):
+    def _disable(self):
         pass
 
-    def Enable(self, value):
-        self.visible.value = value
+    def enable(self, value):
+        self.visible = value
         if value:
-            self._Enable()
+            self._enable()
         else:
-            self._Disable()
+            self._disable()
 
-    def Buckets(self):
-        mapper = self.root.nes.cartridge.mapper
-        banks = self.root.nes.cartridge.prglen // 16384
+    def buckets(self):
+        mapper = self.app.nes.cartridge.mapper
+        banks = self.app.nes.cartridge.prglen // 16384
         buckets = {i:0 for i in range(-1, banks)}
         if mapper == 5 or mapper == 85:
             for i, count in self.bank.items():
@@ -61,27 +60,27 @@ class Execution(object):
         return buckets
 
 
-    def Draw(self):
-        if not self.visible.value:
+    def draw(self):
+        if not self.visible:
             return
-        self.Calculate()
-        bimpy.begin('Zelda2 Execution Statistics')
-        #bimpy.plot_histogram('', self.bank, 0, 'Bank', 0, 29000,
-        #        graph_size=bimpy.Vec2(400, 100))
-        for i, count in self.Buckets().items():
+        self.calculate()
+        gui.begin('Zelda2 Execution Statistics')
+        #gui.plot_histogram('', self.bank, 0, 'Bank', 0, 29000,
+        #        graph_size=gui.Vec2(400, 100))
+        for i, count in self.buckets().items():
             frac = count / self.total
-            bimpy.progress_bar(frac, bimpy.Vec2(400, 40), "")
-            bimpy.same_line()
+            gui.progress_bar(frac, gui.Vec2(400, 40), "")
+            gui.same_line()
             if i == -1:
                 i = "Idle"
-            bimpy.text("%s: %.2f%%" % (i, 100.0*frac))
+            gui.text("%s: %.2f%%" % (i, 100.0*frac))
 
         pairs = sorted(self.cpuaddr.items(), key=lambda x:x[1], reverse=True)
         for addr, count in pairs[0:20]:
-            bimpy.text("%04x: %d (%.2f%%)" % (addr, count, count/self.total*100))
+            gui.text("%04x: %d (%.2f%%)" % (addr, count, count/self.total*100))
         #m = max(self.cpuaddr)
         #i = self.cpuaddr.index(m)
         #print("Spent %d clocks at %x (known=%s)" % (m, i, i in self.known_idle))
-        #bimpy.plot_histogram('', self.cpuaddr, 0, 'CPU Addr', 0, m)
-                #graph_size=bimpy.Vec2(400, 100))
-        bimpy.end()
+        #gui.plot_histogram('', self.cpuaddr, 0, 'CPU Addr', 0, m)
+                #graph_size=gui.Vec2(400, 100))
+        gui.end()

@@ -6,6 +6,9 @@
 ######################################################################
 from application import gui
 from .. import plugin
+from . import cheats
+from . import execution
+from . import hitbox
 from . import random
 
 # Subclass the EmulatorHooks class
@@ -15,6 +18,11 @@ class Zelda2(plugin.Plugin):
         # Call the superclass' init first.
         super().__init__(app)
         self.rng = random.RNG(app)
+        self.cheats = cheats.Cheats(app)
+        self.execution = execution.Execution(app)
+        self.hitbox_visible = False
+        self.hitbox = [hitbox.LinkHitbox(app)]
+        self.hitbox.extend(hitbox.EnemyHitbox(app, i) for i in range(13))
 
     def z2goto(self, a, b, c, d, e, f, g):
         """Go to a sideview area in Zelda 2"""
@@ -76,44 +84,39 @@ class Zelda2(plugin.Plugin):
                 self.z2goto(5, 2, 5, 9, 2, 54, 54)
             gui.end_menu()
         if gui.begin_menu("Cheats"):
-            #if gui.menu_item("Cheats", "", selected=self.cheats.visible):
-            #    pass
+            if gui.menu_item("Cheats", "", selected=self.cheats.visible):
+                self.cheats.visible = not self.cheats.visible
             #if gui.menu_item("Disable Encounters", "", selected=self.disable_encounters):
             #    self.DisableEncounters(self.disable_encounters.value)
-            #if gui.menu_item("Show Hitboxes", "", selected=self.hitbox_visible):
-            #    pass
+            if gui.menu_item("Show Hitboxes", "", selected=self.hitbox_visible):
+                self.hitbox_visible = not self.hitbox_visible
             #if gui.menu_item("Memory Values", "", selected=self.memory.visible):
             #    pass
             #if gui.menu_item("CFplayer Values", "", selected=self.cfplayer.visible):
             #    pass
             if gui.menu_item("RNG", "", selected=self.rng.visible):
                 self.rng.visible = not self.rng.visible
-            #if gui.menu_item("Exec Profile", "", selected=self.execution.visible):
-            #    self.execution.Enable(self.execution.visible.value)
+            if gui.menu_item("Exec Profile", "", selected=self.execution.visible):
+                self.execution.enable(not self.execution.visible)
             gui.end_menu()
 
     def run_per_frame(self):
         """Called for every frame."""
-        pass
-        #for h in self.hitbox:
-        #    h.Update()
-
-    #def DrawImage(self):
-    #    """Called on each frame to draw on the NES image."""
-    #    mem = self.root.nes.mem
-    #    # Only draw the hitboxes in gamestate "b" (side-view)
-    #    if self.hitbox_visible.value and mem[0x736] == 0x0b:
-    #        for h in self.hitbox:
-    #            h.DrawImage()
+        for h in self.hitbox:
+            h.update()
 
     def draw(self):
         """Called on each frame to draw your own GUIs."""
-        pass
-        #self.cheats.Draw()
-        #self.execution.Draw()
+        self.cheats.draw()
+        self.execution.draw()
         #self.memory.Draw()
         #self.cfplayer.Draw()
         self.rng.draw()
+
+    def draw_image(self):
+        if self.hitbox_visible:
+            for h in self.hitbox:
+                h.draw_image()
 
 def create(app):
     return Zelda2(app)
