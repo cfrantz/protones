@@ -54,7 +54,7 @@ class ProtoNES: public ImApp {
     void SaveSlot(int slot);
     void LoadSlot(int slot);
 
-    virtual void MenuBarHook() {};
+    virtual void MenuBarHook() {}
     virtual void MenuHook(const std::string& name) {}
 
     const static size_t HISTORY_SIZE = 256;
@@ -81,7 +81,6 @@ class ProtoNES: public ImApp {
     MidiSetup* midi_setup_;
     PPUTileDebug* ppu_tile_debug_;
     PPUVramDebug* ppu_vram_debug_;
-    //std::unique_ptr<PythonConsole> console_;
     std::map<int, proto::ControllerButtons> buttons_;
 
     float frametime_[100];

@@ -90,8 +90,6 @@ ImApp::ImApp(const std::string& name, int width, int height)
 
     clear_color_ = ImColor(110, 110, 110);
     //fpsmgr_.SetRate(60);
-
-    RegisterCommand("quit", "Quit the application.", this, &ImApp::Quit);
 }
 
 ImApp::~ImApp() {
@@ -134,10 +132,6 @@ void ImApp::InitControllers() {
         printf("Opening controller %d\n", i);
         SDL_GameControllerOpen(i);
     }
-}
-
-void ImApp::Quit(DebugConsole* console, int argc, char **argv) {
-    running_ = false;
 }
 
 void ImApp::SetTitle(const std::string& title, bool with_appname) {
@@ -185,7 +179,6 @@ void ImApp::BaseDraw() {
     ImGui_ImplSDL2_NewFrame();                                               
     ImGui::NewFrame();
 
-    console_.Draw();
     for(auto it=draw_callback_.begin(); it != draw_callback_.end();) {
         if ((*it)->visible()) {
             (*it)->Draw();

@@ -94,15 +94,6 @@ void ProtoNES::Init() {
     InitControllers();
     InitAudio(44100, 1, APU::BUFFERLEN / 2, AUDIO_F32);
 
-#if 0
-    py::exec(R"py(
-        from content.protones import *
-    )py");
-
-    console_ = absl::make_unique<PythonConsole>(
-        hook_.attr("GetPythonConsole")());
-#endif
-
     const auto& config = ConfigLoader<proto::Configuration>::GetConfig();
     for(const auto& b : config.controls().buttons()) {
         buttons_[b.scancode()] = b.button();
@@ -139,7 +130,7 @@ void ProtoNES::ProcessEvent(SDL_Event* event) {
             case ControllerButtons::SaveSlot8:
             case ControllerButtons::SaveSlot9:
                 save_state_slot_ = int(b - ControllerButtons::SaveSlot0);
-                // FIXME: console_->AddLog("Save state slot set to %d", save_state_slot_);
+                LOG(INFO) << "Save state slot set to " << save_state_slot_;
                 break;
             case ControllerButtons::StateReverse: {
                 size_t i = (history_ptr_ - 1) % HISTORY_SIZE;
@@ -167,11 +158,11 @@ void ProtoNES::ProcessEvent(SDL_Event* event) {
             switch(b) {
             case ControllerButtons::ControllerSaveState:
                 SaveSlot(save_state_slot_);
-                // FIXME: console_->AddLog("Save slot %d", save_state_slot_);
+                LOG(INFO) << "Save slot " << save_state_slot_;
                 break;
             case ControllerButtons::ControllerLoadState:
+                LOG(INFO) << "Load slot " << save_state_slot_;
                 LoadSlot(save_state_slot_);
-                // FIXME: console_->AddLog("Load slot %d", save_state_slot_);
                 break;
             default: ;
             }
@@ -294,7 +285,6 @@ save_as:
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Edit")) {
-            // FIXME: ImGui::MenuItem("Debug Console", nullptr, &console_->visible());
             ImGui::MenuItem("Preferences", nullptr, &preferences_);
             ImGui::MenuItem("Midi Setup", nullptr, &midi_setup_->visible(), !absl::GetFlag(FLAGS_midi).empty());
             ImGui::MenuItem("State History", nullptr, &history_enabled_);
@@ -361,7 +351,6 @@ save_as:
     }
 
     DrawPreferences();
-    // FIXME: console_->Draw();
 
     ImGui::SetNextWindowPos(ImVec2(0, 0.0f));
     ImVec2 imgsz(256.0f * scale_ * aspect_, 240.0f *scale_);

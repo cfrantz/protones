@@ -1,13 +1,14 @@
 #ifndef PROJECT_IMAPP_H
 #define PROJECT_IMAPP_H
 #include <memory>
+#include <vector>
 
 #include <string>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
+#include "imgui.h"
 
 #include "util/fpsmgr.h"
-#include "imwidget/debug_console.h"
 #include "imwidget/imwidget.h"
 
 class ImApp {
@@ -35,20 +36,6 @@ class ImApp {
         ProcessMessage(msg, nullptr);
     }
 
-    // Convenience helpers for registering debug console commands
-    inline void RegisterCommand(const char* cmd, const char* shorthelp,
-                                std::function<void(DebugConsole*,
-                                                   int argc, char **argv)> fn) {
-        console_.RegisterCommand(cmd, shorthelp, fn);
-    }
-
-    template<typename T>
-    inline void RegisterCommand(const char* cmd, const char* shorthelp,
-                         T* that, void (T::*fn)(DebugConsole*,
-                                                int argc, char **argv)) {
-        console_.RegisterCommand(cmd, shorthelp, that, fn);
-    }
-
     void AddDrawCallback(ImWindowBase* window);
     void HelpButton(const std::string& topickey, bool right_justify=false);
 
@@ -59,11 +46,9 @@ class ImApp {
     std::string name_;
     int width_;
     int height_;
-    DebugConsole console_;
     std::vector<std::unique_ptr<ImWindowBase>> draw_callback_;
 
   private:
-    void Quit(DebugConsole* console, int argc, char **argv);
     static void AudioCallback_(void* userdata, uint8_t* stream, int len);
 
     static ImApp* singleton_;
