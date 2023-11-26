@@ -62,9 +62,10 @@ cc_library(
     deps = [
         ":app",
         "//nes",
-        "//nes:nes-interface",
         "//nes:mapper",
+        "//nes:nes-interface",
         "//third_party/imgui:gui",
+        "//util:os",
         "@com_google_absl//absl/flags:commandlineflag",
         "@com_google_absl//absl/flags:reflection",
         "@pybind11",

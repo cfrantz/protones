@@ -1,4 +1,6 @@
 #include <memory>
+#include <optional>
+#include <vector>
 
 #include "absl/flags/commandlineflag.h"
 #include "absl/flags/reflection.h"
@@ -12,6 +14,7 @@
 #include "nes/mem.h"
 #include "nes/mapper.h"
 #include "nes/nes.h"
+#include "util/os.h"
 
 #include "app.h"
 
@@ -25,6 +28,16 @@ extern "C" PyObject* PyInit_gui();
 PYBIND11_MODULE(application, m) {
     // Bring in the ImGui bindings as a submodule of the application module.
     m.add_object("gui", PyInit_gui());
+
+    m.def("utime_now", &os::utime_now);
+    m.def("set_name", &os::SetApplicationName);
+    m.def("name", &os::GetApplicationName);
+    m.def("resource_dir", [](std::optional<std::string> name) {
+            return (name == std::nullopt) ? os::path::ResourceDir() : os::path::ResourceDir(*name);
+    }, py::arg("name") = std::nullopt);
+    m.def("data_path", [](std::optional<std::vector<std::string>> components) {
+            return (components == std::nullopt) ? os::path::DataPath() : os::path::DataPath(*components);
+    }, py::arg("components") = std::nullopt);
 
     // Export the main application class.
     py::class_<ProtoNES, PyProtoNES>(m, "ProtoNES")
@@ -67,7 +80,6 @@ PYBIND11_MODULE(application, m) {
             std::map flags(all.cbegin(), all.cend());
             return flags;
     });
-
 
     py::class_<NES, std::shared_ptr<NES> >(m, "NES")
         .def("cpu_cycles", &NES::cpu_cycles, "CPU cycles since reset")

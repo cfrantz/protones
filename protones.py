@@ -7,7 +7,7 @@ from threading import Thread
 import application
 from application import gui
 
-flags = argparse.ArgumentParser(prog="app_shell", description="Description")
+flags = argparse.ArgumentParser(prog="protones", description="Description")
 flags.add_argument("--interactive", "-i", action="store_true", help="Start an interactive Python shell")
 flags.add_argument("nesfile", nargs='?', help="NES ROM to run")
 
@@ -58,6 +58,7 @@ def main(args):
     return 0
 
 if __name__ == '__main__':
+    application.set_name(flags.prog)
     AbslFlag.setup(flags)
     args = flags.parse_args()
     sys.exit(main(args))
