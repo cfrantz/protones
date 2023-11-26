@@ -44,6 +44,7 @@
 #endif
 
 ABSL_FLAG(bool, focus, false, "Whether joystick events require window focus");
+ABSL_FLAG(std::string, config, "protones.textpb", "ProtoNES configuration file");
 ABSL_DECLARE_FLAG(double, volume);
 ABSL_DECLARE_FLAG(std::string, midi);
 ABSL_DECLARE_FLAG(std::string, midi_input);
@@ -53,6 +54,15 @@ namespace py = pybind11;
 using proto::ControllerButtons;
 
 void ProtoNES::Init() {
+    auto* loader = ConfigLoader<proto::Configuration>::Get();
+    loader->Load(os::path::Join({
+                os::path::ResourceDir(),
+                absl::GetFlag(FLAGS_config)}));
+    const auto& config = ConfigLoader<proto::Configuration>::GetConfig();
+    for(const auto& b : config.controls().buttons()) {
+        buttons_[b.scancode()] = b.button();
+    }
+
     loaded_ = false;
     nes_ = absl::make_unique<NES>();
     scale_ = 4.0f;
@@ -94,10 +104,6 @@ void ProtoNES::Init() {
     InitControllers();
     InitAudio(44100, 1, APU::BUFFERLEN / 2, AUDIO_F32);
 
-    const auto& config = ConfigLoader<proto::Configuration>::GetConfig();
-    for(const auto& b : config.controls().buttons()) {
-        buttons_[b.scancode()] = b.button();
-    }
     save_state_slot_ = 1;
     history_ptr_ = 0;
     history_enabled_ = false;
