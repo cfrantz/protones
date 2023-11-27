@@ -1,0 +1,12 @@
+syntax = "proto3";
+package sound.proto;
+
+message Samples {
+    repeated float data = 1;
+}
+
+message File {
+    string name = 1;
+    double rate = 2;
+    repeated Samples channel = 3;
+}

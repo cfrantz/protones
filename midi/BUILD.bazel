@@ -21,6 +21,19 @@ cc_binary(
     ],
 )
 
+cc_binary(
+    name = "dpcm_convert",
+    srcs = ["dpcm_convert.cc"],
+    deps = [
+        "//util/sound:file",
+        "//util:file",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/log",
+    ],
+)
+
 cc_library(
     name = "midi",
     srcs = ["midi.cc"],

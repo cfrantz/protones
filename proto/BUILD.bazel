@@ -132,3 +132,15 @@ cc_proto_library(
     name = "midi_convert",
     deps = [":midi_convert_proto"],
 )
+
+proto_library(
+    name = "sound_proto",
+    srcs = [
+        "sound.proto",
+    ],
+)
+
+cc_proto_library(
+    name = "sound",
+    deps = [":sound_proto"],
+)
