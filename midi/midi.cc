@@ -334,21 +334,23 @@ void Channel::Step() {
                     last_timer_hi_[base+3] = timer_hi;
                 }
                 break;
-            case proto::MidiChannel_Oscillator_NOISE:
+            case proto::MidiChannel_Oscillator_NOISE: {
+                uint8_t note = (p.note() + p.arpeggio()) % 16;
                 nes_->mem()->Write(base + 0, vol | 0x30);
-                if (p.note() != last_timer_hi_[base+2]) {
-                    nes_->mem()->Write(base + 2, p.note() % 16);
+                if (note != last_timer_hi_[base+2]) {
+                    nes_->mem()->Write(base + 2, note);
                     nes_->mem()->Write(base + 3, 0xF8);
-                    last_timer_hi_[base+2] = p.note();
+                    last_timer_hi_[base+2] = note;
                 }
                 break;
+            }
             case proto::MidiChannel_Oscillator_DMC:
                 // We cheat and use `base+1` to represent the main APU enable register
-                //if (last_timer_hi_[base+1] != p.done()) {
-                    //nes_->mem()->Write(0x4015, p.done() ? 0x0F : 0x1F);
-                    nes_->mem()->Write(0x4015, 0x1F);
+                if (last_timer_hi_[base+1] != p.done()) {
+                    nes_->mem()->Write(0x4015, p.done() ? 0x0F : 0x1F);
+                    //nes_->mem()->Write(0x4015, 0x1F);
                     last_timer_hi_[base+1] = p.done();
-                //}
+                }
                 break;
 
             case proto::MidiChannel_Oscillator_VRC7_CH0:
@@ -555,7 +557,7 @@ void InstrumentPlayer::NoteOn(uint8_t note, uint8_t velocity) {
                     for(auto d : it->second.data()) {
                         nes_->cartridge()->WritePrg(addr++, d);
                     }
-                    dpcm_rate_ = uint8_t(dpcm.pitch()) | (dpcm.loop() ? 0x80 : 0);
+                    dpcm_rate_ = uint8_t(dpcm.pitch()) | (dpcm.loop() ? 0x40 : 0);
                     dpcm_addr_ = ((0xFF80 - dpcm_size_) & 0xFFF0) >> 6;
                     nes_->mem()->Write(0x4015, 0x0F);
                     nes_->mem()->Write(0x4010, dpcm_rate_);
@@ -621,6 +623,10 @@ uint8_t InstrumentPlayer::volume() {
     } else {
         return uint8_t(value);
     }
+}
+
+int8_t InstrumentPlayer::arpeggio() {
+    return arpeggio_.value();
 }
 
 uint8_t InstrumentPlayer::duty() {

@@ -68,6 +68,7 @@ class InstrumentPlayer {
     void PitchBend(uint16_t);
     void Release();
     void Step();
+    int8_t arpeggio();
     uint8_t volume();
     uint8_t duty();
     uint16_t timer();
